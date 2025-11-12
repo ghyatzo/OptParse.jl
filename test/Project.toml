@@ -1,0 +1,3 @@
+[deps]
+ComposableCLIParse = "1244ff17-1aa7-4121-9347-f4ead108e58f"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

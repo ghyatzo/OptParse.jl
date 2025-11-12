@@ -1,0 +1,17 @@
+name = "ComposableCLIParse"
+uuid = "1244ff17-1aa7-4121-9347-f4ead108e58f"
+version = "0.1.0"
+authors = ["ghyatzo <camillo.schenone@jasco.com>"]
+
+[workspace]
+projects = ["test"]
+
+[deps]
+ErrorTypes = "7f495686-c6d2-4c77-9e8e-e4c865675f9d"
+JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
+WrappedUnions = "325db55a-9c6c-5b90-b1a2-ec87e7a38c44"
+
+[compat]
+ErrorTypes = "0.5.2"
+JET = "0.11.0"
+WrappedUnions = "0.3.3"
