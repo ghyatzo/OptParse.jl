@@ -1,16 +1,16 @@
 # the primitives are just functions that return a parser
 
 # single boolean flags: -q --long
-struct ArgFlag{T, S}
-	priority::Integer
+struct ArgFlag{T, S, p}
 	initialState::S
 	#
 	names::Vector{String}
 	description::String
+
+	ArgFlag(names::Vector{String}; description = "" ) =
+		new{Bool, Result{Bool, String}, 9}(Err("Missing Flag(s) $(names)."), names, description)
 end
 
-ArgFlag(names::Vector{String}; description = "" ) =
-	ArgFlag{Bool, Result{Bool, String}}(9, Err("Missing Flag(s) $(names)."), names, description)
 
 function parse(p::ArgFlag{T, S}, ctx::Context)::ParseResult{S, String} where {T, S}
 	if ctx.optionsTerminated
@@ -84,18 +84,19 @@ end
 
 
 # options with values: -o 123 / --option value
-struct ArgOption{T, S}
-	priority::Integer
+struct ArgOption{T, S, p}
 	initialState::S
 	#
 	valparser::ValueParser{T}
 	#
 	names::Vector{String}
 	description::String
+
+
+	ArgOption(names::Vector{String}, valparser::ValueParser{T}; description = "") where {T} =
+		new{T, Result{T, String}, 10}(Err("Missing Option(s) $(names)."), valparser, names, description)
 end
 
-ArgOption(names::Vector{String}, valparser::ValueParser{T}; description = "") where {T} =
-	ArgOption{T, Result{T, String}}(10, Err("Missing Option(s) $(names)."), valparser, names, description)
 
 function parse(p::ArgOption{T, S}, ctx::Context)::ParseResult{S, String} where {T, S}
 	if ctx.optionsTerminated

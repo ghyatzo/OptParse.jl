@@ -1,5 +1,4 @@
-struct Object{T, S, P}
-	priority::Int
+struct Object{T, S, p, P}
 	initialState::S # NamedTuple of the states of its parsers
 	#
 	parsers::P
@@ -7,34 +6,35 @@ struct Object{T, S, P}
 end
 
 Object{T,S}(priority, initialState, parsers::P, label) where {T, S, P} =
-	Object{T, S, P}(priority, initialState, parsers, label)
+	Object{T, S, priority, P}(initialState, parsers, label)
 
 # object(label ;
 # 	option = option("--option", string()),
 # 	flag = flag("--version")
 # )
 _extract_parser_info(obj::T) where {T} = let
-	labels = keys(nm)
-	parsers = values(nm)
-
-	priorities = map(p -> p.priority, parsers)
-	sperm = sortperm(collect(priorities), rev=true)
-
-	# sort parsers by their priority
-	prio_sorted_parsers = parsers[sperm]
-	prio_sorted_labels = labels[sperm]
-
-	parsers_t = map(typeof, prio_sorted_parsers)
+	labels = fieldnames(T)
+	parsers_t = fieldtypes(T)
+	parsers = values(obj)
 	parsers_tvals = map(tval, parsers_t)
 	parsers_tstates = map(tstate, parsers_t)
+	priorities = map(priority, parsers_t)
 
-	obj_t = NamedTuple{prio_sorted_labels, Tuple{parsers_tvals...}}
-	obj_tstates = NamedTuple{prio_sorted_labels, Tuple{parsers_tstates...}}
+	#= We need to sort only the first element to maintain typestability =#
+	bags = sort(map(Tuple, zip(priorities, labels, parsers_t, parsers)), rev=true, lt=((t1,t2)) -> t1[1] < t2[1])
+	slabels = ntuple(length(labels)) do i; bags[i][2] end
+	sparsers_t = ntuple(length(labels)) do i; bags[i][3] end
+	# sparsers = ntuple(length(labels)) do i; bags[i][4] end
 
-	priority = priorities[sperm[1]]
-	initialState = NamedTuple{prio_sorted_labels}(map(p->getproperty(p, :initialState), prio_sorted_parsers))
+	# @show bags
 
-	prio_sorted_labels, prio_sorted_parsers, obj_t, obj_tstates, priority, initialState
+	obj_t = NamedTuple{slabels, Tuple{parsers_tvals...}}
+	obj_tstates = NamedTuple{slabels, Tuple{parsers_tstates...}}
+
+	prio = maximum(priorities)
+	init_state = NamedTuple{slabels}(map(p->getproperty(p, :initialState), sparsers))
+
+	slabels, sparsers, obj_t, obj_tstates, prio, init_state
 end
 
 

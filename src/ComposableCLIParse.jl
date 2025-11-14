@@ -67,25 +67,28 @@ include("valueparsers.jl")
 include("primitives.jl")
 include("constructors.jl")
 
-@wrapped struct Parser{T, S}
+@wrapped struct Parser{T, S, p}
 	union::Union{
-		ArgFlag{T, S},
-		ArgOption{T, S},
-		Object{T, S}
+		ArgFlag{T, S, p},
+		ArgOption{T, S, p},
+		Object{T, S, p}
 	}
 end
 
 Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
 
-tval(::Type{Parser{T, S}}) where {T, S} = T
-tstate(::Type{Parser{T,S}}) where {T,S} = S
+(priority(::Type{Parser{T, S, p}})::Int) where {T, S, p} = p
+priority(o::Parser) = priority(tyepof(o))
+
+tval(::Type{Parser{T, S, p}}) where {T,S,p} = T
+tstate(::Type{Parser{T,S, p}}) where {T,S,p} = S
 
 # primitives
 option(names::Vector{String}, valparser::ValueParser{T}; kw...) where {T} =
-	Parser{T, Result{T, String}}(ArgOption(names, valparser; kw...))
+	Parser{T, Result{T, String}, 10}(ArgOption(names, valparser; kw...))
 
 flag(names::Vector{String}; kw...) =
-	Parser{Bool, Result{Bool, String}}(ArgFlag(names; kw...))
+	Parser{Bool, Result{Bool, String}, 9}(ArgFlag(names; kw...))
 
 
 # constructors
@@ -103,7 +106,7 @@ end
 
 #####
 # entry point
-function argparse(parser::Parser{T, S}, args::Vector{String})::Result{T, String} where {T, S}
+function argparse(parser::Parser{T, S, p}, args::Vector{String})::Result{T, String} where {T, S, p}
 
 	ctx = Context(args, parser.initialState)
 
@@ -142,8 +145,8 @@ macro comment(_...) end
 		flag = flg
 	))
 
-	@show argparse(opt, args)
-	@show argparse(flg, args)
+	@show argparse(opt, ["--host", "me"])
+	@show argparse(flg, ["--verbose"])
 end
 
 end # module ComposableCLIParse
