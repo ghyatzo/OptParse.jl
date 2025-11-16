@@ -49,7 +49,7 @@ end
 ((iv::IntegerVal{T})(input::String)::Result{T, String}) where {T} = let
 	val = tryparse(T, input)
 	if isnothing(val)
-		return Err("Expected valid integer, got $input")
+		return Err("Expected valid integer, got `$input`")
 	end
 
 	(!isnothing(iv.min) && val < iv.min) && return Err("Value $input is below the minimum: $(iv.min)")

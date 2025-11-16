@@ -244,8 +244,7 @@ end
 
 	        # ...but the inner value parser failed (carry failure in state)
 	        @test is_error(ps.next.state)
-	        # If you want to assert the specific inner error message:
-	        # @test occursin("invalid", string(unwrap_error(ps.next.state)))
+	        @test occursin("Expected valid integer", string(unwrap_error(ps.next.state)))
 	    end
 
 	    @testset "should fail on unmatched option" begin

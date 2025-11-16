@@ -89,11 +89,11 @@ include("modifiers/optional.jl")
 	}
 end
 
-parser(x::ArgFlag{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-parser(x::ArgOption{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-parser(x::Object{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-parser(x::ModOptional{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-parser(x::ModWithDefault{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+parser(x::ArgFlag{T, S, p, P}) 			where {T, S, p, P} = Parser{T, S, p, P}(x)
+parser(x::ArgOption{T, S, p, P}) 		where {T, S, p, P} = Parser{T, S, p, P}(x)
+parser(x::Object{T, S, p, P}) 			where {T, S, p, P} = Parser{T, S, p, P}(x)
+parser(x::ModOptional{T, S, p, P}) 		where {T, S, p, P} = Parser{T, S, p, P}(x)
+parser(x::ModWithDefault{T, S, p, P}) 	where {T, S, p, P} = Parser{T, S, p, P}(x)
 
 (priority(::Type{Parser{T, S, p, P}})::Int) where {T, S, p, P} = p
 priority(o::Parser) = priority(tyepof(o))
