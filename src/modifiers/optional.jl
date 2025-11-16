@@ -14,7 +14,8 @@ function parse(p::ModOptional{T, S}, ctx::Context)::ParseResult{S, String} where
         parse_ok = unwrap(result)
         return ParseOk(parse_ok.consumed, parse_ok.next)
     else
-        return result
+        newctx = (@set ctx.state = S(Err(unwrap_error(result).error)))
+        return ParseOk(String[], newctx)
     end
 end
 

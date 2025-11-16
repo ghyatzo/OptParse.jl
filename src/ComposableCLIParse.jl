@@ -136,6 +136,12 @@ function argparse(pp::Parser{T, S, p}, args::Vector{String})::Result{T, String} 
 			complete function. At first we simply updated the state, which works for single state
 			parsers, but fails completely for multistate ones
 		=#
+        #=
+			This is correct, no need to bypass anything. The error was that the optional parser
+			was returning its child parse error as an error, while an optional parser
+			should alway return a success with an error state, which can be picked up in the complete function
+			but doesn't count as a proper Parseerror
+		=#
         if is_error(mayberesult)
             return Err(unwrap_error(mayberesult).error)
         end
