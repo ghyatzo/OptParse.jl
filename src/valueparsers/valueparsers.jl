@@ -20,6 +20,9 @@ end
 end
 
 
+
+
+
 @kwdef struct Choice{T}
     metavar::String = "CHOICE"
     caseInsensitive::Bool = true
@@ -40,8 +43,11 @@ end
 end
 
 
+
+
+
 @kwdef struct IntegerVal{T}
-    metaval::String = "INTEGER"
+    metavar::String = "INTEGER"
     #
     type::Type = T
     min::Union{Int, Nothing} = nothing
@@ -60,10 +66,49 @@ end
 end
 
 
+
+
+
+@kwdef struct FloatVal{T}
+    metavar::String = "FLOAT"
+    #
+    type::Type = T
+    min::Union{T, Nothing} = nothing
+    max::Union{T, Nothing} = nothing
+    allowInfinity = false
+    allowNan = false
+end
+((f::FloatVal{T})(input::String)::Result{T, String}) where {T} = let
+    val = tryparse(T, input)
+    if isnothing(val)
+        return Err("Expected valid float, got `$input`")
+    end
+
+    if isinf(val) && !f.allowInfinity
+        return Err("Infinite floats are not allowed.")
+    end
+
+    if isnan(val) && !f.allowNan
+        return Err("NaNs are not allowed.")
+    end
+
+    (!isnothing(f.min) && val < f.min) && return Err("Value $input is below the minimum: $(f.min)")
+    (!isnothing(f.max) && val > f.max) && return Err("Value $input is above the maximum: $(f.max)")
+
+    return Ok(val)
+end
+
+
+
+
+
+
+
 @wrapped struct ValueParser{T}
     union::Union{
         StringVal{T},
         IntegerVal{T},
+        FloatVal{T},
         Choice{T},
     }
 end
@@ -79,3 +124,6 @@ str(; kw...) = ValueParser{String}(StringVal{String}(; kw...))
 choice(values::Vector{T}; kw...) where {T} = ValueParser{T}(Choice(; values, kw...))
 integer(::Type{T}; kw...) where {T} = ValueParser{T}(IntegerVal{T}(; type = T, kw...))
 integer(; kw...) = ValueParser{Int}(IntegerVal{Int}(; kw...))
+
+float(::Type{T}; kw...) where {T} = ValueParser{T}(FloatVal{T}(; type=T, kw...))
+float(; kw...) = ValueParser{Float64}(FloatVal{Float64}(; kw...))
