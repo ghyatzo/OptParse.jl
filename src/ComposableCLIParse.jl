@@ -8,9 +8,9 @@ using ErrorTypes: @?, Err, Ok, Option, Result, is_error, none, some, unwrap, unw
 # based on: https://optique.dev/concepts
 
 # primitive parsers: building blocks of command line interfaces
-#	- constant()
-#	- option()
-#	- flag()
+#	- constant() ok
+#	- option() ok
+#	- flag() ok
 #	- argument()
 #	- command()
 #	- parsers priority: command > argument > option > flag > constant
@@ -61,6 +61,7 @@ export argparse,
     constant,
     flag,
     option,
+    argument,
 
     # valueparsers
     str,
@@ -86,6 +87,7 @@ include("modifiers/modifiers.jl")
         ArgFlag{T, S, p, P},
         ArgOption{T, S, p, P},
         ArgConstant{T, S, p, P},
+        ArgArgument{T, S, p, P},
         Object{T, S, p, P},
         ModOptional{T, S, p, P},
         ModWithDefault{T, S, p, P},
@@ -95,6 +97,7 @@ end
 parser(x::ArgFlag{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
 parser(x::ArgOption{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
 parser(x::ArgConstant{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+parser(x::ArgArgument{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
 parser(x::Object{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
 parser(x::ModOptional{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
 parser(x::ModWithDefault{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
@@ -116,6 +119,7 @@ complete(p::Parser, st) = @unionsplit complete(p, st)
 option(names::Vector{String}, valparser::ValueParser{T}; kw...) where {T} = parser(ArgOption(names, valparser; kw...))
 flag(names::Vector{String}; kw...) = parser(ArgFlag(names; kw...))
 constant(val) = parser(ArgConstant(val))
+argument(valparser::ValueParser{T}; kw...) where {T} = parser(ArgArgument(valparser; kw...))
 
 # constructors
 object(obj::NamedTuple) = parser(_object(obj))
@@ -199,6 +203,9 @@ macro comment(_...) end
             flag = def_flg,
         )
     )
+
+    arg = argument(str(; metavar = "TEST"))
+
 
     using JET
     @report_opt argparse(opt, ["--host", "me"])

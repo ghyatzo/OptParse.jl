@@ -68,6 +68,9 @@ end
     }
 end
 
+Base.getproperty(v::ValueParser, f::Symbol) = @unionsplit Base.getproperty(v, f)
+metavar(v::ValueParser) = v.metavar
+
 (parse(x::ValueParser{T}, input::String)::Result{T, String}) where {T} = @unionsplit parse(x, input)
 ((v::ValueParser{T})(input::String)::Result{T, String}) where {T} = @unionsplit v(input)
 
