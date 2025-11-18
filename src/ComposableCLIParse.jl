@@ -3,7 +3,7 @@ module ComposableCLIParse
 using Accessors: @set, PropertyLens, insert, set
 using WrappedUnions: @wrapped, @unionsplit
 using ErrorTypes: @?, Err, Ok, Option, Result, is_error, none, some, unwrap, unwrap_error, base
-
+using UUIDs: UUID, uuid_version
 
 # based on: https://optique.dev/concepts
 

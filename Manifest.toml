@@ -2,12 +2,7 @@
 
 julia_version = "1.12.1"
 manifest_format = "2.0"
-project_hash = "4a5ca98136f20186ef9b4a9cd31c8826356ade71"
-
-[[deps.AbstractTrees]]
-git-tree-sha1 = "2d9c9a55f9c93e8887ad391fbae72f8ef55e1177"
-uuid = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
-version = "0.4.5"
+project_hash = "0c9d4011918130e01490e3fe2e07377612e892c9"
 
 [[deps.Accessors]]
 deps = ["CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "MacroTools"]
@@ -57,7 +52,7 @@ uuid = "807dbc54-b67e-4c79-8afb-eafe4df6f2e1"
 version = "0.1.1"
 
 [[deps.ComposableCLIParse]]
-deps = ["Accessors", "Cthulhu", "ErrorTypes", "JET", "WrappedUnions"]
+deps = ["Accessors", "ErrorTypes", "UUIDs", "WrappedUnions"]
 path = "."
 uuid = "1244ff17-1aa7-4121-9347-f4ead108e58f"
 version = "0.1.0"
@@ -86,16 +81,6 @@ version = "1.6.0"
     LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
     StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
-[[deps.Cthulhu]]
-deps = ["CodeTracking", "FoldingTrees", "InteractiveUtils", "JuliaSyntax", "PrecompileTools", "Preferences", "REPL", "TypedSyntax", "UUIDs", "Unicode", "WidthLimitedIO"]
-git-tree-sha1 = "a79f49906b5f7559f8ba43bb972d80464ae6a0a5"
-uuid = "f68482b8-f384-11e8-15f7-abe071a5a75f"
-version = "2.17.10"
-weakdeps = ["Compiler"]
-
-    [deps.Cthulhu.extensions]
-    CthulhuCompilerExt = "Compiler"
-
 [[deps.Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -114,12 +99,6 @@ version = "0.5.2"
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 version = "1.11.0"
-
-[[deps.FoldingTrees]]
-deps = ["AbstractTrees", "REPL"]
-git-tree-sha1 = "c1b0164369256b26f71d9830df9000a9c39757fc"
-uuid = "1eca21be-9b9b-4ed8-839a-6d8ae26b1781"
-version = "1.2.2"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -310,12 +289,6 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
 
-[[deps.TypedSyntax]]
-deps = ["CodeTracking", "JuliaSyntax"]
-git-tree-sha1 = "8b40325894b99e7e4f35ada6c60efc7bf0b097d2"
-uuid = "d265eb64-f81a-44ad-a842-4247ee1503de"
-version = "1.5.2"
-
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
@@ -324,12 +297,6 @@ version = "1.11.0"
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 version = "1.11.0"
-
-[[deps.WidthLimitedIO]]
-deps = ["Unicode"]
-git-tree-sha1 = "71142739e695823729a335e9bc124ef41ec1433a"
-uuid = "b8c1c048-cf81-46c6-9da0-18c1d99e41f2"
-version = "1.0.1"
 
 [[deps.WrappedUnions]]
 git-tree-sha1 = "71da93b64b4323ddaa4ddf027fef0988f6749603"

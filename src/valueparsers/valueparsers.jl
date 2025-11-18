@@ -75,8 +75,8 @@ end
     type::Type = T
     min::Union{T, Nothing} = nothing
     max::Union{T, Nothing} = nothing
-    allowInfinity = false
-    allowNan = false
+    allowInfinity::Bool = false
+    allowNan::Bool = false
 end
 ((f::FloatVal{T})(input::String)::Result{T, String}) where {T} = let
     val = tryparse(T, input)
@@ -99,7 +99,26 @@ end
 end
 
 
+@kwdef struct UUIDVal{T}
+    metavar::String = "UUID"
+    #
+    allowedVersions::Vector{Int} = Int[]
+end
+((u::UUIDVal)(input::String)::Result{UUID, String}) = let
 
+    maybeuuid = try UUID(input) catch; nothing end
+    if isnothing(maybeuuid)
+        return Err("Malformed UUID string: `$input`.")
+    end
+
+    version = uuid_version(maybeuuid)
+    if isempty(u.allowedVersions) || version ∈ u.allowedVersions
+        return Ok(maybeuuid)
+    end
+
+    return Err("Expected UUID of version [$(join(u.allowedVersions, ','))], but got version $version")
+
+end
 
 
 
@@ -110,6 +129,7 @@ end
         IntegerVal{T},
         FloatVal{T},
         Choice{T},
+        UUIDVal{T},
     }
 end
 
@@ -125,5 +145,7 @@ choice(values::Vector{T}; kw...) where {T} = ValueParser{T}(Choice(; values, kw.
 integer(::Type{T}; kw...) where {T} = ValueParser{T}(IntegerVal{T}(; type = T, kw...))
 integer(; kw...) = ValueParser{Int}(IntegerVal{Int}(; kw...))
 
-float(::Type{T}; kw...) where {T} = ValueParser{T}(FloatVal{T}(; type=T, kw...))
-float(; kw...) = ValueParser{Float64}(FloatVal{Float64}(; kw...))
+flt(::Type{T}; kw...) where {T} = ValueParser{T}(FloatVal{T}(; type=T, kw...))
+flt(; kw...) = ValueParser{Float64}(FloatVal{Float64}(; kw...))
+
+uuid(; kw...) = ValueParser{UUID}(UUIDVal{UUID}(; kw...))
