@@ -122,12 +122,14 @@ tstate(p::Parser) = tstate(typeof(p))
 
 
 Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
+Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
 parse(p::Parser, ctx::Context) = @unionsplit parse(p, ctx)
 complete(p::Parser, st) = @unionsplit complete(p, st)
 
 # primitives
-option(names::Vector{String}, valparser::ValueParser{T}; kw...) where {T} = parser(ArgOption(names, valparser; kw...))
-flag(names::Vector{String}; kw...) = parser(ArgFlag(names; kw...))
+option(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; kw...) where {T} = parser(ArgOption(Tuple(names), valparser; kw...))
+option(names::String, valparser::ValueParser{T}; kw...) where {T} = parser(ArgOption((names,), valparser; kw...))
+flag(names...; kw...) = parser(ArgFlag(names; kw...))
 macro constant(val) :(parser(ArgConstant($val))) end
 argument(valparser::ValueParser{T}; kw...) where {T} = parser(ArgArgument(valparser; kw...))
 

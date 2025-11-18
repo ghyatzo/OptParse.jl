@@ -263,7 +263,7 @@ end
 
     @testset "Option parser" begin
         @testset "should parse option with separated value" begin
-            parser = option(["-p", "--port"], integer())
+            parser = option(("-p", "--port"), integer())
             context = Context(["--port", "8080"], parser.initialState)
 
             res = @unionsplit parse(parser, context)  # :: ParseResult
@@ -280,7 +280,7 @@ end
         end
 
         @testset "should parse option with equals-separated value" begin
-            parser = option(["--port"], integer())
+            parser = option("--port", integer())
             context = Context(["--port=8080"], parser.initialState)
 
             res = @unionsplit parse(parser, context)
@@ -310,7 +310,7 @@ end
         # end
 
         @testset "should fail when value is missing" begin
-            parser = option(["--port"], integer())
+            parser = option("--port", integer())
             context = Context(["--port"], parser.initialState)
 
             res = @unionsplit parse(parser, context)
@@ -323,7 +323,7 @@ end
         end
 
         @testset "should parse string values" begin
-            parser = option(["--name"], str(; metavar = "NAME"))
+            parser = option("--name", str(; metavar = "NAME"))
             context = Context(["--name", "Alice"], parser.initialState)
 
             res = @unionsplit parse(parser, context)
@@ -336,7 +336,7 @@ end
         end
 
         @testset "should propagate value parser failures" begin
-            parser = option(["--port"], integer(; min = 1, max = 0xffff))
+            parser = option("--port", integer(; min = 1, max = 0xffff))
             context = Context(["--port", "invalid"], parser.initialState)
 
             res = @unionsplit parse(parser, context)
@@ -351,7 +351,7 @@ end
         end
 
         @testset "should fail on unmatched option" begin
-            parser = option(["-v", "--verbose"], choice(["yes", "no"]))
+            parser = option(("-v", "--verbose"), choice(["yes", "no"]))
             context = Context(["--help"], parser.initialState)
 
             res = @unionsplit parse(parser, context)
@@ -364,14 +364,167 @@ end
         end
 
         @testset "should be type stable" begin
-            @test_opt option(["--port"], integer())
-            parser = option(["--port"], integer())
+            @test_opt option("--port", integer())
+            parser = option("--port", integer())
 
             context = Context(["--port", "8080"], parser.initialState, false)
 
             _p(par, ctx) = @unionsplit parse(par, ctx)
             @test_opt _p(parser, context)
         end
+    end
+end
+
+@testset "Constructors" begin
+    @testset "Objects" begin
+
+    @testset "should combine multiple parsers into an object" begin
+        parser = object((
+            verbose = flag("-v", "--verbose"),
+            port    = option(("-p", "--port"), integer()),
+        ))
+
+        @test priority(parser) >= 10
+
+        # initialState should contain fields :verbose and :port
+        @test hasproperty(parser, :initialState)
+        names = propertynames(parser.initialState)
+        @test :verbose in names
+        @test :port in names
+    end
+
+    @testset "should parse multiple options in sequence" begin
+        parser = object((
+            verbose = flag("-v"),
+            port    = option("-p", integer()),
+        ))
+
+        argv = ["-v", "-p", "8080"]
+        ctx = Context(argv, parser.initialState)
+        res = parse(parser, ctx)
+
+        @test !is_error(res)
+        if !is_error(res)
+            ps = unwrap(res)
+            st = ps.next.state
+            @test haskey(Dict(propertynames(st) .=> getfield.(Ref(st), propertynames(st))), :verbose)
+            @test haskey(Dict(propertynames(st) .=> getfield.(Ref(st), propertynames(st))), :port)
+            @test (@? getfield(st, :verbose)) == true
+            @test (@? getfield(st, :port)) == 8080
+        end
+    end
+
+    @testset "should work with labeled objects" begin
+        parser = object("Test Group", (
+            flag = flag("-f"),
+        ))
+
+        @test hasproperty(parser, :initialState)
+        names = propertynames(parser.initialState)
+        @test :flag in names
+    end
+
+    @testset "should handle parsing failure in nested parser" begin
+        parser = object((
+            port = option("-p", integer(; min=1)),
+        ))
+
+        argv = ["-p", "0"]
+        ctx = Context(argv, parser.initialState)
+        res = parse(parser, ctx)
+
+        @test is_error(res)
+    end
+
+    @testset "should fail when no option matches" begin
+        parser = object((
+            verbose = flag("-v"),
+        ))
+
+        buffer = ["--help"]
+        state = parser.initialState
+        ctx = Context(buffer, state)  # optionsTerminated defaults to false
+        res = parse(parser, ctx)
+
+        @test is_error(res)
+        if is_error(res)
+            pf = unwrap_error(res)
+            @test pf.consumed == 0
+            @test occursin("Unexpected option", string(pf.error))
+        end
+    end
+
+    @testset "should handle empty arguments gracefully when required options are present" begin
+        parser = object((
+            verbose = flag("-v"),
+            port    = option( "-p", integer()),
+        ))
+
+        argv = String[]
+        ctx = Context(argv, parser.initialState)
+        res = parse(parser, ctx)
+
+        @test is_error(res)
+        if is_error(res)
+            pf = unwrap_error(res)
+            @test occursin("Expected an option", string(pf.error))
+        end
+    end
+
+    # @testset "should succeed with empty input when only Boolean flags are present" begin
+    #     parser = object((
+    #         watch = flag("--watch"),
+    #     ))
+
+    #     argv = String[]
+    #     ctx = Context(argv, parser.initialState)
+    #     res = parse(parser, ctx)
+
+    #     @test !is_error(res)
+    #     if !is_error(res)
+    #         st = unwrap(res).next.state
+    #         @test getfield(st, :watch) == false
+    #     end
+    # end
+
+    # @testset "should succeed with empty input when multiple Boolean flags are present" begin
+    #     parser = object((
+    #         watch   = flag("--watch"),
+    #         verbose = flag("--verbose"),
+    #         debug   = flag("--debug"),
+    #     ))
+
+    #     argv = String[]
+    #     ctx = Context(argv, parser.initialState)
+    #     res = parse(parser, ctx)
+
+    #     @test !is_error(res)
+    #     if !is_error(res)
+    #         st = unwrap(res).next.state
+    #         @test getfield(st, :watch) == false
+    #         @test getfield(st, :verbose) == false
+    #         @test getfield(st, :debug) == false
+    #     end
+    # end
+
+    # @Testset "should parse Boolean flags correctly when provided" begin
+    #     parser = object((
+    #         watch   = flag("--watch"),
+    #         verbose = flag("--verbose"),
+    #     ))
+
+    #     argv = ["--watch"]
+    #     ctx = Context(argv, parser.initialState)
+    #     res = parse(parser, ctx)
+
+    #     @test !is_error(res)
+    #     if !is_error(res)
+    #         st = unwrap(res).next.state
+    #         @test getfield(st, :watch) == true
+    #         @test getfield(st, :verbose) == false
+    #     end
+    # end
+
     end
 end
 
@@ -404,7 +557,7 @@ end
         end
 
         @testset "should propagate successful parse results" begin
-            baseParser     = option(["-n", "--name"], str())
+            baseParser     = option(("-n", "--name"), str())
             optionalParser = optional(baseParser)
 
             context = Context(["-n", "Alice"], optionalParser.initialState)
@@ -458,7 +611,7 @@ end
         end
 
         @testset "should propagate wrapped parser completion failures" begin
-            baseParser     = option(["-p", "--port"], integer(; min = 1))
+            baseParser     = option(("-p", "--port"), integer(; min = 1))
             optionalParser = optional(baseParser)
 
             # Simulate a collected failed inner state
@@ -540,7 +693,7 @@ end
         end
 
         @testset "should handle state transitions" begin
-            baseParser     = option(["-n", "--name"], str())
+            baseParser     = option(("-n", "--name"), str())
             optionalParser = optional(baseParser)
 
             # initial state should be "undefined" (nothing)
@@ -563,7 +716,7 @@ end
         end
 
         @testset "should be type stable" begin
-            baseParser     = option(["-n", "--name"], str())
+            baseParser     = option(("-n", "--name"), str())
             @test_opt optional(baseParser)
             optionalParser = optional(baseParser)
 

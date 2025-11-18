@@ -8,8 +8,8 @@ struct ArgOption{T, S, p, P}
     description::String
 
 
-    ArgOption(names::Vector{String}, valparser::ValueParser{T}; description = "") where {T} =
-        new{T, Result{T, String}, 10, Nothing}(Err("Missing Option(s) $(names)."), nothing, valparser, names, description)
+    ArgOption(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; description = "") where {T} =
+        new{T, Result{T, String}, 10, Nothing}(Err("Missing Option(s) $(names)."), nothing, valparser, [names...], description)
 end
 
 
