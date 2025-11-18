@@ -81,14 +81,14 @@ end
 
     @testset "Constant parser" begin
         @testset "should create a parser that always returns the same value" begin
-            parser = constant(42)
+            parser = @constant(42)
 
             @test priority(parser) == 0
             @test unwrap(parser.initialState) == Val(42)
         end
 
         @testset "should parse without consuming any input" begin
-            parser = constant(:hello)
+            parser = @constant(:hello)
             context = Context(["--option", "value"], Result{Val{:hello}, String}(Ok(Val(:hello))))
 
             result = @unionsplit parse(parser, context)
@@ -98,8 +98,13 @@ end
                 !is_error(result)
             end
         end
+
+        @test "should fail when passed strings" begin
+            @test_throws parser = @constant("hello")
+        end
+        
         @testset "should complete successfully with a constant value" begin
-            parser = constant(69)
+            parser = @constant(69)
             result = complete(parser, Result{Val{69}, String}(Ok(Val(69))))
 
             @test is_ok_and(result) do succ
@@ -108,15 +113,22 @@ end
             end
         end
         @testset "should work with different value types" begin
-            stringconst = constant(:hello)
-            intconst = constant(123)
-            boolconst = constant(true)
-            namedtupleconst = constant((key = :value,))
+            stringconst = @constant(:hello)
+            intconst = @constant(123)
+            boolconst = @constant(true)
+            namedtupleconst = @constant((key = :value,))
 
             @test (@? complete(stringconst,     Result{Val{:hello}, String}(Ok(Val(:hello))))) == :hello
             @test (@? complete(intconst,        Result{Val{123}, String}(Ok(Val(123))))) == 123
             @test (@? complete(boolconst,       Result{Val{true}, String}(Ok(Val(true))))) == true
             @test (@? complete(namedtupleconst, Result{Val{(key = :value,)}, String}(Ok(Val((key = :value,)))))) == (key = :value,)
+        end
+
+        @testset "should be type stable" begin
+            @test_opt @constant(:hello)
+            @test_opt @constant(123)
+            @test_opt @constant(true)
+            @test_opt @constant((key = :value,))
         end
     end
 
@@ -249,7 +261,7 @@ end
         end
     end
 
-    @testset "option parser" begin
+    @testset "Option parser" begin
         @testset "should parse option with separated value" begin
             parser = option(["-p", "--port"], integer())
             context = Context(["--port", "8080"], parser.initialState)
@@ -480,7 +492,7 @@ end
         # end
 
         @testset "should work with constant parsers" begin
-            baseParser     = constant(:hello)
+            baseParser     = @constant(:hello)
             optionalParser = optional(baseParser)
 
             context     = Context(String[], optionalParser.initialState)

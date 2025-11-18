@@ -58,7 +58,7 @@ using UUIDs: UUID, uuid_version
 
 export argparse,
     # primitives
-    constant,
+    @constant,
     flag,
     option,
     argument,
@@ -128,7 +128,7 @@ complete(p::Parser, st) = @unionsplit complete(p, st)
 # primitives
 option(names::Vector{String}, valparser::ValueParser{T}; kw...) where {T} = parser(ArgOption(names, valparser; kw...))
 flag(names::Vector{String}; kw...) = parser(ArgFlag(names; kw...))
-constant(val) = parser(ArgConstant(val))
+macro constant(val) :(parser(ArgConstant($val))) end
 argument(valparser::ValueParser{T}; kw...) where {T} = parser(ArgArgument(valparser; kw...))
 
 # constructors
