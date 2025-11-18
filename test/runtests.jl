@@ -561,5 +561,18 @@ end
             @test !is_error(innerres)
             @test unwrap(innerres) == "test"
         end
+
+        @testset "should be type stable" begin
+            baseParser     = option(["-n", "--name"], str())
+            @test_opt optional(baseParser)
+            optionalParser = optional(baseParser)
+
+            # initial state should be "undefined" (nothing)
+            @test optionalParser.initialState === none(tstate(baseParser))
+
+            context     = Context(["-n", "test"], none(tstate(optionalParser)))
+
+            @test_opt parse(optionalParser, context)
+        end
     end
 end
