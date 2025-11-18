@@ -11,7 +11,7 @@ using UUIDs: UUID, uuid_version
 #	OK constant()
 #	OK option()
 #	OK flag()
-#	OK argument()
+#   TEST argument()
 #	- command()
 #	- parsers priority: command > argument > option > flag > constant
 
@@ -22,7 +22,7 @@ using UUIDs: UUID, uuid_version
 #	OK float(min, max, allowInfinity, allowNan)
 #	OK choice([list of choices], caseinsensitive)
 #	- uri() # also this one shold be easy?
-#	- uuid() # this one is easy
+#	OK uuid() # this one is easy
 #	- path() # might be a bit out of scope
 #	- instant() # moment in time
 #	- duration()
@@ -42,7 +42,7 @@ using UUIDs: UUID, uuid_version
 
 # modifying combinators: Transform existing Parsers adding additional behaviour on top of the core one
 #	OK optional()
-#	OK withDefault()
+#	TEST withDefault()
 #	- map()
 #	- multiple(min, max) (match multiple times, collect into an array.)
 #	-
