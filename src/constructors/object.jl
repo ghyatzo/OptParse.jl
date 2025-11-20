@@ -1,4 +1,4 @@
-const ObjectState{L, P} = NamedTuple{X, P}
+const ObjectState{L, P} = NamedTuple{L, P}
 
 struct Object{T, S, p, P}
     initialState::S # NamedTuple of the states of its parsers

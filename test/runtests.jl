@@ -25,6 +25,10 @@ end
     @testset "Option parser" begin
         include("primitives/option.jl")
     end
+
+    @testset "Argument parser" begin
+        include("primitives/argument.jl")
+    end
 end
 
 @testset "Constructors" begin
@@ -146,6 +150,8 @@ Treat all parser results as `Result`/`Option` from **ErrorTypes.jl**.
 *   When the TS code does `parse(parser, ["list", "of", "strings"])`, **translate to**:
     *   `argparse(parser, ["list", "of", "strings"])`
 *   Keep the **value parser at the end** for `option(...)` (do **not** reorder arguments).
+*   options `option(...)` with only strings as arguments are to be translated into `flag(...)`
+*   any call to `string(...)` is to be translated to `str(...)`
 *   Use `getproperty(x, :field)` instead of `getfield(x, :field)` when checking fields.
 *   When asserting `ParseSuccess.consumed` for **multiple flags/args**, ensure it’s a **tuple** (e.g., `("-n", "Alice")`), not an array.
 
