@@ -2,7 +2,7 @@ module ComposableCLIParse
 
 using Accessors: @set, PropertyLens, insert, set
 using WrappedUnions: @wrapped, @unionsplit
-using ErrorTypes: @?, Err, Ok, Option, Result, is_error, none, some, unwrap, unwrap_error, base
+using ErrorTypes: @?, Err, Ok, Option, Result, is_error, none, some, unwrap, unwrap_error, base, is_ok_and
 using UUIDs: UUID, uuid_version
 
 # based on: https://optique.dev/concepts
@@ -81,6 +81,7 @@ export argparse,
 
     # constructors
     object,
+    or,
 
     # modifier
     optional,
@@ -90,37 +91,41 @@ export argparse,
 include("parser.jl")
 include("valueparsers/valueparsers.jl")
 include("primitives/primitives.jl")
-include("constructors/object.jl")
+include("constructors/constructors.jl")
 include("modifiers/modifiers.jl")
 
-@wrapped struct Parser{T, S, p, P}
+@wrapped struct Parser{T,S,p,P}
     union::Union{
-        ArgFlag{T, S, p, P},
-        ArgOption{T, S, p, P},
-        ArgConstant{T, S, p, P},
-        ArgArgument{T, S, p, P},
-        Object{T, S, p, P},
-        ModOptional{T, S, p, P},
-        ModWithDefault{T, S, p, P},
-        ArgCommand{T, S, p, P},
+        ArgFlag{T,S,p,P},
+        ArgOption{T,S,p,P},
+        ArgConstant{T,S,p,P},
+        ArgArgument{T,S,p,P},
+        ConstrObject{T,S,p,P},
+        ConstrOr{T,S,p,P},
+        ModOptional{T,S,p,P},
+        ModWithDefault{T,S,p,P},
+        ArgCommand{T,S,p,P},
     }
 end
 
-_parser(x::ArgFlag{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ArgOption{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ArgConstant{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ArgArgument{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ArgCommand{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::Object{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ModOptional{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ModWithDefault{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+_parser(x::ArgFlag{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
+_parser(x::ArgOption{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
+_parser(x::ArgConstant{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
+_parser(x::ArgArgument{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
+_parser(x::ArgCommand{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
 
-(priority(::Type{Parser{T, S, p, P}})::Int) where {T, S, p, P} = p
+_parser(x::ConstrObject{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
+_parser(x::ConstrOr{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
+
+_parser(x::ModOptional{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
+_parser(x::ModWithDefault{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
+
+(priority(::Type{Parser{T,S,p,P}})::Int) where {T,S,p,P} = p
 priority(o::Parser) = priority(typeof(o))
 
-tval(::Type{Parser{T, S, p, P}}) where {T, S, p, P} = T
+tval(::Type{Parser{T,S,p,P}}) where {T,S,p,P} = T
 tval(p::Parser) = tval(typeof(p))
-tstate(::Type{Parser{T, S, p, P}}) where {T, S, p, P} = S
+tstate(::Type{Parser{T,S,p,P}}) where {T,S,p,P} = S
 tstate(p::Parser) = tstate(typeof(p))
 
 
@@ -141,7 +146,8 @@ command(name::String, p::Parser; kw...) = _parser(ArgCommand(name, p))
 
 # constructors
 object(obj::NamedTuple) = _parser(_object(obj))
-object(objlabel, obj::NamedTuple) = _parser(_object(obj; label = objlabel))
+object(objlabel, obj::NamedTuple) = _parser(_object(obj; label=objlabel))
+or(parsers...) = _parser(ConstrOr(parsers))
 
 # modifiers
 optional(p::Parser) = _parser(ModOptional(p))
@@ -150,24 +156,24 @@ withDefault(default::T) where {T} = (p::Parser{T}) -> _parser(ModWithDefault(p, 
 
 #####
 # entry point
-function argparse(pp::Parser{T, S, p}, args::Vector{String})::Result{T, String} where {T, S, p}
+function argparse(pp::Parser{T,S,p}, args::Vector{String})::Result{T,String} where {T,S,p}
 
     ctx = Context(args, pp.initialState)
 
     while true
-        mayberesult::ParseResult{S, String} = parse(pp, ctx)
+        mayberesult::ParseResult{S,String} = parse(pp, ctx)
         #=
-			There is currently an issue. We need a mechanism to allow bypassing this check
-			To allow for potential "fixable" errors (think optional) to pass through to the
-			complete function. At first we simply updated the state, which works for single state
-			parsers, but fails completely for multistate ones
-		=#
+        There is currently an issue. We need a mechanism to allow bypassing this check
+        To allow for potential "fixable" errors (think optional) to pass through to the
+        complete function. At first we simply updated the state, which works for single state
+        parsers, but fails completely for multistate ones
+        =#
         #=
-			This is correct, no need to bypass anything. The error was that the optional parser
-			was returning its child parse error as an error, while an optional parser
-			should alway return a success with an error state, which can be picked up in the complete function
-			but doesn't count as a proper Parseerror
-		=#
+        This is correct, no need to bypass anything. The error was that the optional parser
+        was returning its child parse error as an error, while an optional parser
+        should alway return a success with an error state, which can be picked up in the complete function
+        but doesn't count as a proper Parseerror
+        =#
         if is_error(mayberesult)
             return Err(unwrap_error(mayberesult).error)
         end
@@ -177,10 +183,10 @@ function argparse(pp::Parser{T, S, p}, args::Vector{String})::Result{T, String} 
         ctx = result.next
 
         if (
-                length(ctx.buffer) > 0
-                    && length(ctx.buffer) == length(previous_buffer)
-                    && ctx.buffer[1] === previous_buffer[1]
-            )
+            length(ctx.buffer) > 0
+            && length(ctx.buffer) == length(previous_buffer)
+            && ctx.buffer[1] === previous_buffer[1]
+        )
 
             return Err("Unexpected option or argument: $(ctx.buffer[1]).")
         end
@@ -197,7 +203,7 @@ macro comment(_...) end
     using ComposableCLIParse
     args = ["--host", "me", "--verbose", "--test"]
 
-    opt = option(["--host"], str(; metavar = "HOST"))
+    opt = option(["--host"], str(; metavar="HOST"))
     flg = flag(["--verbose"])
     flg2 = flag(["--test"])
 
@@ -206,9 +212,9 @@ macro comment(_...) end
     obj = object(
         "test", (
             # cst = cst,
-            option = opt,
-            flag = flg,
-            flag2 = flg2,
+            option=opt,
+            flag=flg,
+            flag2=flg2,
         )
     )
 
@@ -217,12 +223,12 @@ macro comment(_...) end
 
     obj2 = object(
         "test mod", (
-            option = opt_opt,
-            flag = def_flg,
+            option=opt_opt,
+            flag=def_flg,
         )
     )
 
-    arg = argument(str(; metavar = "TEST"))
+    arg = argument(str(; metavar="TEST"))
 
 
     using JET
@@ -236,10 +242,10 @@ macro comment(_...) end
     @report_opt argparse(obj2, String[])
 
     @btime ComposableCLIParse._sort_obj(nt) setup = begin
-        opt = option(["--host"], stringval(; metavar = "HOST"))
+        opt = option(["--host"], stringval(; metavar="HOST"))
         flg = flag(["--verbose"])
 
-        nt = (option = opt, flag = flg)
+        nt = (option=opt, flag=flg)
     end
 end
 
