@@ -101,10 +101,10 @@ include("modifiers/modifiers.jl")
         ArgConstant{T,S,p,P},
         ArgArgument{T,S,p,P},
         ConstrObject{T,S,p,P},
-        ConstrOr{T,S,p,P},
+        # ConstrOr{T,S,p,P},
         ModOptional{T,S,p,P},
         ModWithDefault{T,S,p,P},
-        ArgCommand{T,S,p,P},
+        # ArgCommand{T,S,p,P},
     }
 end
 
