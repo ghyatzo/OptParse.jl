@@ -1,7 +1,7 @@
 const OrState{X} = Tuple{Int,X} # X should be a Tuple of Option{ParseSuccess{SP1}} etc
 
 # a parser that returns the first parsers that matches, in the order provided!
-struct ConstrOr{T,S,p,P}
+struct ConstrOr{T,S,p,P} <: AbstractParser{T, S, p, P}
     initialState::S
     parsers::P
 end

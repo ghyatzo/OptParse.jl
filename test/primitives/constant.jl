@@ -23,7 +23,7 @@ end
 
 @testset "should complete successfully with a constant value" begin
     parser = @constant(69)
-    result = complete(parser,Val(69))
+    result = @unionsplit complete(parser,Val(69))
 
     @test is_ok_and(result) do succ
         @test succ == 69
@@ -36,10 +36,10 @@ end
     boolconst = @constant(true)
     namedtupleconst = @constant((key = :value,))
 
-    @test (@? complete(stringconst, Val(:hello))) == :hello
-    @test (@? complete(intconst, Val(123))) == 123
-    @test (@? complete(boolconst, Val(true))) == true
-    @test (@? complete(namedtupleconst, Val((key = :value,)))) == (key = :value,)
+    @test (@? complete(unwrapunion(stringconst), Val(:hello))) == :hello
+    @test (@? complete(unwrapunion(intconst), Val(123))) == 123
+    @test (@? complete(unwrapunion(boolconst), Val(true))) == true
+    @test (@? complete(unwrapunion(namedtupleconst), Val((key = :value,)))) == (key = :value,)
 end
 
 @testset "should be type stable" begin

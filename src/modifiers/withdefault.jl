@@ -1,6 +1,6 @@
 const WithDefaultState{X} = Option{X}
 
-struct ModWithDefault{T, S, p, P}
+struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S
     parser::P
     #

@@ -2,7 +2,7 @@
 const FlagState = Result{Bool, String}
 
 # single boolean flags: -q --long
-struct ArgFlag{T, S, p, P}
+struct ArgFlag{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S
     _dummy::P
     #

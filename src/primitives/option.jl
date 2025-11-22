@@ -1,7 +1,7 @@
 const OptionState{X} = Result{X, String}
 
-# options with values: -o 123 / --option value
-struct ArgOption{T, S, p, P}
+# options with values: -o 123 / --option valu
+struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S
     _dummy::P
     #

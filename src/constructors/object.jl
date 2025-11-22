@@ -1,13 +1,13 @@
 const ObjectState{L,P} = NamedTuple{L,P}
 
-struct ConstrObject{T,S,p,P}
+struct ConstrObject{T,S,p,P} <: AbstractParser{T, S, p, P}
     initialState::S # NamedTuple of the states of its parsers
     #
     parsers::P
     label::String
 end
 
-ConstrObject{T}(initialState::TState, parsers::NamedTuple, label) where {T,TState} =
+ConstrObject{T}(initialState::TState, parsers, label) where {T,TState} =
     ConstrObject{T,TState,mapreduce(p -> priority(p), max, parsers),typeof(parsers)}(initialState, parsers, label)
 
 #=
@@ -57,7 +57,7 @@ _object(parsers_obj::NamedTuple; label="") =
 
 
 
-@generated function _generated_parse_parsers(p::NamedTuple{labels}, ctx::Context) where {labels}
+@generated function _generated_object_parse(p::NamedTuple{labels}, ctx::Context) where {labels}
 
 
     whilebody = Expr(:block)
@@ -69,7 +69,7 @@ _object(parsers_obj::NamedTuple; label="") =
             child_parser = p[$(QuoteNode(field))]
             child_ctx = @set current_ctx.state = child_state
 
-            result = parse(child_parser, child_ctx)::ParseResult{typeof(child_state),String}
+            result = (@unionsplit parse(child_parser, child_ctx))::ParseResult{typeof(child_state),String}
 
             if is_error(result)
                 parse_err = unwrap_error(result)
@@ -123,7 +123,7 @@ end
 
 function parse(p::ConstrObject{NamedTuple{fields,Tup},S}, ctx::Context)::ParseResult{S,String} where {fields,Tup,S}
 
-    outctx, error, allconsumed, anysuccess = _generated_parse_parsers(p.parsers, ctx)
+    outctx, error, allconsumed, anysuccess = _generated_object_parse(p.parsers, ctx)
 
     if anysuccess
         return ParseOk(
@@ -134,7 +134,7 @@ function parse(p::ConstrObject{NamedTuple{fields,Tup},S}, ctx::Context)::ParseRe
 
     #= if buffer is empty check if all parsers can complete anyway =#
     if length(ctx.buffer) == 0
-        all_can_complete, _ = _generated_complete_parsers(p.parsers, ctx.state)
+        all_can_complete, _ = _generated_object_complete(p.parsers, ctx.state)
 
         if all_can_complete
             return ParseOk((), ctx)
@@ -144,7 +144,7 @@ function parse(p::ConstrObject{NamedTuple{fields,Tup},S}, ctx::Context)::ParseRe
     return Err(error)
 end
 
-@generated function _generated_complete_parsers(p::NamedTuple{labels,PTup}, state::NamedTuple{labels,STup}) where {labels,PTup,STup}
+@generated function _generated_object_complete(p::NamedTuple{labels,PTup}, state::NamedTuple{labels,STup}) where {labels,PTup,STup}
     pre = :(output = (;))
 
     ex = Expr(:block)
@@ -160,7 +160,7 @@ end
                 child_state = state[$(QuoteNode(field))]::$S
                 child_parser = p[$(QuoteNode(field))]
 
-                result = complete(child_parser, child_state)::Result{$Ti,String}
+                result = (@unionsplit complete(child_parser, child_state))::Result{$Ti,String}
                 if is_error(result)
                     return false, Result{$T,String}(Err(unwrap_error(result)))
                 else
@@ -182,7 +182,7 @@ end
 
 function complete(p::ConstrObject{T}, st::NamedTuple)::Result{T,String} where {T}
 
-    cancomplete, _result = _generated_complete_parsers(p.parsers, st)
+    cancomplete, _result = _generated_object_complete(p.parsers, st)
 
     if !cancomplete
         return Err(unwrap_error(_result))

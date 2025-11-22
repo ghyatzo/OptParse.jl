@@ -1,6 +1,6 @@
 const ConstantState{X} = Val{X}
 
-struct ArgConstant{T, S, p, P}
+struct ArgConstant{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S
     _dummy::P
 end

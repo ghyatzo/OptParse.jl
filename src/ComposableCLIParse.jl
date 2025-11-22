@@ -94,7 +94,7 @@ include("primitives/primitives.jl")
 include("constructors/constructors.jl")
 include("modifiers/modifiers.jl")
 
-@wrapped struct Parser{T,S,p,P}
+@wrapped struct Parser{T,S,p,P} <: AbstractParser{T, S, p ,P }
     union::Union{
         ArgFlag{T,S,p,P},
         ArgOption{T,S,p,P},
@@ -120,21 +120,12 @@ _parser(x::ConstrOr{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
 _parser(x::ModOptional{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
 _parser(x::ModWithDefault{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
 
-(priority(::Type{Parser{T,S,p,P}})::Int) where {T,S,p,P} = p
-priority(o::Parser) = priority(typeof(o))
-
-tval(::Type{Parser{T,S,p,P}}) where {T,S,p,P} = T
-tval(p::Parser) = tval(typeof(p))
-tstate(::Type{Parser{T,S,p,P}}) where {T,S,p,P} = S
-tstate(p::Parser) = tstate(typeof(p))
-ptypes(p::Parser) = ptypes(typeof(p))
-ptypes(::Type{Parser{T, S, p, P}}) where {T,S,p,P} = P
-
-
 Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
 Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
-parse(p::Parser, ctx::Context) = @unionsplit parse(p, ctx)
-complete(p::Parser, st) = @unionsplit complete(p, st)
+
+
+# @inline parse(p::Parser, ctx::Context) = @unionsplit parse(p, ctx)
+# @inline complete(p::Parser, st) = @unionsplit complete(p, st)
 
 # primitives
 option(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; kw...) where {T} = _parser(ArgOption(Tuple(names), valparser; kw...))
@@ -163,7 +154,7 @@ function argparse(pp::Parser{T,S,p}, args::Vector{String})::Result{T,String} whe
     ctx = Context(args, pp.initialState)
 
     while true
-        mayberesult::ParseResult{S,String} = parse(pp, ctx)
+        mayberesult::ParseResult{S,String} = parse(unwrapunion(pp), ctx)
         #=
         There is currently an issue. We need a mechanism to allow bypassing this check
         To allow for potential "fixable" errors (think optional) to pass through to the
@@ -196,7 +187,7 @@ function argparse(pp::Parser{T,S,p}, args::Vector{String})::Result{T,String} whe
         length(ctx.buffer) > 0 || break
     end
 
-    return endResult = complete(pp, ctx.state)
+    return endResult = complete(unwrapunion(pp), ctx.state)
 end
 
 macro comment(_...) end

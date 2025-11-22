@@ -3,7 +3,7 @@
     parser = argument(str(; metavar="FILE"))
 
     @test priority(parser) == 5
-    @test getproperty(parser, :initialState) === none(Result{String,String})
+    @test getproperty(unwrapunion(parser), :initialState) === none(Result{String,String})
 end
 
 @testset "should parse a string argument" begin
@@ -11,7 +11,7 @@ end
     state = getproperty(parser, :initialState)
     ctx = Context(["myfile.txt"], state)
 
-    res = parse(parser, ctx)
+    res = parse(unwrapunion(parser), ctx)
     @test !is_error(res)
 
     succ = unwrap(res)
@@ -30,7 +30,7 @@ end
     state = getproperty(parser, :initialState)
     ctx = Context(["42"], state)
 
-    res = parse(parser, ctx)
+    res = parse(unwrapunion(parser), ctx)
     @test !is_error(res)
 
     succ = unwrap(res)
@@ -49,7 +49,7 @@ end
     state = getproperty(parser, :initialState)
     ctx = Context(String[], state)
 
-    res = parse(parser, ctx)
+    res = parse(unwrapunion(parser), ctx)
     @test is_error(res)
 
     err = unwrap_error(res)
@@ -59,10 +59,10 @@ end
 
 @testset "should propagate value parser failures" begin
     parser = argument(integer(; min=1, max=100))
-    state = getproperty(parser, :initialState)
+    state = getproperty(unwrapunion(parser), :initialState)
     ctx = Context(["invalid"], state)
 
-    res = parse(parser, ctx)
+    res = parse(unwrapunion(parser), ctx)
     @test !is_error(res)
 
     succ = unwrap(res)
@@ -75,7 +75,7 @@ end
     parser = argument(str(; metavar="FILE"))
     validState = some(Result{String,String}(Ok("test.txt")))
 
-    res = complete(parser, validState)
+    res = complete(unwrapunion(parser), validState)
     @test !is_error(res)
     @test unwrap(res) == "test.txt"
 end
@@ -84,7 +84,7 @@ end
     parser = argument(str(; metavar="FILE"))
     invalidState = some(Result{String,String}(Err("Missing argument")))
 
-    res = complete(parser, invalidState)
+    res = complete(unwrapunion(parser), invalidState)
     @test is_error(res)
     @test occursin("Missing argument", string(unwrap_error(res)))
 end
