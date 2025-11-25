@@ -5,7 +5,7 @@ struct ModOptional{T, S, p, P} <: AbstractParser{T, S, p, P}
     parser::P
 
     ModOptional(parser::P) where {P} =
-        new{Option{tval(P)}, OptionalState{tstate(P)}, priority(P), P}(none(tstate(P)), parser)
+        new{Union{Nothing, tval(P)}, OptionalState{tstate(P)}, priority(P), P}(none(tstate(P)), parser)
 end
 
 
@@ -26,12 +26,12 @@ end
 
 function complete(p::ModOptional{T, OptionalState{S}, _p, P}, maybestate::OptionalState{S})::Result{T, String} where {T, S, _p, P}
     state = base(maybestate) # collapses the optional to a nothing or a Some
-    isnothing(state) && return Ok(none(tval(P)))
+    isnothing(state) && return Ok(nothing)
 
     result = complete(unwrapunion(p.parser), something(state))::Result{tval(P), String}
 
     if !is_error(result)
-        return Ok(some(unwrap(result)))
+        return Ok(unwrap(result))
     else
         # it's a bit stupid, but conceptually makes sense:
         # result is of type Result{T, String}

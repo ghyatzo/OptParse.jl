@@ -20,7 +20,7 @@ end
     # Completing the optional with the state produced by parse
     completeResult = splitcomplete(optionalParser, ps.next.state)
     @test !is_error(completeResult)
-    @test unwrap(completeResult) == some(true)
+    @test unwrap(completeResult) == true
 end
 
 @testset "should propagate successful parse results" begin
@@ -62,7 +62,7 @@ end
     completeResult = splitcomplete(optionalParser, none(tstate(baseParser)))
 
     @test !is_error(completeResult)
-    @test unwrap(completeResult) === none(Bool)
+    @test unwrap(completeResult) === nothing
 end
 
 @testset "should complete with wrapped parser result when state is defined" begin
@@ -74,7 +74,7 @@ end
     completeResult = splitcomplete(optionalParser, successfulState)
 
     @test !is_error(completeResult)
-    @test unwrap(completeResult) == some(true)
+    @test unwrap(completeResult) == true
 end
 
 @testset "should propagate wrapped parser completion failures" begin
@@ -107,8 +107,8 @@ end
     @test !is_error(completeResult)
     val = unwrap(completeResult)
     @test val.verbose == true
-    @test (@something base(val.port)) == 8080
-    @test base(val.output) === nothing
+    @test val.port == 8080
+    @test val.output === nothing
 
     ctx = Context(["-v"], obj.initialState)
     resultWithoutOptional = splitparse(obj, ctx)
@@ -120,8 +120,8 @@ end
     val2 = unwrap(completeResult)
 
     @test val2.verbose == true
-    @test base(val2.port) === nothing
-    @test base(val2.output) === nothing
+    @test val2.port === nothing
+    @test val2.output === nothing
 end
 
 @testset "should work with constant parsers" begin
@@ -136,7 +136,7 @@ end
 
     completeResult = splitcomplete(optionalParser, ps.next.state)
     @test !is_error(completeResult)
-    @test unwrap(completeResult) == some(:hello)
+    @test unwrap(completeResult) == :hello
 end
 
 @testset "should handle options terminator" begin
@@ -169,7 +169,7 @@ end
 
     completeResult = splitcomplete(optionalParser, ps.next.state)
     @test !is_error(completeResult)
-    @test unwrap(completeResult) == some(true)
+    @test unwrap(completeResult) == true
 end
 
 @testset "should handle state transitions" begin

@@ -27,7 +27,7 @@ end
     )
 
     res = argparse(showParser, ["show", "--progress", "item123"])
-    @info res
+
     @test !is_error(res)
 
     # Value lives in next.state (Ok(...)); unwrap to get the parsed object
@@ -82,7 +82,7 @@ end
     @test !is_error(res1)
     val1 = unwrap(res1)
     @test getproperty(val1, :type) == :edit
-    @test something(base(getproperty(val1, :editor))) == "vim"
+    @test getproperty(val1, :editor) == "vim"
     @test getproperty(val1, :id) == "item123"
 
     # Test without optional option
@@ -90,7 +90,7 @@ end
     @test !is_error(res2)
     val2 = unwrap(res2)
     @test getproperty(val2, :type) == :edit
-    @test base(getproperty(val2, :editor)) === nothing
+    @test getproperty(val2, :editor) === nothing
     @test getproperty(val2, :id) == "item456"
 end
 
@@ -127,7 +127,7 @@ end
     @test !is_error(editRes)
     editVal = unwrap(editRes)
     @test getproperty(editVal, :type) == :edit
-    @test something(base(getproperty(editVal, :editor))) == "vim"
+    @test getproperty(editVal, :editor) == "vim"
     @test getproperty(editVal, :id) == "item456"
 end
 
@@ -204,7 +204,7 @@ end
 
     editVal = unwrap(editRes)
     @test getproperty(editVal, :type) == :edit
-    @test something(base(getproperty(editVal, :editor))) == "vim"
+    @test getproperty(editVal, :editor) == "vim"
     @test getproperty(editVal, :id) == "item456"
 end
 

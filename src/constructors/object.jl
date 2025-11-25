@@ -164,14 +164,14 @@ end
                 if is_error(result)
                     return false, Result{$T,String}(Err(unwrap_error(result)))
                 else
-                    output = insert(output, PropertyLens($(QuoteNode(field))), unwrap(result))
+                    output = (output..., unwrap(result))
                 end
             end
         )
         i += 1
     end
 
-    post = :(return true, output)
+    post = :(return true, $T(output))
     return quote
         $pre
         $ex
