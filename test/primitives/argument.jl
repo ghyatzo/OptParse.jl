@@ -1,13 +1,12 @@
-
 @testset "should create a parser that expects a single argument" begin
-    parser = argument(str(; metavar="FILE"))
+    parser = argument(str(; metavar = "FILE"))
 
     @test priority(parser) == 5
-    @test getproperty(unwrapunion(parser), :initialState) === none(Result{String,String})
+    @test getproperty(unwrapunion(parser), :initialState) === none(Result{String, String})
 end
 
 @testset "should parse a string argument" begin
-    parser = argument(str(; metavar="FILE"))
+    parser = argument(str(; metavar = "FILE"))
     state = getproperty(parser, :initialState)
     ctx = Context(["myfile.txt"], state)
 
@@ -26,7 +25,7 @@ end
 end
 
 @testset "should parse an integer argument" begin
-    parser = argument(integer(; min=0))
+    parser = argument(integer(; min = 0))
     state = getproperty(parser, :initialState)
     ctx = Context(["42"], state)
 
@@ -45,7 +44,7 @@ end
 end
 
 @testset "should fail when buffer is empty" begin
-    parser = argument(str(; metavar="FILE"))
+    parser = argument(str(; metavar = "FILE"))
     state = getproperty(parser, :initialState)
     ctx = Context(String[], state)
 
@@ -58,7 +57,7 @@ end
 end
 
 @testset "should propagate value parser failures" begin
-    parser = argument(integer(; min=1, max=100))
+    parser = argument(integer(; min = 1, max = 100))
     state = getproperty(unwrapunion(parser), :initialState)
     ctx = Context(["invalid"], state)
 
@@ -72,8 +71,8 @@ end
 end
 
 @testset "should complete successfully with valid state" begin
-    parser = argument(str(; metavar="FILE"))
-    validState = some(Result{String,String}(Ok("test.txt")))
+    parser = argument(str(; metavar = "FILE"))
+    validState = some(Result{String, String}(Ok("test.txt")))
 
     res = complete(unwrapunion(parser), validState)
     @test !is_error(res)
@@ -81,8 +80,8 @@ end
 end
 
 @testset "should fail completion with invalid state" begin
-    parser = argument(str(; metavar="FILE"))
-    invalidState = some(Result{String,String}(Err("Missing argument")))
+    parser = argument(str(; metavar = "FILE"))
+    invalidState = some(Result{String, String}(Err("Missing argument")))
 
     res = complete(unwrapunion(parser), invalidState)
     @test is_error(res)
@@ -90,8 +89,8 @@ end
 end
 
 @testset "should work with different value parser constraints" begin
-    fileParser = argument(str(; pattern=r"\.(txt|md)$"))
-    portParser = argument(integer(; min=1024, max=0xffff))
+    fileParser = argument(str(; pattern = r"\.(txt|md)$"))
+    portParser = argument(integer(; min = 1024, max = 0xffff))
 
     # valid file
     validFileRes = argparse(fileParser, ["readme.txt"])
@@ -118,10 +117,10 @@ end
 end
 
 @testset "should be type stable" begin
-    @test_opt argument(str(; pattern=r"\.(txt|md)$"))
-    fileParser = argument(str(; pattern=r"\.(txt|md)$"))
-    @test_opt argument(integer(; min=1024, max=0xffff))
-    portParser = argument(integer(; min=1024, max=0xffff))
+    @test_opt argument(str(; pattern = r"\.(txt|md)$"))
+    fileParser = argument(str(; pattern = r"\.(txt|md)$"))
+    @test_opt argument(integer(; min = 1024, max = 0xffff))
+    portParser = argument(integer(; min = 1024, max = 0xffff))
 
     @test_opt argparse(fileParser, ["readme.txt"])
     @test_opt argparse(portParser, ["8080"])

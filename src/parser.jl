@@ -1,16 +1,16 @@
 abstract type AbstractParser{T, S, p, P} end
 
 tval(::Type{<:AbstractParser{T}}) where {T} = T
-tval(p::AbstractParser{T}) where {T} = T
+tval(::AbstractParser{T}) where {T} = T
 
-tstate(::Type{<:AbstractParser{T,S}}) where {T,S} = S
-tstate(p::AbstractParser{T, S}) where {T,S} = S
+tstate(::Type{<:AbstractParser{T, S}}) where {T, S} = S
+tstate(::AbstractParser{T, S}) where {T, S} = S
 
-(priority(::Type{<:AbstractParser{T,S,_p}})::Int) where {T,S,_p} = _p
-priority(p::AbstractParser{T, S, _p}) where {T, S, _p} = _p
+(priority(::Type{<:AbstractParser{T, S, _p}})::Int) where {T, S, _p} = _p
+priority(::AbstractParser{T, S, _p}) where {T, S, _p} = _p
 
-ptypes(::Type{<:AbstractParser{T, S, _p, P}}) where {T,S,_p,P} = P
-ptypes(p::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
+ptypes(::Type{<:AbstractParser{T, S, _p, P}}) where {T, S, _p, P} = P
+ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
 
 struct Context{S}
     buffer::Vector{String}

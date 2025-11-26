@@ -1,4 +1,3 @@
-
 @testset "should try parsers in order" begin
     parser1 = flag("-a")
     parser2 = flag("-b")
@@ -85,8 +84,8 @@ end
 
     res = argparse(parser, ["-v"])
     @test is_ok_and(res) do val
-         # Should succeed - first matching branch wins
-        val == (;verbose = true)
+        # Should succeed - first matching branch wins
+        val == (; verbose = true)
     end
 end
 

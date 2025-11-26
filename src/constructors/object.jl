@@ -1,14 +1,14 @@
-const ObjectState{L,P} = NamedTuple{L,P}
+const ObjectState{L, P} = NamedTuple{L, P}
 
-struct ConstrObject{T,S,p,P} <: AbstractParser{T, S, p, P}
+struct ConstrObject{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S # NamedTuple of the states of its parsers
     #
     parsers::P
     label::String
 end
 
-ConstrObject{T}(initialState::TState, parsers, label) where {T,TState} =
-    ConstrObject{T,TState,mapreduce(p -> priority(p), max, parsers),typeof(parsers)}(initialState, parsers, label)
+ConstrObject{T}(initialState::TState, parsers, label) where {T, TState} =
+    ConstrObject{T, TState, mapreduce(p -> priority(p), max, parsers), typeof(parsers)}(initialState, parsers, label)
 
 #=
 	This is does the same thing but in a different way.
@@ -27,34 +27,33 @@ ConstrObject{T}(initialState::TState, parsers, label) where {T,TState} =
 	this function is actually allowed to be constant-folded!
 	(from Mason Protter, black magic)
 =#
-Base.@assume_effects :foldable function _sort_obj_labels(labels, ::Type{PTup}
-) where {PTup<:Tuple}
+Base.@assume_effects :foldable function _sort_obj_labels(
+        labels, ::Type{PTup}
+    ) where {PTup <: Tuple}
 
-    perm = sortperm(collect(fieldtypes(PTup)); by=priority, rev=true)
+    perm = sortperm(collect(fieldtypes(PTup)); by = priority, rev = true)
     return labels[perm]
 end
 
-function _sort_obj(obj::NamedTuple{labels,PTup}) where {labels,PTup<:Tuple}
+function _sort_obj(obj::NamedTuple{labels, PTup}) where {labels, PTup <: Tuple}
     slabels = _sort_obj_labels(labels, PTup)
     return obj[slabels]
 end
 
-_object(parsers_obj::NamedTuple; label="") =
-    let
-        sparsers_obj = _sort_obj(parsers_obj)
-        labels = keys(sparsers_obj)
-        parsers_t = fieldtypes(typeof(sparsers_obj))
-        parsers = values(sparsers_obj)
-        parsers_tvals = map(tval, parsers_t)
-        parsers_tstates = map(tstate, parsers_t)
-        priorities = map(priority, parsers_t)
+_object(parsers_obj::NamedTuple; label = "") =
+let
+    sparsers_obj = _sort_obj(parsers_obj)
+    labels = keys(sparsers_obj)
+    parsers_t = fieldtypes(typeof(sparsers_obj))
+    parsers = values(sparsers_obj)
+    parsers_tvals = map(tval, parsers_t)
+    parsers_tstates = map(tstate, parsers_t)
 
-        parsers_obj_tval = NamedTuple{labels,Tuple{parsers_tvals...}}
-        init_state = NamedTuple{labels, Tuple{parsers_tstates...}}( map(p -> p.initialState, parsers))
+    parsers_obj_tval = NamedTuple{labels, Tuple{parsers_tvals...}}
+    init_state = NamedTuple{labels, Tuple{parsers_tstates...}}(map(p -> p.initialState, parsers))
 
-        ConstrObject{parsers_obj_tval}(init_state, sparsers_obj, label)
-    end
-
+    ConstrObject{parsers_obj_tval}(init_state, sparsers_obj, label)
+end
 
 
 @generated function _generated_object_parse(p::NamedTuple{labels}, ctx::Context) where {labels}
@@ -63,38 +62,40 @@ _object(parsers_obj::NamedTuple; label="") =
     whilebody = Expr(:block)
 
     for field in labels
-        push!(whilebody.args, quote
-            field = $(QuoteNode(field))
-            child_parser = p[$(QuoteNode(field))]
-            child_state = current_ctx.state[$(QuoteNode(field))]
-            child_ctx = Context{tstate(child_parser)}(current_ctx.buffer, child_state, current_ctx.optionsTerminated)
+        push!(
+            whilebody.args, quote
+                field = $(QuoteNode(field))
+                child_parser = p[$(QuoteNode(field))]
+                child_state = current_ctx.state[$(QuoteNode(field))]
+                child_ctx = Context{tstate(child_parser)}(current_ctx.buffer, child_state, current_ctx.optionsTerminated)
 
-            result = (@unionsplit parse(child_parser, child_ctx))::ParseResult{tstate(child_parser),String}
+                result = (@unionsplit parse(child_parser, child_ctx))::ParseResult{tstate(child_parser), String}
 
-            if is_error(result)
-                parse_err = unwrap_error(result)
-                if error.consumed <= parse_err.consumed
-                    error = parse_err
-                end
-            else
-                parse_ok = unwrap(result)
-                if length(parse_ok.consumed) > 0
-                    newstate = set(current_ctx.state, PropertyLens($(QuoteNode(field))), parse_ok.next.state)
+                if is_error(result)
+                    parse_err = unwrap_error(result)
+                    if error.consumed <= parse_err.consumed
+                        error = parse_err
+                    end
+                else
+                    parse_ok = unwrap(result)
+                    if length(parse_ok.consumed) > 0
+                        newstate = set(current_ctx.state, PropertyLens($(QuoteNode(field))), parse_ok.next.state)
 
-                    newctx = set(parse_ok.next, PropertyLens(:state), newstate)
+                        newctx = set(parse_ok.next, PropertyLens(:state), newstate)
 
-                    allconsumed = (allconsumed..., parse_ok.consumed...)
-                    current_ctx = newctx
-                    madeprogress = true
-                    anysuccess = true
+                        allconsumed = (allconsumed..., parse_ok.consumed...)
+                        current_ctx = newctx
+                        madeprogress = true
+                        anysuccess = true
 
-                    #=
+                        #=
                     We manually insert gotos to emulate a break within an unrolled for loop inside a while loop
                     =#
-                    @goto startwhile
+                        @goto startwhile
+                    end
                 end
             end
-        end)
+        )
     end
 
     return ex = quote
@@ -121,7 +122,7 @@ _object(parsers_obj::NamedTuple; label="") =
     end
 end
 
-function parse(p::ConstrObject{NamedTuple{fields,Tup},S}, ctx::Context)::ParseResult{S,String} where {fields,Tup,S}
+function parse(p::ConstrObject{NamedTuple{fields, Tup}, S}, ctx::Context)::ParseResult{S, String} where {fields, Tup, S}
 
     outctx, error, allconsumed, anysuccess = _generated_object_parse(p.parsers, ctx)
 
@@ -144,13 +145,13 @@ function parse(p::ConstrObject{NamedTuple{fields,Tup},S}, ctx::Context)::ParseRe
     return Err(error)
 end
 
-@generated function _generated_object_complete(p::NamedTuple{labels,PTup}, state::NamedTuple{labels,STup}) where {labels,PTup,STup}
+@generated function _generated_object_complete(p::NamedTuple{labels, PTup}, state::NamedTuple{labels, STup}) where {labels, PTup, STup}
     pre = :(output = (;))
 
     ex = Expr(:block)
     Ps = PTup.parameters
     Ss = STup.parameters
-    T = NamedTuple{labels,Tuple{map(tval, Ps)...}}
+    T = NamedTuple{labels, Tuple{map(tval, Ps)...}}
     i = 1
     for field in labels
         Ti = tval(Ps[i])
@@ -160,9 +161,9 @@ end
                 child_state = state[$(QuoteNode(field))]::$S
                 child_parser = p[$(QuoteNode(field))]
 
-                result = (@unionsplit complete(child_parser, child_state))::Result{$Ti,String}
+                result = (@unionsplit complete(child_parser, child_state))::Result{$Ti, String}
                 if is_error(result)
-                    return false, Result{$T,String}(Err(unwrap_error(result)))
+                    return false, Result{$T, String}(Err(unwrap_error(result)))
                 else
                     output = (output..., unwrap(result))
                 end
@@ -180,7 +181,7 @@ end
 end
 
 
-function complete(p::ConstrObject{T}, st::NamedTuple)::Result{T,String} where {T}
+function complete(p::ConstrObject{T}, st::NamedTuple)::Result{T, String} where {T}
 
     cancomplete, _result = _generated_object_complete(p.parsers, st)
 

@@ -1,9 +1,7 @@
-
-
 const CommandState{X} = Option{Option{X}}
 
 
-struct ArgCommand{T, S, _p, P}  <: AbstractParser{T, S, _p, P}
+struct ArgCommand{T, S, _p, P} <: AbstractParser{T, S, _p, P}
     initialState::S
     parser::P
     #

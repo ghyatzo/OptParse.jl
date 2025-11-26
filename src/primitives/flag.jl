@@ -1,4 +1,3 @@
-
 const FlagState = Result{Bool, String}
 
 # single boolean flags: -q --long

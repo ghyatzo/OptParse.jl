@@ -11,8 +11,8 @@ using UUIDs: UUID, uuid_version
 #	OK constant()
 #	OK option()
 #	OK flag()
-#   TEST argument()
-#	TEST command()
+#   OK argument()
+#	OK command()
 #	- parsers priority: command > argument > option > flag > constant
 
 
@@ -25,14 +25,16 @@ using UUIDs: UUID, uuid_version
 #	OK uuid() # this one is easy
 #	- path() # might be a bit out of scope
 #	- instant() # moment in time
-#	- duration()
-#	- zone-datetime() # needs external package
-#	- date()
-#	- time()
-#	- datetime()
-#	- yearmonth()
-#	- monthday()
-#	- timezone()
+#	- duration() # minutes or seconds.
+#	- zone-datetime() # needs external package, so no go
+
+#	- datetime() # what's the difference with instant()?
+#   these could just be special cases of the above with different formats.
+#	- yearmonth() # half a date
+#	- monthday() # other hald of a date
+#	- date() # just a date
+#	- time() # just a time
+
 #	- custom value parser:
 #		Interface ValueParser{T}:
 #			must have a metavar keyword arg
@@ -43,14 +45,14 @@ using UUIDs: UUID, uuid_version
 # modifying combinators: Transform existing Parsers adding additional behaviour on top of the core one
 #	OK optional()
 #	OK withDefault()
-#	- map()
 #	- multiple(min, max) (match multiple times, collect into an array.)
+#	- map() # probably impossible to make typstable until we don't have ValuedFunctions
 #	-
 
 # construct combinators: combine different parsers into new ones
-# 	OK object(), combines multiple named parsers into a single parser that produces a single object
-#	- tuple(), combines parsers to produce tuple of results. preserves order.
-#	- or(), mutually exclusive alternatives
+# 	OK object(), combines multiple named parsers into a single parser that produces a single object. Does not preserve order.
+#	- tuple(), combines parsers to produce tuple of results. preserves order of the final result, but not necessarily the parsing order.
+#	OK or(), mutually exclusive alternatives
 #	- merge(), takes two parsers and generate a new single parser combining both
 #	- concat(), appends tuple parsers
 #	- longest-match(), tries all parses and selects the one with the longest match.
@@ -94,31 +96,31 @@ include("primitives/primitives.jl")
 include("constructors/constructors.jl")
 include("modifiers/modifiers.jl")
 
-@wrapped struct Parser{T,S,p,P} <: AbstractParser{T, S, p ,P }
+@wrapped struct Parser{T, S, p, P} <: AbstractParser{T, S, p, P}
     union::Union{
-        ArgFlag{T,S,p,P},
-        ArgOption{T,S,p,P},
-        ArgConstant{T,S,p,P},
-        ArgArgument{T,S,p,P},
-        ConstrObject{T,S,p,P},
-        ConstrOr{T,S,p,P},
-        ModOptional{T,S,p,P},
-        ModWithDefault{T,S,p,P},
-        ArgCommand{T,S,p,P},
+        ArgFlag{T, S, p, P},
+        ArgOption{T, S, p, P},
+        ArgConstant{T, S, p, P},
+        ArgArgument{T, S, p, P},
+        ConstrObject{T, S, p, P},
+        ConstrOr{T, S, p, P},
+        ModOptional{T, S, p, P},
+        ModWithDefault{T, S, p, P},
+        ArgCommand{T, S, p, P},
     }
 end
 
-_parser(x::ArgFlag{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
-_parser(x::ArgOption{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
-_parser(x::ArgConstant{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
-_parser(x::ArgArgument{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
-_parser(x::ArgCommand{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
+_parser(x::ArgFlag{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+_parser(x::ArgOption{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+_parser(x::ArgConstant{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+_parser(x::ArgArgument{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+_parser(x::ArgCommand{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
 
-_parser(x::ConstrObject{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
-_parser(x::ConstrOr{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
+_parser(x::ConstrObject{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+_parser(x::ConstrOr{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
 
-_parser(x::ModOptional{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
-_parser(x::ModWithDefault{T,S,p,P}) where {T,S,p,P} = Parser{T,S,p,P}(x)
+_parser(x::ModOptional{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+_parser(x::ModWithDefault{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
 
 Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
 Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
@@ -128,45 +130,47 @@ Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
 # @inline complete(p::Parser, st) = @unionsplit complete(p, st)
 
 # primitives
-option(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; kw...) where {T} = _parser(ArgOption(Tuple(names), valparser; kw...))
-option(names::String, valparser::ValueParser{T}; kw...) where {T} = _parser(ArgOption((names,), valparser; kw...))
+option(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; kw...) where {T} =
+    _parser(ArgOption(Tuple(names), valparser; kw...))
+option(names::String, valparser::ValueParser{T}; kw...) where {T} =
+    _parser(ArgOption((names,), valparser; kw...))
+
+
 flag(names...; kw...) = _parser(ArgFlag(names; kw...))
+
 macro constant(val)
     return :(_parser(ArgConstant($val)))
 end
+
 argument(valparser::ValueParser{T}; kw...) where {T} = _parser(ArgArgument(valparser; kw...))
+
 command(name::String, p::Parser; kw...) = _parser(ArgCommand(name, p))
 
 # constructors
 object(obj::NamedTuple) = _parser(_object(obj))
-object(objlabel, obj::NamedTuple) = _parser(_object(obj; label=objlabel))
+
+object(objlabel, obj::NamedTuple) = _parser(_object(obj; label = objlabel))
+
+
 or(parsers...) = _parser(ConstrOr(parsers))
 
 # modifiers
 optional(p::Parser) = _parser(ModOptional(p))
+
+
 withDefault(p::Parser{T}, default::T) where {T} = _parser(ModWithDefault(p, default))
+
 withDefault(default::T) where {T} = (p::Parser{T}) -> _parser(ModWithDefault(p, default))
 
 #####
 # entry point
-function argparse(pp::Parser{T,S,p}, args::Vector{String})::Result{T,String} where {T,S,p}
+function argparse(pp::Parser{T, S, p}, args::Vector{String})::Result{T, String} where {T, S, p}
 
     ctx = Context{S}(args, pp.initialState, false)
 
     while true
-        mayberesult::ParseResult{S,String} = @unionsplit parse(pp, ctx)
-        #=
-        There is currently an issue. We need a mechanism to allow bypassing this check
-        To allow for potential "fixable" errors (think optional) to pass through to the
-        complete function. At first we simply updated the state, which works for single state
-        parsers, but fails completely for multistate ones
-        =#
-        #=
-        This is correct, no need to bypass anything. The error was that the optional parser
-        was returning its child parse error as an error, while an optional parser
-        should alway return a success with an error state, which can be picked up in the complete function
-        but doesn't count as a proper Parseerror
-        =#
+        mayberesult::ParseResult{S, String} = @unionsplit parse(pp, ctx)
+
         if is_error(mayberesult)
             return Err(unwrap_error(mayberesult).error)
         end
@@ -176,10 +180,10 @@ function argparse(pp::Parser{T,S,p}, args::Vector{String})::Result{T,String} whe
         ctx = result.next
 
         if (
-            length(ctx.buffer) > 0
-            && length(ctx.buffer) == length(previous_buffer)
-            && ctx.buffer[1] === previous_buffer[1]
-        )
+                length(ctx.buffer) > 0
+                    && length(ctx.buffer) == length(previous_buffer)
+                    && ctx.buffer[1] === previous_buffer[1]
+            )
 
             return Err("Unexpected option or argument: $(ctx.buffer[1]).")
         end
@@ -196,7 +200,7 @@ macro comment(_...) end
     using ComposableCLIParse
     args = ["--host", "me", "--verbose", "--test"]
 
-    opt = option(["--host"], str(; metavar="HOST"))
+    opt = option(["--host"], str(; metavar = "HOST"))
     flg = flag(["--verbose"])
     flg2 = flag(["--test"])
 
@@ -205,9 +209,9 @@ macro comment(_...) end
     obj = object(
         "test", (
             # cst = cst,
-            option=opt,
-            flag=flg,
-            flag2=flg2,
+            option = opt,
+            flag = flg,
+            flag2 = flg2,
         )
     )
 
@@ -216,12 +220,12 @@ macro comment(_...) end
 
     obj2 = object(
         "test mod", (
-            option=opt_opt,
-            flag=def_flg,
+            option = opt_opt,
+            flag = def_flg,
         )
     )
 
-    arg = argument(str(; metavar="TEST"))
+    arg = argument(str(; metavar = "TEST"))
 
 
     using JET
@@ -235,10 +239,10 @@ macro comment(_...) end
     @report_opt argparse(obj2, String[])
 
     @btime ComposableCLIParse._sort_obj(nt) setup = begin
-        opt = option(["--host"], stringval(; metavar="HOST"))
+        opt = option(["--host"], stringval(; metavar = "HOST"))
         flg = flag(["--verbose"])
 
-        nt = (option=opt, flag=flg)
+        nt = (option = opt, flag = flg)
     end
 end
 

@@ -23,7 +23,7 @@ end
 
 @testset "should complete successfully with a constant value" begin
     parser = @constant(69)
-    result = @unionsplit complete(parser,Val(69))
+    result = @unionsplit complete(parser, Val(69))
 
     @test is_ok_and(result) do succ
         @test succ == 69

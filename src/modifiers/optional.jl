@@ -42,3 +42,18 @@ function complete(p::ModOptional{T, OptionalState{S}, _p, P}, maybestate::Option
     end
 
 end
+
+
+# comments with some insights:
+#=
+There is currently an issue. We need a mechanism to allow bypassing this check
+To allow for potential "fixable" errors (think optional) to pass through to the
+complete function. At first we simply updated the state, which works for single state
+parsers, but fails completely for multistate ones
+=#
+#=
+This is correct, no need to bypass anything. The error was that the optional parser
+was returning its child parse error as an error, while an optional parser
+should alway return a success with an error state, which can be picked up in the complete function
+but doesn't count as a proper Parseerror
+=#

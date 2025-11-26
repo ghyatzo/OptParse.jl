@@ -2,11 +2,13 @@
 
 
 @testset "should create a parser that matches a subcommand and applies inner parser" begin
-    inner_obj = object((
+    inner_obj = object(
+        (
             type = @constant(:show),
             progress = flag("-p", "--progress"),
             id = argument(str()),
-        ))
+        )
+    )
     showParser = command(
         "show",
         inner_obj,
@@ -19,11 +21,13 @@ end
 @testset "should parse a basic subcommand with arguments" begin
     showParser = command(
         "show",
-        object((
-            type = @constant(:show),
-            progress = flag("-p", "--progress"),
-            id = argument(str()),
-        )),
+        object(
+            (
+                type = @constant(:show),
+                progress = flag("-p", "--progress"),
+                id = argument(str()),
+            )
+        ),
     )
 
     res = argparse(showParser, ["show", "--progress", "item123"])
@@ -40,10 +44,12 @@ end
 @testset "should fail when wrong subcommand is provided" begin
     showParser = command(
         "show",
-        object((
-            type = @constant(:show),
-            id = argument(str()),
-        )),
+        object(
+            (
+                type = @constant(:show),
+                id = argument(str()),
+            )
+        ),
     )
 
     res = argparse(showParser, ["edit", "item123"])
@@ -55,10 +61,12 @@ end
 @testset "should fail when subcommand is provided but required arguments are missing" begin
     editParser = command(
         "edit",
-        object((
-            type = @constant(:edit),
-            id = argument(str()),
-        )),
+        object(
+            (
+                type = @constant(:edit),
+                id = argument(str()),
+            )
+        ),
     )
 
     res = argparse(editParser, ["edit"])
@@ -70,11 +78,13 @@ end
 @testset "should handle optional options in subcommands" begin
     editParser = command(
         "edit",
-        object((
-            type = @constant(:edit),
-            editor = optional(option(("-e", "--editor"), str())),
-            id = argument(str()),
-        )),
+        object(
+            (
+                type = @constant(:edit),
+                editor = optional(option(("-e", "--editor"), str())),
+                id = argument(str()),
+            )
+        ),
     )
 
     # Test with optional option
@@ -98,19 +108,23 @@ end
     parser = or(
         command(
             "show",
-            object((
-                type = @constant(:show),
-                progress = flag("-p", "--progress"),
-                id = argument(str()),
-            )),
+            object(
+                (
+                    type = @constant(:show),
+                    progress = flag("-p", "--progress"),
+                    id = argument(str()),
+                )
+            ),
         ),
         command(
             "edit",
-            object((
-                type = @constant(:edit),
-                editor = optional(option(("-e", "--editor"), str())),
-                id = argument(str()),
-            )),
+            object(
+                (
+                    type = @constant(:edit),
+                    editor = optional(option(("-e", "--editor"), str())),
+                    id = argument(str()),
+                )
+            ),
         ),
     )
 
@@ -135,17 +149,21 @@ end
     parser = or(
         command(
             "show",
-            object((
-                type = @constant(:show),
-                id = argument(str()),
-            )),
+            object(
+                (
+                    type = @constant(:show),
+                    id = argument(str()),
+                )
+            ),
         ),
         command(
             "edit",
-            object((
-                type = @constant(:edit),
-                id = argument(str()),
-            )),
+            object(
+                (
+                    type = @constant(:edit),
+                    id = argument(str()),
+                )
+            ),
         ),
     )
 
@@ -158,10 +176,12 @@ end
 @testset "should handle empty input" begin
     showParser = command(
         "show",
-        object((
-            type = @constant(:show),
-            id = argument(str()),
-        )),
+        object(
+            (
+                type = @constant(:show),
+                id = argument(str()),
+            )
+        ),
     )
 
     res = argparse(showParser, String[])
@@ -175,19 +195,23 @@ end
     parser = or(
         command(
             "show",
-            object((
-                type = @constant(:show),
-                progress = flag("-p", "--progress"),
-                id = argument(str()),
-            )),
+            object(
+                (
+                    type = @constant(:show),
+                    progress = flag("-p", "--progress"),
+                    id = argument(str()),
+                )
+            ),
         ),
         command(
             "edit",
-            object((
-                type = @constant(:edit),
-                editor = optional(option(("-e", "--editor"), str())),
-                id = argument(str()),
-            )),
+            object(
+                (
+                    type = @constant(:edit),
+                    editor = optional(option(("-e", "--editor"), str())),
+                    id = argument(str()),
+                )
+            ),
         ),
     )
 
@@ -238,17 +262,21 @@ end
     parser = or(
         command(
             "test",
-            object((
-                type = @constant(:test),
-                id = argument(str()),
-            )),
+            object(
+                (
+                    type = @constant(:test),
+                    id = argument(str()),
+                )
+            ),
         ),
         command(
             "testing",
-            object((
-                type = @constant(:testing),
-                id = argument(str()),
-            )),
+            object(
+                (
+                    type = @constant(:testing),
+                    id = argument(str()),
+                )
+            ),
         ),
     )
 
@@ -268,9 +296,11 @@ end
 @testset "should handle commands that look like options" begin
     parser = command(
         "--help",
-        object((
-            type = @constant(:help),
-        )),
+        object(
+            (
+                type = @constant(:help),
+            )
+        ),
     )
 
     res = argparse(parser, ["--help"])
@@ -295,16 +325,20 @@ end
 # end
 
 @testset "should handle nested commands (command within object parser)" begin
-    nestedParser = object((
-        globalFlag = flag("--global"),
-        cmd = command(
-            "run",
-            object((
-                type = @constant(:run),
-                script = argument(str()),
-            )),
-        ),
-    ))
+    nestedParser = object(
+        (
+            globalFlag = flag("--global"),
+            cmd = command(
+                "run",
+                object(
+                    (
+                        type = @constant(:run),
+                        script = argument(str()),
+                    )
+                ),
+            ),
+        )
+    )
 
     res = argparse(nestedParser, ["--global", "run", "build"])
     @test !is_error(res)

@@ -106,10 +106,10 @@ end
 @testset "should work in object combinations - main use case" begin
     parser = object(
         (
-        verbose=flag("-v", "--verbose"),
-        port=(withDefault(8080) ∘ option)(("--port", "-p"), integer()),
-        host=(withDefault("localhost") ∘ option)(("--host", "-h"), str()),
-    )
+            verbose = flag("-v", "--verbose"),
+            port = (withDefault(8080) ∘ option)(("--port", "-p"), integer()),
+            host = (withDefault("localhost") ∘ option)(("--host", "-h"), str()),
+        )
     )
 
     # Defaults case
@@ -194,11 +194,11 @@ end
 end
 
 @testset "should propagate wrapped parser completion failures" begin
-    baseParser = option(("--port", "-p"), integer(; min=1))
+    baseParser = option(("--port", "-p"), integer(; min = 1))
     defaultParser = withDefault(baseParser, 8080)
 
     # Manually feed a failing completion state from the wrapped parser
-    err::Result{tval(baseParser),String} = Err("Port must be >= 1")
+    err::Result{tval(baseParser), String} = Err("Port must be >= 1")
     completeResult = splitcomplete(defaultParser, some(err))
     @test is_error(completeResult)
     if is_error(completeResult)
@@ -232,9 +232,9 @@ end
 @testset "should work with argument parsers in object context" begin
     parser = object(
         (
-        verbose=flag("-v", "--verbose"),
-        file=withDefault(argument(str(; metavar="FILE")), "input.txt"),
-    )
+            verbose = flag("-v", "--verbose"),
+            file = withDefault(argument(str(; metavar = "FILE")), "input.txt"),
+        )
     )
 
     res1 = argparse(parser, ["-v", "custom.txt"])
@@ -258,10 +258,10 @@ end
 @testset "should work in complex combinations with validation" begin
     parser = object(
         (
-        command=option(("-c", "--command"), str()),
-        port=withDefault(option(("-p", "--port"), integer(; min=1024, max=0xffff)), 8080),
-        debug=withDefault(flag("-d", "--debug"), false),
-    )
+            command = option(("-c", "--command"), str()),
+            port = withDefault(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080),
+            debug = withDefault(flag("-d", "--debug"), false),
+        )
     )
 
     validResult = argparse(parser, ["-c", "start", "-p", "3000", "-d"])
@@ -284,27 +284,26 @@ end
 end
 
 @testset "should be type stable" begin
-    @test_opt withDefault(option(("-p", "--port"), integer(; min=1024, max=0xffff)), 8080)
+    @test_opt withDefault(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080)
     @test_opt withDefault(flag("-d", "--debug"), false)
 
     @test_opt object(
         (
-        command=option(("-c", "--command"), str()),
-        port=withDefault(option(("-p", "--port"), integer(; min=1024, max=0xffff)), 8080),
-        debug=withDefault(flag("-d", "--debug"), false),
-    )
+            command = option(("-c", "--command"), str()),
+            port = withDefault(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080),
+            debug = withDefault(flag("-d", "--debug"), false),
+        )
     )
 
     parser = object(
         (
-        port=option(("-p", "--port"), integer(; min=1024, max=0xffff)),
-        command=option(("-c", "--command"), str()),
-        debug=flag("-d", "--debug"),
-    )
+            port = option(("-p", "--port"), integer(; min = 1024, max = 0xffff)),
+            command = option(("-c", "--command"), str()),
+            debug = flag("-d", "--debug"),
+        )
     )
 
     @test_opt parse(unwrapunion(parser), Context(["-c", "start", "-p", "3000", "-d"], parser.initialState))
-
 
 
     @test_opt argparse(parser, ["-c", "start", "-p", "3000", "-d"])

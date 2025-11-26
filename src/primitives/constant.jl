@@ -14,11 +14,11 @@ ArgConstant(val::T) where {T} = let
     end
 end
 
-function parse(p::ArgConstant{T, ConstantState{val}}, ctx::Context{ConstantState{val}})::ParseResult{ConstantState{val}, String} where {T, val}
+function parse(::ArgConstant{T, ConstantState{val}}, ctx::Context{ConstantState{val}})::ParseResult{ConstantState{val}, String} where {T, val}
     constctx = @set ctx.state = Val(val)
     return ParseOk(String[], constctx)
 end
 
-function complete(p::ArgConstant{T, ConstantState{val}}, ::ConstantState{val})::Result{T, String} where {T, val}
+function complete(::ArgConstant{T, ConstantState{val}}, ::ConstantState{val})::Result{T, String} where {T, val}
     return Ok(convert(T, val))
 end

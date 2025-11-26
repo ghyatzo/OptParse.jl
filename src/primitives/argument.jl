@@ -50,7 +50,7 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
     )
 end
 
-function complete(p::ArgArgument{T, <: ArgumentState}, maybest::TState)::Result{T, String} where {T, TState <: ArgumentState}
+function complete(p::ArgArgument{T, <:ArgumentState}, maybest::TState)::Result{T, String} where {T, TState <: ArgumentState}
     isnothing(base(maybest)) && return Err("Expected a `$(metavar(p.valparser))`, but too few arguments.")
 
     st = @something base(maybest)
