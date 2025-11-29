@@ -30,16 +30,16 @@ result = argparse(parser, args)
 CLIpper supports subcommands using combinators:
 
 ```julia
-addCmd = command("add", object({
+addCmd = command("add", object((
     action = @constant(:add),
     key = argument(str(metavar="KEY")),
     value = argument(str(metavar="VALUE"))
-}))
+)))
 
-removeCmd = command("remove", object({
+removeCmd = command("remove", object((
     action = @constant(:remove),
     key = argument(str(metavar="KEY"))
-}))
+)))
 
 parser = or(addCmd, removeCmd)
 
