@@ -16,7 +16,7 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
     optpattern = r"^--?[a-z0-9-]+$"i
 
     if length(ctx.buffer) < 1
-        return ParseErr(0, "Expected argument but got end of input.")
+        return ParseErr(0, "Expected an argument, but got end of input.")
     end
 
     i = 0
@@ -31,7 +31,7 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
     end
 
     if length(ctx.buffer) < 1 + i
-        return ParseErr(i, "Expected argument but got end of input")
+        return ParseErr(i, "Expected an argument, but got end of input.")
     end
 
     if base(ctx.state) !== nothing

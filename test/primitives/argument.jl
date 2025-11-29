@@ -53,7 +53,7 @@ end
 
     err = unwrap_error(res)
     @test getproperty(err, :consumed) == 0
-    @test occursin("Expected argument", string(err.error))
+    @test occursin("Expected an argument", string(err.error))
 end
 
 @testset "should propagate value parser failures" begin

@@ -60,7 +60,7 @@ let
 end
 
 
-@generated function _generated_object_parse(p::NamedTuple{labels}, ctx::Context) where {labels}
+@generated function _generated_object_parse(p::NamedTuple{labels}, ctx::Context{S}) where {labels, S}
 
 
     whilebody = Expr(:block)
@@ -83,9 +83,9 @@ end
                 else
                     parse_ok = unwrap(result)
                     if length(parse_ok.consumed) > 0
-                        newstate = set(current_ctx.state, PropertyLens($(QuoteNode(field))), parse_ok.next.state)
 
-                        newctx = set(parse_ok.next, PropertyLens(:state), newstate)
+                        newstate = set(current_ctx.state, PropertyLens($(QuoteNode(field))), parse_ok.next.state)
+                        newctx = Context{$S}(parse_ok.next.buffer, newstate, parse_ok.next.optionsTerminated)
 
                         allconsumed = (allconsumed..., parse_ok.consumed...)
                         current_ctx = newctx

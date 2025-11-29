@@ -11,8 +11,8 @@ end
 
 function parse(p::ModOptional{T, OptionalState{S}}, ctx::Context{OptionalState{S}})::ParseResult{OptionalState{S}, String} where {T, S}
 
-    childstate = isnothing(base(ctx.state)) ? p.parser.initialState : @something base(ctx.state)
-    childctx = @set ctx.state = childstate
+    childstate = is_error(ctx.state) ? p.parser.initialState : unwrap(ctx.state)
+    childctx = Context{S}(ctx.buffer, childstate, ctx.optionsTerminated)
     result = parse(unwrapunion(p.parser), childctx)::ParseResult{S, String}
 
     if !is_error(result)
