@@ -44,7 +44,7 @@ function parse(p::ConstrTuple{T, S}, ctx::Context{S})::ParseResult{S, String} wh
     while length(matched_parsers) < length(p.parsers)
         found_match = false
 
-        error = (0, "No remaining parsers could match the input")
+        error = (0, "No remaining parsers could match the input.")
 
         #= instead of filtering by the already matched parsers
         # we iterate over all parsers and skip those already matched.
@@ -56,7 +56,7 @@ function parse(p::ConstrTuple{T, S}, ctx::Context{S})::ParseResult{S, String} wh
         @unroll 10 for parser in sorted_ptup
         	i += 1
             #= we need to simulate a i in matched_parsers && continue but in an unrolled loop
-            # so it becomes, this unrolled part only happens if it's not yet matched!
+            # so it becomes a whole if, this unrolled part only happens if it's not yet matched!
             =#
         	if i ∉ matched_parsers
             	# @info current_ctx.state perm[i] current_ctx.state[perm[i]]
@@ -85,7 +85,7 @@ function parse(p::ConstrTuple{T, S}, ctx::Context{S})::ParseResult{S, String} wh
                     @goto endloop_consumers #= it simulates a "break" by using @goto.
                     # tecnically the @unroll macro also already uses a "loopend" label, but It seems that
                     # these goto macros are expanded before the @unroll and therefore is not there yet. =#
-                elseif is_error(result) && error[1] <= unwrap_error(result).consumed
+                elseif is_error(result) && error[1] < unwrap_error(result).consumed
                     parse_err = unwrap_error(result)
                     error = (parse_err.consumed, parse_err.error)
                 end
@@ -152,12 +152,7 @@ function complete(p::ConstrTuple{T, TState}, st::TState)::Result{T, String} wher
 	@unroll 10 for parser in p.parsers
 		i += 1
 		result = complete(unwrapunion(parser), st[i])
-
-		if !is_error(result)
-			out = insert(out, IndexLens(i), unwrap(result))
-		else
-			return Err(unwrap_error(result))
-		end
+		out = insert(out, IndexLens(i), @? result)
 	end
 
 	return Ok(out)

@@ -26,13 +26,14 @@ end
 @generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{I, X}}, ::Val{j}) where {PTup <: Tuple, I, X <: Tuple, j}
     preamble = quote
         error = length(ctx.buffer) < 1 ?
-            (0, "No matching option or command.") : (0, "Unexpected option or subcommand: $(ctx.buffer[1])")
+            (0, "Expected token, got end of input.") : (0, "Unexpected option or subcommand: $(ctx.buffer[1])")
     end
     N = fieldcount(PTup)
     unrolled_loop = Expr(:block)
 
     valunion = Union{map(typeof ∘ Val, Tuple(collect(0:N)))...}
     for i in 1:N
+        #=Iterate through all child parsers in order of priority.=#
         parser_t = fieldtype(PTup, i)
         parser_tstate = tstate(parser_t)
         push!(
@@ -46,9 +47,9 @@ end
                 if !is_error(result) && length(unwrap(result).consumed) > 0 # (ignores constants)
                     parse_ok = unwrap(result)
 
-                    # If we successfully match something, but the current state is telling us that we've already matched
+                    #=If we successfully match something, but the current state is telling us that we've already matched
                     # something else,
-                    # and those two things aren't the same thing, then error. 'Or' only matches one parser.
+                    # and those two things aren't the same thing, then error. 'Or' only matches one parser.=#
                     if $j != 0 && $j != $i
                         return ParseErr(
                             length(ctx.buffer) - length(parse_ok.next.buffer),
@@ -101,10 +102,5 @@ function complete(p::ConstrOr{T}, orstate::OrState{Val{i}, S})::Result{T, String
 
     result = @unionsplit complete(p.parsers[i], unwrap(allmaybestates[i]).next.state)
 
-    if !is_error(result)
-        return Ok(unwrap(result))
-    else
-        return Err(unwrap_error(result))
-    end
-
+    return Ok(@? result)
 end
