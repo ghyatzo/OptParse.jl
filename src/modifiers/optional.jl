@@ -30,17 +30,8 @@ function complete(p::ModOptional{T, OptionalState{S}, _p, P}, maybestate::Option
 
     result = complete(unwrapunion(p.parser), something(state))::Result{tval(P), String}
 
-    if !is_error(result)
-        return Ok(unwrap(result))
-    else
-        # it's a bit stupid, but conceptually makes sense:
-        # result is of type Result{T, String}
-        # we need to return a Result{Option{T}, String}
-        # so we unwrap and rewrap with the correct type.
-        # in the future will probably deal with this with a convert acting on a more comprehensive error system.
-        return Err(unwrap_error(result))
-    end
-
+    # unwrap or return the error
+    return Ok(@? result)
 end
 
 

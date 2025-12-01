@@ -1,9 +1,36 @@
 module ComposableCLIParse
 
-using Accessors: @set, PropertyLens, IndexLens, insert, set
-using WrappedUnions: WrappedUnions, @wrapped, @unionsplit, unwrap as unwrapunion
-using ErrorTypes: @?, Err, Ok, Option, Result, is_error, none, some, unwrap, unwrap_error, base, is_ok_and
-using UUIDs: UUID, uuid_version
+using Accessors:
+    IndexLens,
+    insert,
+    PropertyLens,
+    set,
+    @set
+
+using WrappedUnions:
+    @unionsplit,
+    unwrap as unwrapunion, #=conflicts with the unwrap from ErrorTypes.jl=#
+    WrappedUnions,
+    @wrapped
+
+using ErrorTypes:
+    @?,
+    base,
+    Err,
+    is_error,
+    is_ok_and,
+    none,
+    Ok,
+    Option,
+    Result,
+    some,
+    unwrap,
+    unwrap_error,
+    @unwrap_or
+
+using UUIDs:
+    UUID,
+    uuid_version
 
 # based on: https://optique.dev/concepts
 
@@ -24,6 +51,7 @@ using UUIDs: UUID, uuid_version
 #	- uri() # also this one shold be easy?
 #	OK uuid() # this one is easy
 #	- path() # might be a bit out of scope
+#   is the Dates stdlib trimmable?
 #	- instant() # moment in time
 #	- duration() # minutes or seconds.
 #	- zone-datetime() # needs external package, so no go
@@ -45,7 +73,7 @@ using UUIDs: UUID, uuid_version
 # modifying combinators: Transform existing Parsers adding additional behaviour on top of the core one
 #	OK optional()
 #	OK withDefault()
-#	TEST multiple(min, max) (match multiple times, collect into an array.)
+#	OK multiple(min, max) (match multiple times, collect into an array.)
 #	NOTPLANNED map() # probably impossible to make typstable until we don't have ValuedFunctions
 #	-
 
@@ -105,9 +133,11 @@ include("modifiers/modifiers.jl")
         ArgConstant{T, S, p, P},
         ArgArgument{T, S, p, P},
         ArgCommand{T, S, p, P},
+
         ConstrObject{T, S, p, P},
         ConstrOr{T, S, p, P},
         ConstrTuple{T, S, p, P},
+
         ModOptional{T, S, p, P},
         ModWithDefault{T, S, p, P},
         ModMultiple{T, S, p, P}
@@ -132,9 +162,6 @@ Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
 Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
 
 
-# @inline parse(p::Parser, ctx::Context) = @unionsplit parse(p, ctx)
-# @inline complete(p::Parser, st) = @unionsplit complete(p, st)
-
 # primitives
 option(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; kw...) where {T} =
     _parser(ArgOption(Tuple(names), valparser; kw...))
@@ -144,7 +171,6 @@ option(opt1::String, opt2::String, valparser::ValueParser{T}; kw...) where {T} =
     _parser(ArgOption((opt1, opt2), valparser; kw...))
 option(opt1::String, opt2::String, opt3::String, valparser::ValueParser{T}; kw...) where {T} =
     _parser(ArgOption((opt1, opt2, opt3), valparser; kw...))
-
 
 flag(names...; kw...) = _parser(ArgFlag(names; kw...))
 
@@ -156,26 +182,29 @@ argument(valparser::ValueParser{T}; kw...) where {T} = _parser(ArgArgument(valpa
 
 command(name::String, p::Parser; kw...) = _parser(ArgCommand(name, p))
 
+
+
 # constructors
 object(obj::NamedTuple) = _parser(_object(obj))
-
 object(objlabel, obj::NamedTuple) = _parser(_object(obj; label = objlabel))
-
 
 or(parsers...) = _parser(ConstrOr(parsers))
 
 tup(parsers...; kw...) = _parser(ConstrTuple(parsers; kw...))
 tup(label::String, parsers...; kw...) = _parser(ConstrTuple(parsers; label, kw...))
 
+
+
 # modifiers
 optional(p::Parser) = _parser(ModOptional(p))
 
 
-withDefault(p::Parser{T}, default::T) where {T} = _parser(ModWithDefault(p, default))
-
-withDefault(default::T) where {T} = (p::Parser{T}) -> _parser(ModWithDefault(p, default))
+withDefault(p::Parser, default) = _parser(ModWithDefault(p, default))
+withDefault(default) = (p::Parser) -> _parser(ModWithDefault(p, default))
 
 multiple(p::Parser; kw...) = _parser(ModMultiple(p; kw...))
+
+
 
 #####
 # entry point

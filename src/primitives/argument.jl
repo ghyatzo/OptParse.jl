@@ -22,19 +22,24 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
     i = 0
     options_terminated = ctx.optionsTerminated
     if !options_terminated
+        #=Options aren't "officially" terminated yet. Need to be careful.=#
         if ctx.buffer[1] == "--"
+            #=If we encounter "--" consume it and update the context=#
             options_terminated = true
             i += 1
         elseif !isnothing(match(optpattern, ctx.buffer[1 + i]))
+            #=Otherwise, check that we are not matching an option.=#
             return ParseErr(i, "Expected an argument, but got an option/flag.")
         end
     end
 
     if length(ctx.buffer) < 1 + i
+        #=Check again, in case we only had a "--" in the buffer.=#
         return ParseErr(i, "Expected an argument, but got end of input.")
     end
 
-    if base(ctx.state) !== nothing
+    if !is_error(ctx.state)
+        #=The state is a some, so this parser matched already with something.=#
         return ParseErr(i, "The argument `$(metavar(p.valparser))` cannot be used multiple times.")
     end
 
@@ -51,13 +56,14 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
 end
 
 function complete(p::ArgArgument{T, <:ArgumentState}, maybest::TState)::Result{T, String} where {T, TState <: ArgumentState}
-    isnothing(base(maybest)) && return Err("Expected a `$(metavar(p.valparser))`, but too few arguments.")
 
-    st = @something base(maybest)
-    if !is_error(st)
-        return st
-    end
+    #=The parser never matched anything.=#
+    is_error(maybest) && return Err("Expected a `$(metavar(p.valparser))`, but too few arguments.")
 
-    error = unwrap_error(st)
-    return Err("`$(metavar(p.valparser))`: $error.")
+    st = unwrap(maybest)
+    #=The parser matched but there was a parsing error.=#
+    is_error(st) && return Err("`$(metavar(p.valparser))`: $(unwrap_error(st)).")
+
+    return st
 end
+

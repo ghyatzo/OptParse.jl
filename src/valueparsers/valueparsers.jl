@@ -15,7 +15,7 @@ end
 
 (s::StringVal)(input::String)::Result{String, String} = let
     m = match(s.pattern, input)
-    isnothing(m) && return Err("Expected a string matching pattern $(s.pattern), but got $input.")
+    isnothing(m) && return Err("Expected a string matching the pattern `$(s.pattern)`, but got `$input`.")
     return Ok(input)
 end
 

@@ -22,7 +22,7 @@ function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::ParseResul
         return ParseErr(0, "Expected a flag, got end of input.")
     end
 
-    #= When the input contains `--` is a signal to stop parsing options =#
+    #= When the input contains `--` stop parsing options =#
     if (ctx.buffer[1] === "--")
         next = Context(ctx.buffer[2:end], ctx.state, true)
         return ParseOk(ctx.buffer[1:1], next)

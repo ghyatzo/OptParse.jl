@@ -35,10 +35,6 @@ end
 
     @test ps.next.buffer == String[]
     @test ps.consumed == ("-n", "Alice")
-
-    # # optional keeps a collection of inner states
-    # @test ps.next.state isa AbstractVector
-    # @test length(ps.next.state) == 1
 end
 
 @testset "should propagate failed parse results" begin
@@ -176,7 +172,7 @@ end
     baseParser = option(("-n", "--name"), str())
     optionalParser = optional(baseParser)
 
-    # initial state should be "undefined" (nothing)
+    # initial state should be "undefined"
     @test optionalParser.initialState === none(tstate(baseParser))
 
     context = Context(["-n", "test"], none(tstate(baseParser)))
