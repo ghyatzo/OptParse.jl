@@ -78,7 +78,7 @@ end
     if is_error(res)
         pf = unwrap_error(res)
         @test pf.consumed == 0
-        @test occursin("No Matched", string(pf.error))
+        @test occursin("Unexpected option or argument", string(pf.error))
     end
 end
 
@@ -97,7 +97,7 @@ end
     @test is_error(res)
     if is_error(res)
         pf = unwrap_error(res)
-        @test occursin("Expected argument, option", string(pf.error))
+        @test occursin("end of input", string(pf.error))
     end
 end
 

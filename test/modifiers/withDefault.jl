@@ -86,7 +86,7 @@ end
     end
 end
 
-@testset "should propagate failed parse results correctly" begin
+@testset "should return success with empty consumed when inner parser fails without consuming." begin
     baseParser = flag("-v", "--verbose")
     defaultParser = withDefault(baseParser, false)
 
@@ -95,11 +95,14 @@ end
     ctx = Context(buffer, state)
 
     parseResult = splitparse(defaultParser, ctx)
-    @test is_error(parseResult)
-    if is_error(parseResult)
-        pf = unwrap_error(parseResult)
-        @test pf.consumed == 0
-        @test occursin("No Matched", string(pf.error))
+
+    # when inner parser fails without consuming input, optional returns success
+
+    @test !is_error(parseResult)
+    if !is_error(parseResult)
+        pf = unwrap(parseResult)
+        @test length(pf.consumed) == 0
+        @test pf.next.buffer == ["--help"]
     end
 end
 
@@ -282,6 +285,32 @@ end
         @test getproperty(st, :debug) == false
     end
 end
+
+
+@testset "should return default value when parsing empty input" begin
+    default = withDefault(option("-n", "--name", str()), "Bob")
+
+    result = argparse(default, String[])
+
+    @test !is_error(result)
+    @test (@? result) == "Bob"
+
+    defflag = withDefault(flag("-v"), false)
+    result = argparse(defflag, String[])
+
+    @test !is_error(result)
+    @test (@? result) == false
+end
+
+@testset "should propagate errors when inner parser partially consumes input" begin
+    optionalopt = withDefault(option("-n", str()), "Bob")
+
+    result = argparse(optionalopt, ["-n"])
+    @test is_error(result)
+    @test occursin("requires a value", unwrap_error(result))
+end
+
+
 
 @testset "should be type stable" begin
     @test_opt withDefault(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080)

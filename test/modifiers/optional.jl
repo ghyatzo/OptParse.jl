@@ -37,18 +37,18 @@ end
     @test ps.consumed == ("-n", "Alice")
 end
 
-@testset "should propagate failed parse results" begin
+@testset "should return success with empty consumed when inner parser fails without consuming." begin
     baseParser = flag("-v", "--verbose")
     optionalParser = optional(baseParser)
 
     context = Context(["--help"], optionalParser.initialState)
     parseResult = splitparse(optionalParser, context)
 
-    @test is_error(parseResult)
-    # pf = unwrap_error(parseResult)
+    @test !is_error(parseResult)
+    pf = unwrap(parseResult)
 
-    # @test pf.consumed == 0
-    # @test occursin("No matched option", string(pf.error))
+    @test length(pf.consumed) == 0
+    @test pf.next.buffer == ["--help"]
 end
 
 @testset "should complete with undefined when internal state is undefined" begin
@@ -143,11 +143,12 @@ end
     context = Context{typeof(context.state)}(context.buffer, context.state, true)  # optionsTerminated=true
 
     parseResult = splitparse(optionalParser, context)
-    @test is_error(parseResult)
-    pf = unwrap_error(parseResult)
-
-    @test pf.consumed == 0
-    @test occursin("No more options", string(pf.error))
+    @test !is_error(parseResult)
+    pf = unwrap(parseResult)
+    # with optionsTerminated true, option parser fails without consuming input, so optional returns success with
+    # empty consumed.
+    @test length(pf.consumed) == 0
+    @test pf.next.buffer == ["-v"]
 end
 
 @testset "should work with bundled short options through wrapped parser" begin
@@ -189,6 +190,29 @@ end
     innerres = @something base(inner)
     @test !is_error(innerres)
     @test unwrap(innerres) == "test"
+end
+
+@testset "should return undefined when parsing empty input" begin
+    optionalflag = optional(flag("-v", "--verbose"))
+
+    result = argparse(optionalflag, String[])
+
+    @test !is_error(result)
+    @test (@? result) == nothing
+
+    optionalopt = optional(option("-n", str()))
+    result = argparse(optionalopt, String[])
+
+    @test !is_error(result)
+    @test (@? result) == nothing
+end
+
+@testset "should propagate errors when inner parser partially consumes input" begin
+    optionalopt = optional(option("-n", str()))
+
+    result = argparse(optionalopt, ["-n"])
+    @test is_error(result)
+    @test occursin("requires a value", unwrap_error(result))
 end
 
 @testset "should be type stable" begin
