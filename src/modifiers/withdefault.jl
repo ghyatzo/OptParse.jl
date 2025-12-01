@@ -7,13 +7,14 @@ struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
     default::T
 
     ModWithDefault(parser::P, default::T) where {T, P} = let
-        new{tval(P), WithDefaultState{tstate(P)}, priority(P), P}(none(tstate(P)), parser, default)
+        retval_t = tval(P) == T ? T : Union{tval(P), T}
+        new{retval_t, WithDefaultState{tstate(P)}, priority(P), P}(none(tstate(P)), parser, default)
     end
 end
 
 function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefaultState{S}})::ParseResult{WithDefaultState{S}, String} where {T, S}
 
-    childstate = isnothing(base(ctx.state)) ? p.parser.initialState : @something base(ctx.state)
+    childstate = is_error(ctx.state) ? p.parser.initialState : unwrap(ctx.state)
     childctx = @set ctx.state = childstate
     result = parse(unwrapunion(p.parser), childctx)::ParseResult{S, String}
 
@@ -28,9 +29,11 @@ function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefau
 end
 
 function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDefaultState{S})::Result{T, String} where {T, S}
+
     state = base(maybestate)
     isnothing(state) && return Ok(p.default)
 
-    # here we can return directly since tval(ModWithDefault) == tval(inner parser)
-    return complete(unwrapunion(p.parser), something(state))::Result{T, String}
+    result = complete(unwrapunion(p.parser), something(state))::Result{tval(p.parser), String}
+    # we need to rewrap so that in case of a union it is properly rendered.
+    return Ok(@? result)
 end
