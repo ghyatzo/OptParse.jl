@@ -1,6 +1,6 @@
 using Test
-using ComposableCLIParse
-using ComposableCLIParse: Context, parse, priority, complete, tstate, tval, Parser
+using CLIpper
+using CLIpper: Context, parse, priority, complete, tstate, tval, Parser
 using ErrorTypes
 using WrappedUnions: @unionsplit, unwrap as unwrapunion
 using JET

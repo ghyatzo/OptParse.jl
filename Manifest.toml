@@ -51,7 +51,7 @@ git-tree-sha1 = "382d79bfe72a406294faca39ef0c3cef6e6ce1f1"
 uuid = "807dbc54-b67e-4c79-8afb-eafe4df6f2e1"
 version = "0.1.1"
 
-[[deps.ComposableCLIParse]]
+[[deps.CLIpper]]
 deps = ["Accessors", "ErrorTypes", "UUIDs", "WrappedUnions"]
 path = "."
 uuid = "1244ff17-1aa7-4121-9347-f4ead108e58f"

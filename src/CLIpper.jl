@@ -1,4 +1,4 @@
-module ComposableCLIParse
+module CLIpper
 
 using Accessors:
     IndexLens,
@@ -243,7 +243,7 @@ end
 macro comment(_...) end
 
 @comment begin
-    using ComposableCLIParse
+    using CLIpper
     args = ["--host", "me", "--verbose", "--test"]
 
     opt = option(["--host"], str(; metavar = "HOST"))
@@ -284,7 +284,7 @@ macro comment(_...) end
 
     @report_opt argparse(obj2, String[])
 
-    @btime ComposableCLIParse._sort_obj(nt) setup = begin
+    @btime CLIpper._sort_obj(nt) setup = begin
         opt = option(["--host"], stringval(; metavar = "HOST"))
         flg = flag(["--verbose"])
 
@@ -292,4 +292,4 @@ macro comment(_...) end
     end
 end
 
-end # module ComposableCLIParse
+end # module CLIpper

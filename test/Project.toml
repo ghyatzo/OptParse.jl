@@ -1,5 +1,5 @@
 [deps]
-ComposableCLIParse = "1244ff17-1aa7-4121-9347-f4ead108e58f"
+CLIpper = "1244ff17-1aa7-4121-9347-f4ead108e58f"
 ErrorTypes = "7f495686-c6d2-4c77-9e8e-e4c865675f9d"
 JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
