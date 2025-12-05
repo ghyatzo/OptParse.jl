@@ -13,19 +13,19 @@ If it succeed, then you're sure you're in a valid state. If it doesn't it should
 
 There are 3 main types of parsers:
 
- - `primitive`: These are the main building blocks, the bricks of your grandiose parser.
+ - **primitive**: These are the main building blocks, the bricks of your grandiose parser.
     they are the parsers that actually match the tokens in your input. The main ones are `option`, `flag`
     `argument`, and `command`.
 
- - `valueparsers`: These are specialized parsers that take on the responsibility of translating
+ - **value parsers**: These are specialized parsers that take on the responsibility of translating
     the actual raw input strings from your command line into strongly typed values that can be used directly by your program. Some of them are: `str()`, `integer()`, `choice()`, `float()`, `uuid()`.
 
- - `modifiers`: These act as addons to your existing parsers. They can enhance or modify the behaviour of a parsers
+ - **modifiers**: These act as addons to your existing parsers. They can enhance or modify the behaviour of a parsers
     while keeping it's main purpose. These are the main tools to use to add more complex behaviour to your parsers while
     remaining type-stable.
     Some of them are: `optional`, `withDefault`, `multiple`
 
- - `constructors`/`combinators`: These are the framework of your CLI app. Use them to compose together multiple parsers and create complex parsing structures capable of matching multiple states at the same time. Some of them are: `object`, `or`, `tup`
+ - **constructors**/**combinators**: These are the framework of your CLI app. Use them to compose together multiple parsers and create complex parsing structures capable of matching multiple states at the same time. Some of them are: `object`, `or`, `tup`
 
 
 ## Quick Start
@@ -115,7 +115,7 @@ Together with `argument`s they are the main users of the value parsers to parse 
 
 They can match multiple patterns:
 
- - `--option value`/`--option=value
+ - `--option value`/`--option=value`
  - `-Lvalue` (not yet actually)
  - `/O val`/`/O:val`
 
