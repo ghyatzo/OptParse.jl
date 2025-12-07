@@ -137,6 +137,11 @@ include("parsers/parser.jl")
 
 #####
 # entry point
+
+#= This will probably become an internal. At the moment we're returning Results objects. We don't really want
+to force the user to deal with them. Need to figure out a way in which to return errors to the user.
+I'm thinking a higher level approach that either returns the desired result or throws or a lower level one
+that simply returns the Result type for the user to deal with... maybe. I don't know yet.=#
 function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} where {T, S}
 
     ctx = Context{S}(args, pp.initialState, false)
