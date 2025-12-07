@@ -1,19 +1,19 @@
-# CLIpper
+# OptParse
 
-A Type Stable Composable CLI Parser for Julia, heavily inspired (basically a port) by [optparse-applicative](https://github.com/pcapriotti/optparse-applicative) and [Optique](https://optique.dev/) (typescript version).
+A Type Stable Composable CLI Parser for Julia, inspired by [optparse-applicative](https://github.com/pcapriotti/optparse-applicative) and [Optique](https://optique.dev/) (typescript version).
 
-[![Build Status](https://github.com/ghyatzo/CLIpper/workflows/CI/badge.svg)](https://github.com/ghyatzo/CLIpper/actions)
+[![Build Status](https://github.com/ghyatzo/OptParse/workflows/CI/badge.svg)](https://github.com/ghyatzo/OptParse/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-> ⚠️ **Work In Progress**: CLIpper is in active development. The API is experimental and subject to frequent change.
+> ⚠️ **Work In Progress**: OptParse is in active development. The API is experimental and subject to frequent change.
 > Type stability is tested and promising, but needs more real-world validation.
 
 ## Philosophy
 
 The aim is to provide an argument parsing package for CLI apps that supports trimming.
 
-In CLIpper, everything is a parser. Complex parsers are built from simpler ones through composition.
-Following the principle of "parse, don't validate," CLIpper returns exactly what you ask for—or fails with a clear explanation.
+In OptParse, everything is a parser. Complex parsers are built from simpler ones through composition.
+Following the principle of "parse, don't validate," OptParse returns exactly what you ask for—or fails with a clear explanation.
 
 Each parser is a tree of subparsers. Leaf nodes do the actual parsing, intermediate nodes compose and orchestrate parsers to
 create new behaviours. Parsing is done in two passes:
@@ -56,7 +56,7 @@ result = argparse(parser, ["--name", "myserver", "-p", "8080", "-v"])
 
 ## Core Concepts
 
-CLIpper provides four types of building blocks:
+OptParse provides four types of building blocks:
 
 ### Primitives
 
@@ -157,7 +157,7 @@ pkgParser = or(addCmd, removeCmd)
 Here's a more realistic example showing subcommands:
 
 ```julia
-using CLIpper
+using OptParse
 
 # Shared options
 commonOpts = object((
@@ -200,7 +200,7 @@ parser = or(addCmd, removeCmd, instantiateCmd)
 
 ## Type Stability
 
-CLIpper is designed for type stability. The return type of your parser is fully determined at compile time:
+OptParse is designed for type stability. The return type of your parser is fully determined at compile time:
 
 ```julia
 parser = object((
@@ -220,7 +220,7 @@ parser = or(
 
 ## Error Handling
 
-When parsing fails, CLIpper provides clear error messages indicating what went wrong:
+When parsing fails, OptParse provides clear error messages indicating what went wrong:
 
 ```julia
 parser = option("-p", integer(min=1000))
@@ -235,30 +235,28 @@ argparse(parser, ["-p", "500"])  # Error: Value must be >= 1000
 argparse(parser, [])  # Error: Required option -p not found
 ```
 
-## Comparison with Alternatives
-
-For more detailed documentation, see [Optique's excellent documentation website](https://optique.dev/),
-which heavily influenced this package API. There are some minor differences but the core concepts are the same since both are inspired by
-the great [optparse-applicative](https://github.com/pcapriotti/optparse-applicative).
-
 ## Installation
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/ghyatzo/CLIpper")
+Pkg.add(url="https://github.com/ghyatzo/OptParse")
 ```
 
 ## Documentation
 
 Comprehensive documentation is available through Julia's help system:
 
-```juliarepl
-julia> using CLIpper
+```jlrepl
+julia> using OptParse
 
 julia> ?option
 julia> ?object
 julia> ?or
 ```
+
+For more detailed documentation, see [Optique's excellent documentation website](https://optique.dev/),
+which heavily influenced this package API. There are some minor differences but the core concepts are the same since both are inspired by
+the great [optparse-applicative](https://github.com/pcapriotti/optparse-applicative).
 
 ## Contributing
 

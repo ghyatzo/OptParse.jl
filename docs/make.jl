@@ -1,12 +1,12 @@
 using Documenter
-using CLIpper
+using OptParse
 
 makedocs(
-    sitename = "CLIpper.jl Documentation",
+    sitename = "OptParse.jl Documentation",
     pages = [
         "index.md",
         "Examples" => "examples.md",
         "API Docstrings" => "reference.md",
     ],
-    # modules = [CLIpper] # not yet ready to test docstrings
+    # modules = [OptParse] # not yet ready to test docstrings
 )

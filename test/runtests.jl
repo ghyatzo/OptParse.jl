@@ -1,6 +1,6 @@
 using Test
-using CLIpper
-using CLIpper: Context, parse, priority, complete, tstate, tval, Parser
+using OptParse
+using OptParse: Context, parse, priority, complete, tstate, tval, Parser
 using ErrorTypes
 using WrappedUnions: @unionsplit, unwrap as unwrapunion
 using JET

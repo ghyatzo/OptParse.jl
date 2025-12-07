@@ -102,7 +102,7 @@ A modified parser that returns `default` if the original parser fails to match.
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Parser with explicit default
        p = withDefault(option("-p", "--port", integer()), 8080);
@@ -152,7 +152,7 @@ A modified parser that returns `nothing` if parsing fails, or the parsed value o
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Optional flag - returns true if present, nothing otherwise
        verbose = optional(flag("-v", "--verbose"));
@@ -213,7 +213,7 @@ original parser.
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Multiple arguments (e.g., `add pkg1 pkg2 pkg3`)
        packages = multiple(argument(str(metavar="PACKAGE")));
@@ -282,7 +282,7 @@ A parser that matches the specified option patterns and returns a value of type 
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Single long option
        port = option("--port", integer());
@@ -359,7 +359,7 @@ A parser that returns `true` when the flag is present.
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Simple flag
        verbose = flag("--verbose");
@@ -428,7 +428,7 @@ A parser that returns `true` if the flag is present, `false` otherwise.
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Basic usage
        verbose = optflag("-v", "--verbose");
@@ -496,7 +496,7 @@ A parser that always succeeds and returns `val` without consuming any input.
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Tagging subcommands
        addCmd = command("add", object((
@@ -568,7 +568,7 @@ A parser that matches a positional argument and returns a value of type `T`.
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Single argument
        source = argument(str(metavar="SOURCE"));
@@ -664,7 +664,7 @@ using the provided parser.
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Simple command
        instantiate = command("instantiate", object((
@@ -690,14 +690,14 @@ julia> removeCmd = command("remove", object((
 
 julia> pkgParser = or(addCmd, removeCmd);
 
-julia> result = argparse(pkgParser, ["add", "CLIpper", "DataFrames"]);
+julia> result = argparse(pkgParser, ["add", "OptParse", "DataFrames"]);
 
 julia> result.action
 :add
 
 julia> result.packages
 2-element Vector{String}:
- "CLIpper"
+ "OptParse"
  "DataFrames"
 
 julia> result = argparse(pkgParser, ["remove", "OldPkg"]);
@@ -746,7 +746,7 @@ contains the parsed result from the corresponding parser.
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Basic usage
        parser = object((
@@ -834,7 +834,7 @@ A parser that combines all fields from the input objects into a single result.
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Reusable parser components
        commonOpts = (
@@ -905,7 +905,7 @@ A parser that returns the result of the first successfully matching parser.
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Subcommands
        addCmd = command("add", object((
@@ -1007,7 +1007,7 @@ A parser that returns a tuple of parsed values in the same order as the parsers.
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Basic tuple
        parser = tup(
@@ -1094,7 +1094,7 @@ A parser that combines all elements from the input tuples into a single flat tup
 
 # Examples
 ```jldoctest
-julia> using CLIpper
+julia> using OptParse
 
 julia> # Reusable tuple components
        positionArgs = tup(

@@ -1,4 +1,4 @@
-name = "CLIpper"
+name = "OptParse"
 uuid = "1244ff17-1aa7-4121-9347-f4ead108e58f"
 version = "0.1.0"
 authors = ["ghyatzo <dev@cschen.cc>"]

@@ -1,4 +1,4 @@
-module CLIpper
+module OptParse
 
 using Accessors:
     IndexLens,
@@ -85,7 +85,7 @@ using UUIDs:
 #   OK(TEST?) merge(), takes two parsers and generate a new single parser combining both
 #	OK(TEST?) concat(), appends tuple parsers
 #	- longest-match(), tries all parses and selects the one with the longest match.
-#	- group(), documentation only combinator, adds a group label to parsers inside.
+#	- group(), documentation only combinator, adds a group label to parsers inside. Ensure to make it work also for groups of options!
 #   ? conditional(), check 0.7.1
 
 
@@ -94,12 +94,14 @@ using UUIDs:
 # - Suggestions Mechanism
 # - Better Errors
 # - Shell completions
+# - implement actual runners (d)
 
 # API Changes TODO/IDEAS
 # - offer directly options with a valueparser built in: stropt, intopt fltopt... etc
 # - shorten names: object -> obj, argument -> arg, command -> cmd
 # - make optflag the default behaviour and call it flag.
 # - rename flag to `gate`
+# - rename multiple to 'many'
 
 
 export argparse,
@@ -181,4 +183,4 @@ function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} whe
     return @unionsplit complete(pp, ctx.state)
 end
 
-end # module CLIpper
+end # module OptParse
