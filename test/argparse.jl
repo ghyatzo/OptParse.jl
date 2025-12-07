@@ -1,4 +1,3 @@
-
 @testset "should parse simple flag successfully" begin
     parser = flag("-v")
     result = argparse(parser, ["-v"])
@@ -32,10 +31,12 @@ end
 end
 
 @testset "should process all arguments" begin
-    parser = object((
-        verbose = flag("-v"),
-        name = option("-n", str())
-    ))
+    parser = object(
+        (
+            verbose = flag("-v"),
+            name = option("-n", str()),
+        )
+    )
 
     result = argparse(parser, ["-v", "-n", "michele"])
 
@@ -45,26 +46,32 @@ end
 end
 
 @testset "should handle option terminator" begin
-    parser = object((
-        verbose = flag("-v"),
-    ))
+    parser = object(
+        (
+            verbose = flag("-v"),
+        )
+    )
     result = argparse(parser, ["-v", "--"])
     @test !is_error(result)
     @test (@? result).verbose == true
 end
 
 @testset "should handle complex nested parser combinations" begin
-    server_parser = object("Server", (
-        port = option("-p", "--port", integer(min=1, max=25500)),
-        host = option("-h", "--host", str(metavar = "HOST")),
-        verbose = flag("-v")
-    ))
+    server_parser = object(
+        "Server", (
+            port = option("-p", "--port", integer(min = 1, max = 25500)),
+            host = option("-h", "--host", str(metavar = "HOST")),
+            verbose = flag("-v"),
+        )
+    )
 
-    client_parser = object("Client", (
-        connect = option("-c", "--connect", str(metavar = "URL")),
-        timeout = option("-t", "--timeout", integer(min=10)),
-        retry = withDefault(flag("-r", "--retry"), false)
-    ))
+    client_parser = object(
+        "Client", (
+            connect = option("-c", "--connect", str(metavar = "URL")),
+            timeout = option("-t", "--timeout", integer(min = 10)),
+            retry = withDefault(flag("-r", "--retry"), false),
+        )
+    )
 
     main_parser = or(server_parser, client_parser)
 
@@ -89,15 +96,19 @@ end
 
 @testset "should enforce mutual exclusivity in complex scenarios" begin
 
-    group1 = object("Group 1", (;
-        allow = flag("--allow"),
-        value = option("-v", integer())
-    ))
+    group1 = object(
+        "Group 1", (;
+            allow = flag("--allow"),
+            value = option("-v", integer()),
+        )
+    )
 
-    group2 = object("Group 2", (;
-        foo = flag("--foo"),
-        bar = option("--bar", str())
-    ))
+    group2 = object(
+        "Group 2", (;
+            foo = flag("--foo"),
+            bar = option("--bar", str()),
+        )
+    )
 
     parser = or(group1, group2)
 
@@ -109,11 +120,13 @@ end
 
 @testset "should handle mixed option styles" begin
 
-    parser = object((;
-        unixshort = flag("-u"),
-        unixlong = flag("--long"),
-        dosstyle = flag("/D"),
-    ))
+    parser = object(
+        (;
+            unixshort = flag("-u"),
+            unixlong = flag("--long"),
+            dosstyle = flag("/D"),
+        )
+    )
 
     result1 = argparse(parser, ["-u", "--long", "/D"])
 
@@ -126,11 +139,13 @@ end
 
 @testset "should handle bundled short flags" begin
 
-    parser = object((;
-        u = flag("-u"),
-        v = flag("-v"),
-        e = flag("-e"),
-    ))
+    parser = object(
+        (;
+            u = flag("-u"),
+            v = flag("-v"),
+            e = flag("-e"),
+        )
+    )
 
     result1 = argparse(parser, ["-uev"])
 
@@ -142,17 +157,21 @@ end
 end
 
 @testset "should validate value parsers constraints in complex scenarios" begin
-    server_parser = object("Server", (
-        port = option("-p", "--port", integer(min=1000, max=25500)),
-        host = option("-h", "--host", str(pattern = r"^[a-zA-Z][a-zA-Z0-9_]*$")),
-        verbose = withDefault(true)(flag("-v"))
-    ))
+    server_parser = object(
+        "Server", (
+            port = option("-p", "--port", integer(min = 1000, max = 25500)),
+            host = option("-h", "--host", str(pattern = r"^[a-zA-Z][a-zA-Z0-9_]*$")),
+            verbose = withDefault(true)(flag("-v")),
+        )
+    )
 
 
-    result = argparse(server_parser, [
-        "-p", "8080",
-        "-h", "some_server10",
-    ])
+    result = argparse(
+        server_parser, [
+            "-p", "8080",
+            "-h", "some_server10",
+        ]
+    )
 
     @test !is_error(result)
     val = unwrap(result)
@@ -213,9 +232,11 @@ end
 end
 
 @testset "should handle edge cases with options terminator" begin
-    parser = object((
-        verbose = withDefault(false)(flag("-v")),
-    ))
+    parser = object(
+        (
+            verbose = withDefault(false)(flag("-v")),
+        )
+    )
 
     res1 = argparse(parser, ["-v", "--"])
     @test !is_error(res1)
@@ -230,11 +251,13 @@ end
 end
 
 @testset "should handle argument parsers in object combinations" begin
-    parser = object((
-        verbose = flag("-v"),
-        output  = option("-o", str(; metavar = "FILE")),
-        input   = argument(str(; metavar = "INPUT")),
-    ))
+    parser = object(
+        (
+            verbose = flag("-v"),
+            output = option("-o", str(; metavar = "FILE")),
+            input = argument(str(; metavar = "INPUT")),
+        )
+    )
 
     res = argparse(parser, ["-v", "-o", "output.txt", "input.txt"])
     @test !is_error(res)
@@ -245,25 +268,29 @@ end
 end
 
 @testset "should reproduce example behavior with arguments" begin
-    group1 = object("Group 1", (
-        type  = @constant(:group1),
-        allow = flag("-a", "--allow"),
-        value = option("-v", "--value", integer()),
-        arg   = argument(str(; metavar = "ARG")),
-    ))
+    group1 = object(
+        "Group 1", (
+            type = @constant(:group1),
+            allow = flag("-a", "--allow"),
+            value = option("-v", "--value", integer()),
+            arg = argument(str(; metavar = "ARG")),
+        )
+    )
 
-    group2 = object("Group 2", (
-        type = @constant(:group2),
-        foo  = flag("-f", "--foo"),
-        bar  = option("-b", "--bar", str(; metavar = "VALUE")),
-    ))
+    group2 = object(
+        "Group 2", (
+            type = @constant(:group2),
+            foo = flag("-f", "--foo"),
+            bar = option("-b", "--bar", str(; metavar = "VALUE")),
+        )
+    )
 
     parser = or(group1, group2)
 
     group1Res = argparse(parser, ["-a", "-v", "123", "myfile.txt"])
     @test !is_error(group1Res)
     group1Val = unwrap(group1Res)
-    @test group1Val.type == :group1
+    @test group1Val.type == Val{:group1}()
     @test group1Val.allow == true
     @test group1Val.value == 123
     @test group1Val.arg == "myfile.txt"
@@ -271,17 +298,7 @@ end
     group2Res = argparse(parser, ["-f", "-b", "hello"])
     @test !is_error(group2Res)
     group2Val = unwrap(group2Res)
-    @test group2Val.type == :group2
+    @test group2Val.type == Val{:group2}()
     @test group2Val.foo == true
     @test group2Val.bar == "hello"
 end
-
-
-
-
-
-
-
-
-
-
