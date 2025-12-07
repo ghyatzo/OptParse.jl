@@ -196,15 +196,13 @@ end
     end
 end
 
-@testset "should return success when the inner state fails to validate the matched input." begin
-    baseParser = option(("--port", "-p"), integer(; min = 1))
+@testset "should return error when the inner state fails to validate the matched input." begin
+    baseParser = option(("--port", "-p"), integer(; min = 100))
     defaultParser = withDefault(baseParser, 8080)
 
-    # Manually feed a failing completion state from the wrapped parser
-    err::Result{tval(baseParser), String} = Err("Port must be >= 1")
-    completeResult = splitcomplete(defaultParser, some(err))
-    @test !is_error(completeResult)
-    @test (@? completeResult) == 8080
+    completeResult = argparse(defaultParser, ["-p", "10"])
+    @test is_error(completeResult)
+    @test occursin("at least", unwrap_error(completeResult))
 end
 
 @testset "should handle state transitions correctly" begin
@@ -333,7 +331,6 @@ end
     @test pok.next.buffer == ["arg"]
 
 end
-
 
 
 @testset "should be type stable" begin
