@@ -54,8 +54,12 @@ function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDef
     # The state exists but is an error.
     #state isa Result && is_error(state) && return Ok(p.default)
 
-    #= Otherwise just ask the inner state to complete itself. =#
+    #= Otherwise just ask the inner state to complete itself.
+    In case of validation errors from the value parser, we want to return an error instead of the default.
+    Given that the user explicitly passed a value, he likely does not want the default value.=#
     result = complete(unwrapunion(p.parser), state)::Result{tval(p.parser), String}
+
+
     # we need to rewrap so that in case of a union it is properly rendered.
     return Ok(@? result)
 end

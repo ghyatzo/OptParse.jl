@@ -27,7 +27,7 @@ There are 3 main types of parsers:
 
  - **constructors**/**combinators**: These are the framework of your CLI app. Use them to compose together multiple parsers and create complex parsing structures capable of matching multiple states at the same time. Some of them are: `object`, `or`, `tup`
 
-
+For a more thorough and clear explaination I suggest you pay a visit to [Optique's amazing documentation](https://optique.dev/). This package was directly inspired by it in design and follows pretty closely its design, making the documentations very much appliable also here. Another source of information is [this blogpost]
 ## Quick Start
 
 Here’s a minimal example of defining and parsing options:

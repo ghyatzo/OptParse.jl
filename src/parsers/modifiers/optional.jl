@@ -1,4 +1,5 @@
-# TODO: make the optional parser a special case of the withDefault parser that returns nothing.
+# DONE: make the optional parser a special case of the withDefault parser that returns nothing.
+# We keep this around just in case we need to special case the help printing and usage.
 
 const OptionalState{X} = Option{X}
 
@@ -29,7 +30,14 @@ function parse(p::ModOptional{T, OptionalState{S}}, ctx::Context{OptionalState{S
     end
 
     parse_ok = unwrap(result)
-    newctx = set(parse_ok.next, PropertyLens(:state), some(parse_ok.next.state))
+    if parse_ok.next.state != childstate || length(parse_ok.consumed) == 0
+        #=Inner parser actually consumed something or changed its state=#
+        newctx = set(parse_ok.next, PropertyLens(:state), some(parse_ok.next.state))
+    else
+        #=Inner parser returned success but nothing changed while consuming input. (i.e. "--")
+            Treat as unmatched, but still propagate side effects.=#
+        newctx = set(parse_ok.next, PropertyLens(:state), ctx.state)
+    end
     return ParseOk(parse_ok.consumed, newctx)
 end
 

@@ -132,92 +132,7 @@ export argparse,
     multiple
 
 include("utils.jl")
-include("parser.jl")
-include("valueparsers/valueparsers.jl")
-include("primitives/primitives.jl")
-include("constructors/constructors.jl")
-include("modifiers/modifiers.jl")
-
-@wrapped struct Parser{T, S, p, P} <: AbstractParser{T, S, p, P}
-    union::Union{
-        ArgFlag{T, S, p, P},
-        ArgOption{T, S, p, P},
-        ArgConstant{T, S, p, P},
-        ArgArgument{T, S, p, P},
-        ArgCommand{T, S, p, P},
-
-        ConstrObject{T, S, p, P},
-        ConstrOr{T, S, p, P},
-        ConstrTuple{T, S, p, P},
-
-        ModOptional{T, S, p, P},
-        ModWithDefault{T, S, p, P},
-        ModMultiple{T, S, p, P},
-    }
-end
-
-_parser(x::ArgFlag{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ArgOption{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ArgConstant{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ArgArgument{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ArgCommand{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-
-_parser(x::ConstrObject{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ConstrOr{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ConstrTuple{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-
-_parser(x::ModOptional{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ModWithDefault{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ModMultiple{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-
-Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
-Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
-
-
-# modifiers
-optional(p::Parser) = _parser(ModOptional(p))
-
-
-withDefault(p::Parser, default) = _parser(ModWithDefault(p, default))
-withDefault(default) = (p::Parser) -> _parser(ModWithDefault(p, default))
-
-multiple(p::Parser; kw...) = _parser(ModMultiple(p; kw...))
-
-
-# primitives
-option(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption(Tuple(names), valparser; kw...))
-option(opt1::String, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption((opt1,), valparser; kw...))
-option(opt1::String, opt2::String, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption((opt1, opt2), valparser; kw...))
-option(opt1::String, opt2::String, opt3::String, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption((opt1, opt2, opt3), valparser; kw...))
-
-flag(names...; kw...) = _parser(ArgFlag(names; kw...))
-optflag(names...; kw...) = withDefault(flag(names...; kw...), false)
-
-macro constant(val)
-    return :(_parser(ArgConstant($val)))
-end
-
-argument(valparser::ValueParser{T}; kw...) where {T} = _parser(ArgArgument(valparser; kw...))
-
-command(name::String, p::Parser; kw...) = _parser(ArgCommand(name, p; kw...))
-
-
-# constructors
-object(obj::NamedTuple) = _parser(_object(obj))
-object(objlabel, obj::NamedTuple) = _parser(_object(obj; label = objlabel))
-
-objmerge(objs...; label = "") = _parser(_object(_merge(objs); label))
-
-or(parsers...) = _parser(ConstrOr(parsers))
-
-tup(parsers...; kw...) = _parser(ConstrTuple(parsers; kw...))
-tup(label::String, parsers...; kw...) = _parser(ConstrTuple(parsers; label, kw...))
-
-concat(tups...; label = "", allowDuplicates = false) = _parser(ConstrTuple(_concat(tups); label, allowDuplicates))
+include("parsers/parser.jl")
 
 
 #####
@@ -251,7 +166,5 @@ function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} whe
 
     return @unionsplit complete(pp, ctx.state)
 end
-
-macro comment(_...) end
 
 end # module CLIpper
