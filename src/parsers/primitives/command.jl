@@ -7,11 +7,11 @@ struct ArgCommand{T, S, _p, P} <: AbstractParser{T, S, _p, P}
     #
     name::String
     brief::String
-    description::String
+    help::String
     footer::String
 
-    ArgCommand(name, parser::P; brief = "", desc = "", footer = "") where {P} =
-        new{tval(P), CommandState{tstate(P)}, 15, P}(none(Option{tstate(P)}), parser, name, brief, desc, footer)
+    ArgCommand(name, parser::P; brief = "", help = "", footer = "") where {P} =
+        new{tval(P), CommandState{tstate(P)}, 15, P}(none(Option{tstate(P)}), parser, name, brief, help, footer)
 end
 
 # parse(p::ArgCommand, ctx)::ParseResult{String,String} = ParseErr(0, "Invalid command state. (YOU REACHED AN UNREACHABLE).")

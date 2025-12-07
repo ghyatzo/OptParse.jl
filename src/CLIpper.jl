@@ -95,6 +95,12 @@ using UUIDs:
 # - Better Errors
 # - Shell completions
 
+# API Changes TODO/IDEAS
+# - offer directly options with a valueparser built in: stropt, intopt fltopt... etc
+# - shorten names: object -> obj, argument -> arg, command -> cmd
+# - make optflag the default behaviour and call it flag.
+# - rename flag to `gate`
+
 
 export argparse,
     # primitives

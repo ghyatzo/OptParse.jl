@@ -5,11 +5,11 @@ struct ArgArgument{T, S, p, P} <: AbstractParser{T, S, p, P}
     _dummy::P
     #
     valparser::ValueParser{T}
-    description::String
+    help::String
 
 
-    ArgArgument(valparser::ValueParser{T}; desc = "") where {T} =
-        new{T, ArgumentState{T}, 5, Nothing}(none(Result{T, String}), nothing, valparser, desc)
+    ArgArgument(valparser::ValueParser{T}; help = "") where {T} =
+        new{T, ArgumentState{T}, 5, Nothing}(none(Result{T, String}), nothing, valparser, help)
 end
 
 function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S}})::ParseResult{ArgumentState{S}, String} where {T, S}
