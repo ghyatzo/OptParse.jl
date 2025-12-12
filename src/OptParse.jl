@@ -171,7 +171,7 @@ function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} whe
         if (
                 length(ctx.buffer) > 0
                     && length(ctx.buffer) == length(previous_buffer)
-                    && ctx.buffer[1] === previous_buffer[1]
+                    && ctx.buffer == previous_buffer
             )
 
             return Err("Unexpected option or argument: $(ctx.buffer[1]).")

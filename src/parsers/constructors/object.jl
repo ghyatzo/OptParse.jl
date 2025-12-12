@@ -199,3 +199,13 @@ function complete(p::ConstrObject{T}, st::NamedTuple)::Result{T, String} where {
 
     return Ok(_result)
 end
+
+
+
+# # object parser return a named tuple, that can be tagged by a @constant value ie (tag=Val(:some_action), value=10, ...)
+# # we can dispatch on that tag like so:
+
+# const Tagged{tag} = NamedTuple{N, <: Tuple{Val{tag}, Vararg}} where {N}
+# f(nt::Tagged{:a}) = "this is tagged as :a"
+# f(nt::Tagged{:b}) = "this is tagged as :b"
+
