@@ -1,7 +1,6 @@
-#=The merge originally was a parser, but we could in theory just take a generating function and spitout a new object.=#
-function __get_ith_l_t_pair(::Type{NamedTuple{l, ts}}, ::Val{i}) where {l, ts, i}
+__get_ith_l_t_pair(::Type{NamedTuple{l, ts}}, ::Val{i}) where {l, ts, i} =
     return l[i] => fieldtype(ts, i)
-end
+
 
 function _merge(objs::TObjs) where {TObjs <: Tuple}
     # we just need to construct a bigass object

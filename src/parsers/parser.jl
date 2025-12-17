@@ -132,7 +132,7 @@ julia> result
 function withDefault end
 
 withDefault(p::Parser, default) = _parser(ModWithDefault(p, default))
-withDefault(default) = (p::Parser) -> _parser(ModWithDefault(p, default))
+withDefault(default) = (p::Parser) -> withDefault(p, default)
 
 ## Optional
 
@@ -253,6 +253,7 @@ julia> result
 function multiple end
 
 multiple(p::Parser; kw...) = _parser(ModMultiple(p; kw...))
+multiple(; kw...) = (p::Parser) -> multiple(p; kw...)
 
 
 # primitives
@@ -328,13 +329,15 @@ julia> result
 function option end
 
 option(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption(Tuple(names), valparser; kw...))
+    _parser(ArgOption(names, valparser; kw...))
 option(opt1::String, valparser::ValueParser{T}; kw...) where {T} =
     _parser(ArgOption((opt1,), valparser; kw...))
 option(opt1::String, opt2::String, valparser::ValueParser{T}; kw...) where {T} =
     _parser(ArgOption((opt1, opt2), valparser; kw...))
 option(opt1::String, opt2::String, opt3::String, valparser::ValueParser{T}; kw...) where {T} =
     _parser(ArgOption((opt1, opt2, opt3), valparser; kw...))
+
+option(names::Tuple{Vararg{String}}; kw...) = (valp::ValueParser) -> option(names, valp; kw...)
 
 ## Flag
 
@@ -637,6 +640,7 @@ julia> result.input
 function argument end
 
 argument(valparser::ValueParser{T}; kw...) where {T} = _parser(ArgArgument(valparser; kw...))
+argument(; kw...) = (valp::ValueParser) -> argument(valp; kw...)
 
 ## command
 
@@ -718,7 +722,7 @@ julia> result.packages
 """
 function command end
 
-command(names::Tuple{Vararg{String}}, p::Parser; kw...) = _parser(ArgCommand(name, p; kw...))
+command(names::Tuple{Vararg{String}}, p::Parser; kw...) = _parser(ArgCommand(names, p; kw...))
 command(name::String, p::Parser; kw...) = _parser(ArgCommand((name,), p; kw...))
 command(name::String, alias::String, p::Parser; kw...) = _parser(ArgCommand((name, alias), p; kw...))
 

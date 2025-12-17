@@ -147,8 +147,8 @@ u32(; kw...) = integer(UInt32, ; kw...)
 u64(; kw...) = integer(UInt64, ; kw...)
 
 flt(::Type{T}; kw...) where {T} = ValueParser{T}(FloatVal{T}(; type = T, kw...))
-flt64(; kw...) = flt(Float64; kw...)
-flt32(; kw...) = flt(Float32; kw...)
 flt(; kw...) = flt64(; kw...)
+flt32(; kw...) = flt(Float32; kw...)
+flt64(; kw...) = flt(Float64; kw...)
 
 uuid(; kw...) = ValueParser{UUID}(UUIDVal{UUID}(; kw...))

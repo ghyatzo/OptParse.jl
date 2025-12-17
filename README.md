@@ -211,11 +211,11 @@ parser = object((
 # Return type: @NamedTuple{name::String, port::Int64)}
 
 parser = or(
-    object((mode = @constant(:a), value = integer())),
-    object((mode = @constant(:b), value = str()))
+    object((mode = @constant(:a), value = argument(integer()))),
+    object((mode = @constant(:b), value = argument(str())))
 )
 
-# Return type: Union{@NamedTuple{mode::Val{:a}, ...}, NamedTuple{mode::Val{:b}, ...}}
+# Return type: Union{@NamedTuple{mode::Val{:a}, ...}, @NamedTuple{mode::Val{:b}, ...}}
 ```
 
 ## Error Handling
