@@ -41,7 +41,7 @@ using OptParse
 parser = object((
     name = option("-n", "--name", str()),
     port = option("-p", "--port", integer(min=1000)),
-    verbose = optflag("-v", "--verbose")
+    verbose = switch("-v", "--verbose")
 ))
 
 # Parse arguments
@@ -62,7 +62,7 @@ The fundamental parsers that match command-line tokens:
 
 - [`option`](@ref) - Matches key-value pairs: `--port 8080` or `-p 8080`
 - [`flag`](@ref) - Boolean switches: `--verbose` or `-v`
-- [`optflag`](@ref) - Optional flags that default to `false`
+- [`switch`](@ref) - Optional flags that default to `false`
 - [`argument`](@ref) - Positional arguments: `source destination`
 - [`command`](@ref) - Subcommands: `git add file.txt`
 - [`@constant`](@ref) - Always returns a constant value
@@ -103,8 +103,8 @@ using OptParse
 
 # Shared options
 commonOpts = object((
-    verbose = optflag("-v", "--verbose"),
-    quiet = optflag("-q", "--quiet")
+    verbose = switch("-v", "--verbose"),
+    quiet = switch("-q", "--quiet")
 ))
 
 # Add command
@@ -117,7 +117,7 @@ addCmd = command("add", objmerge(
 removeCmd = command("remove", "rm", objmerge(
     commonOpts,
     object((
-        all = optflag("--all"),
+        all = switch("--all"),
         packages = multiple(argument(str(metavar="PACKAGE")))
     ))
 ))
@@ -126,8 +126,8 @@ removeCmd = command("remove", "rm", objmerge(
 instantiateCmd = command("instantiate", objmerge(
     commonOpts,
     object((
-        manifest = optflag("-m", "--manifest"),
-        project = optflag("-p", "--project")
+        manifest = switch("-m", "--manifest"),
+        project = switch("-p", "--project")
     ))
 ))
 

@@ -54,7 +54,7 @@ verbosity = multiple(flag("-v"))  # -v -v -v or -vvv
 parser = object((
     input = argument(str(metavar="INPUT")),
     output = option("-o", "--output", str()),
-    force = optflag("-f", "--force")
+    force = switch("-f", "--force")
 ))
 
 result = argparse(parser, ["input.txt", "-o", "output.txt", "-f"])

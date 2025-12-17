@@ -99,7 +99,7 @@ using UUIDs:
 # API Changes TODO/IDEAS
 # - offer directly options with a valueparser built in: stropt, intopt fltopt... etc
 # - shorten names: object -> obj, argument -> arg, command -> cmd
-# - make optflag the default behaviour and call it flag.
+# - make switch the default behaviour and call it flag.
 # - rename flag to `gate`
 # - rename multiple to 'many'
 
@@ -108,7 +108,7 @@ export argparse,
     # primitives
     @constant,
     flag,
-    optflag,
+    switch,
     option,
     argument,
     command,

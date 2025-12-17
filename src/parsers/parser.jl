@@ -397,20 +397,20 @@ julia> (result.all, result.brief, result.color)
 
 # Notes
 - By itself, `flag` requires the flag to be present (fails if absent)
-- Use `optflag` for optional flags that default to `false`
+- Use `switch` for optional flags that default to `false`
 - Supports bundled short options (e.g., `-abc` equivalent to `-a -b -c`)
 
 # See Also
-- [`optflag`](@ref): Optional flag that defaults to `false`
+- [`switch`](@ref): Optional flag that defaults to `false`
 """
 function flag end
 
 flag(names...; kw...) = _parser(ArgFlag(names; kw...))
 
-## OptFlag
+## switch
 
 """
-    optflag(names...; kw...)
+    switch(names...; kw...)
 
 Convenience function for an optional flag that defaults to `false`.
 
@@ -431,7 +431,7 @@ A parser that returns `true` if the flag is present, `false` otherwise.
 julia> using OptParse
 
 julia> # Basic usage
-       verbose = optflag("-v", "--verbose");
+       verbose = switch("-v", "--verbose");
 
 julia> result = argparse(verbose, String[]);
 
@@ -445,9 +445,9 @@ true
 
 julia> # In an object parser
        parser = object((
-           help = optflag("-h", "--help"),
-           version = optflag("--version"),
-           quiet = optflag("-q", "--quiet")
+           help = switch("-h", "--help"),
+           version = switch("--version"),
+           quiet = switch("-q", "--quiet")
        ));
 
 julia> result = argparse(parser, ["-h", "--version"]);
@@ -456,7 +456,7 @@ julia> (result.help, result.version, result.quiet)
 (true, true, false)
 
 julia> # Multiple verbosity levels using multiple
-       verbosity = multiple(optflag("-v"));
+       verbosity = multiple(switch("-v"));
 
 julia> result = argparse(verbosity, ["-v", "-v", "-v"]);
 
@@ -474,9 +474,9 @@ This is implemented as: `withDefault(flag(names...; kw...), false)`
 - [`flag`](@ref): Required flag that fails if absent
 - [`withDefault`](@ref): General modifier for default values
 """
-function optflag end
+function switch end
 
-optflag(names...; kw...) = withDefault(flag(names...; kw...), false)
+switch(names...; kw...) = withDefault(flag(names...; kw...), false)
 
 ## Constant
 
@@ -615,7 +615,7 @@ julia> # Mixed with options (order flexible)
        parser = object((
            input = argument(str(metavar="INPUT")),
            output = option("-o", "--output", str()),
-           verbose = optflag("-v")
+           verbose = switch("-v")
        ));
 
 julia> result = argparse(parser, ["input.txt", "-o", "output.txt", "-v"]);
@@ -668,8 +668,8 @@ julia> using OptParse
 
 julia> # Simple command
        instantiate = command("instantiate", object((
-           verbose = optflag("-v", "--verbose"),
-           manifest = optflag("-m", "--manifest")
+           verbose = switch("-v", "--verbose"),
+           manifest = switch("-m", "--manifest")
        )));
 
 julia> result = argparse(instantiate, ["instantiate", "-v", "-m"]);
@@ -754,7 +754,7 @@ julia> # Basic usage
        parser = object((
            name = option("-n", "--name", str()),
            port = option("-p", "--port", integer()),
-           verbose = optflag("-v")
+           verbose = switch("-v")
        ));
 
 julia> result = argparse(parser, ["-n", "server", "-p", "8080", "-v"]);
@@ -840,8 +840,8 @@ julia> using OptParse
 
 julia> # Reusable parser components
        commonOpts = (
-           verbose = optflag("-v", "--verbose"),
-           quiet = optflag("-q", "--quiet")
+           verbose = switch("-v", "--verbose"),
+           quiet = switch("-q", "--quiet")
        );
 
 julia> networkOpts = (
@@ -1038,7 +1038,7 @@ julia> # Mixed with arguments
        parser = tup(
            argument(str(metavar="INPUT")),
            option("-o", str()),
-           optflag("-v")
+           switch("-v")
        );
 
 julia> result = argparse(parser, ["input.txt", "-v", "-o", "output.txt"]);

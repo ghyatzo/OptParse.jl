@@ -1,4 +1,6 @@
-const OrState{I, X} = Tuple{I, X} # X should be a Tuple of Option{ParseSuccess{SP1}} and I a Val{int position}
+const _InnerState = Tuple{Vararg{Option{<:ParseSuccess}}} # just for explicitness
+
+const OrState{I, X} = Tuple{I, X} # X <: _InnerState and I == Val{int position}
 
 # a parser that returns the first parsers that matches, in the order provided!
 struct ConstrOr{T, S, p, P} <: AbstractParser{T, S, p, P}

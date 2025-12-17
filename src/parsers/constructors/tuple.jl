@@ -3,22 +3,23 @@ struct ConstrTuple{T, S, p, P}
     parsers::P
     #
     label::String
-    allowDuplicates::Bool
 end
 
-ConstrTuple(parsers::PTup; label::String = "", allowDuplicates::Bool = false) where {PTup} = let
+ConstrTuple(parsers::PTup; label::String = "") where {PTup} = let
     ConstrTuple{
-    	Tuple{map(tval, parsers)...},
-    	Tuple{map(tstate, parsers)...},
-    	mapreduce(priority, max, parsers, init = 0),
-    	PTup,
-	}(map(p -> p.initialState, parsers), parsers, label, allowDuplicates)
+        Tuple{map(tval, parsers)...},
+        Tuple{map(tstate, parsers)...},
+        mapreduce(priority, max, parsers, init = 0),
+        PTup,
+    }(map(p -> p.initialState, parsers), parsers, label)
 end
 
 Base.@assume_effects :foldable function _sortperm_by_priority(p::PTup) where {PTup <: Tuple}
-	perm = _sortperm(p, rev=true, by=priority)
-    permp = ntuple(fieldcount(PTup)) do i; @inbounds(p[perm[i]]) end
-	return perm, permp
+    perm = _sortperm(p, rev = true, by = priority)
+    permp = ntuple(fieldcount(PTup)) do i
+        @inbounds(p[perm[i]])
+    end
+    return perm, permp
 end
 
 sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
@@ -54,22 +55,22 @@ function parse(p::ConstrTuple{T, S}, ctx::Context{S})::ParseResult{S, String} wh
         i = 0
         # TODO: switch to a generated function to unroll based on the length of the tuple without random ass magic numbers
         @unroll 10 for parser in sorted_ptup
-        	i += 1
+            i += 1
             #= we need to simulate a i in matched_parsers && continue but in an unrolled loop
             # so it becomes a whole if, this unrolled part only happens if it's not yet matched!
             =#
-        	if i ∉ matched_parsers
-            	# @info current_ctx.state perm[i] current_ctx.state[perm[i]]
-            	child_ctx = Context{tstate(parser)}(
-            		current_ctx.buffer,
-            		current_ctx.state[perm[i]],
-            		current_ctx.optionsTerminated
-            	)
+            if i ∉ matched_parsers
+                # @info current_ctx.state perm[i] current_ctx.state[perm[i]]
+                child_ctx = Context{tstate(parser)}(
+                    current_ctx.buffer,
+                    current_ctx.state[perm[i]],
+                    current_ctx.optionsTerminated
+                )
 
                 result = parse(unwrapunion(parser), child_ctx)::ParseResult{tstate(parser), String}
 
                 if !is_error(result) && length(unwrap(result).consumed) > 0
-                	#= parser succeded and consumed input - match it =#
+                    #= parser succeded and consumed input - match it =#
                     parse_ok = unwrap(result)
 
                     current_ctx = Context{S}(
@@ -98,19 +99,19 @@ function parse(p::ConstrTuple{T, S}, ctx::Context{S})::ParseResult{S, String} wh
         if !found_match
             i = 0
             @unroll 10 for parser in sorted_ptup
-            	i += 1
-            	if i ∉ matched_parsers
+                i += 1
+                if i ∉ matched_parsers
 
-                	child_ctx = Context{tstate(parser)}(
-                		current_ctx.buffer,
-                		current_ctx.state[perm[i]],
-                		current_ctx.optionsTerminated
-                	)
+                    child_ctx = Context{tstate(parser)}(
+                        current_ctx.buffer,
+                        current_ctx.state[perm[i]],
+                        current_ctx.optionsTerminated
+                    )
 
                     result = parse(unwrapunion(parser), child_ctx)::ParseResult{tstate(parser), String}
 
                     if !is_error(result) && length(unwrap(result).consumed) < 1
-                    	#=parser succeded without consuming - match it as success=#
+                        #=parser succeded without consuming - match it as success=#
                         parse_ok = unwrap(result)
 
                         current_ctx = Context{S}(
@@ -123,13 +124,13 @@ function parse(p::ConstrTuple{T, S}, ctx::Context{S})::ParseResult{S, String} wh
                         found_match = true
                         @goto endloop_nonconsumers
                     elseif is_error(result) && unwrap_error(result).consumed < 1
-                    	#=parser failed without consuming input, this could be an optional
+                        #=parser failed without consuming input, this could be an optional
                     	# parser that doesn't match.
                     	# mark it as matched anyway.
                     	=#
-                    	push!(matched_parsers, i)
-                    	found_match = true
-                    	@goto endloop_nonconsumers
+                        push!(matched_parsers, i)
+                        found_match = true
+                        @goto endloop_nonconsumers
                     end
                 end
             end
@@ -137,8 +138,8 @@ function parse(p::ConstrTuple{T, S}, ctx::Context{S})::ParseResult{S, String} wh
         end
 
         if !found_match
-        	#=If we still haven't found a match then cry=#
-        	return Err(error[1], error[2])
+            #=If we still haven't found a match then cry=#
+            return Err(error[1], error[2])
         end
     end
 
@@ -147,13 +148,13 @@ end
 
 
 function complete(p::ConstrTuple{T, TState}, st::TState)::Result{T, String} where {T, TState <: Tuple}
-	out = ()
-	i = 0
-	@unroll 10 for parser in p.parsers
-		i += 1
-		result = complete(unwrapunion(parser), st[i])
-		out = insert(out, IndexLens(i), @? result)
-	end
+    out = ()
+    i = 0
+    @unroll 10 for parser in p.parsers
+        i += 1
+        result = complete(unwrapunion(parser), st[i])
+        out = insert(out, IndexLens(i), @? result)
+    end
 
-	return Ok(out)
+    return Ok(out)
 end

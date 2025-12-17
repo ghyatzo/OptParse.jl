@@ -5,7 +5,7 @@
 ```@docs
 option
 flag
-optflag
+switch
 argument
 command
 @constant
