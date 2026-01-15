@@ -19,8 +19,8 @@ struct Context{S}
     optionsTerminated::Bool
 end
 
-Context(args::Vector{String}, state) =
-    Context{typeof(state)}(args, state, false)
+# Context(args::Vector{String}, state) =
+#     Context{typeof(state)}(args, state, false)
 
 
 struct ParseSuccess{S}
@@ -65,19 +65,21 @@ include("modifiers/modifiers.jl")
     }
 end
 
-_parser(x::ArgFlag{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ArgOption{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ArgConstant{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ArgArgument{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ArgCommand{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+_parser(x::AbstractParser{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
 
-_parser(x::ConstrObject{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ConstrOr{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ConstrTuple{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+# _parser(x::ArgFlag{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+# _parser(x::ArgOption{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+# _parser(x::ArgConstant{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+# _parser(x::ArgArgument{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+# _parser(x::ArgCommand{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
 
-_parser(x::ModOptional{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ModWithDefault{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-_parser(x::ModMultiple{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+# _parser(x::ConstrObject{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+# _parser(x::ConstrOr{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+# _parser(x::ConstrTuple{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+
+# _parser(x::ModOptional{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+# _parser(x::ModWithDefault{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
+# _parser(x::ModMultiple{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
 
 Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
 Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)

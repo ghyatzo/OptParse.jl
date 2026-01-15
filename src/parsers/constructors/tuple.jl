@@ -1,4 +1,4 @@
-struct ConstrTuple{T, S, p, P}
+struct ConstrTuple{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S
     parsers::P
     #

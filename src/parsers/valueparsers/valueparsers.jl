@@ -135,7 +135,7 @@ metavar(v::ValueParser) = v.metavar
 
 str(; kw...) = ValueParser{String}(StringVal{String}(; kw...))
 choice(values::Vector{T}; kw...) where {T} = ValueParser{T}(Choice(; values, kw...))
-integer(::Type{T}; kw...) where {T} = ValueParser{T}(IntegerVal{T}(; type = T, kw...))
+integer(::Type{T}; kw...) where {T <: Integer} = ValueParser{T}(IntegerVal{T}(; type = T, kw...))
 integer(; kw...) = ValueParser{Int}(IntegerVal{Int}(; kw...))
 i8(; kw...) = integer(Int8, ; kw...)
 i16(; kw...) = integer(Int16, ; kw...)

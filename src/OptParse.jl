@@ -97,10 +97,10 @@ using UUIDs:
 # - implement actual runners (d)
 
 # API Changes TODO/IDEAS
-# - offer directly options with a valueparser built in: stropt, intopt fltopt... etc
+# NO offer directly options with a valueparser built in: stropt, intopt fltopt... etc
 # - shorten names: object -> obj, argument -> arg, command -> cmd
-# - make switch the default behaviour and call it flag.
-# - rename flag to `gate`
+# OK make switch the default behaviour and call it flag.
+# NO rename flag to `gate`
 # - rename multiple to 'many'
 
 
