@@ -16,32 +16,29 @@ end
 
 function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::ParseResult{FlagState, String}
 
-    if ctx.optionsTerminated
+    if ℒ_optterm(ctx)
         return ParseErr(0, "No more options to be parsed.")
-    elseif length(ctx.buffer) < 1
+    elseif ctx_hasnone(ctx)
         return ParseErr(0, "Expected a flag, got end of input.")
     end
 
+    tok = ctx_peek(ctx)
+
     #= When the input contains `--` stop parsing options =#
-    if (ctx.buffer[1] === "--")
-        next = Context(ctx.buffer[2:end], ctx.state, true)
-        return ParseOk(("--",), next)
+    if (tok === "--")
+        next = ctx_with_options_terminated(consume(ctx, 1), true)
+        return ParseOk(tok, next)
     end
 
-    if ctx.buffer[1] in p.names
+    if tok in p.names
 
-        if !is_error(ctx.state) && unwrap(ctx.state)
-            return ParseErr(1, "$(ctx.buffer[1]) cannot be used multiple times")
+        if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx))
+            return ParseErr(1, "$(tok) cannot be used multiple times")
         end
 
         return ParseOk(
-            ctx.buffer[1:1],
-
-            Context(
-                ctx.buffer[2:end],
-                FlagState(Ok(true)),
-                ctx.optionsTerminated
-            )
+            tok,
+            ctx_with_state(consume(ctx, 1), FlagState(Ok(true)))
         )
     end
 
@@ -51,25 +48,26 @@ function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::ParseResul
     end
 
     for short_opt in short_options
-        startswith(ctx.buffer[1], short_opt) || continue
+        startswith(tok, short_opt) || continue
 
-        if !is_error(ctx.state) && unwrap(ctx.state)
+        if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx))
             return ParseErr(1, "Flag $(short_opt) cannot be used multiple times")
         end
 
-        return ParseOk(
-            ctx.buffer[1][1:2],
+        #= we consume only the first option in case they are bundled. =#
+        single_opt = tok[1:2] #= the "-a" in "-abc" =#
+        rem_opts = tok[3:end] #= the "bc" in "-abc" =#
 
-            Context(
-                ["-$(ctx.buffer[1][3:end])", ctx.buffer[2:end]...],
-                Result{Bool, String}(Ok(true)),
-                ctx.optionsTerminated
-            )
+        newbuff = ["-$(rem_opts )", ℒ_buffer(ctx)[2:end]...]
+
+        return ParseOk(
+            single_opt,
+            ctx_with_state(ctx_with_buffer(ctx, newbuff), Result{Bool, String}(Ok(true)))
         )
     end
 
     return ParseErr(
-        0, "No Matched Flag for $(ctx.buffer[1])"
+        0, "No Matched Flag for $(tok)"
     )
 end
 

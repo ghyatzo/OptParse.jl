@@ -20,11 +20,11 @@ end
 function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}})::ParseResult{MultipleState{S}, String} where {T, S}
 
 	#=If the state is empty, it means that we're adding a new match.=#
-	hasadded = isempty(ctx.state)
+	hasadded = isempty(ℒ_state(ctx))
 
 	#=With a non empty state, pass in the latest state to the parser that maybe needs to keep parsing.=#
-	child_state = isempty(ctx.state) ? p.parser.initialState : ctx.state[end]
-	child_ctx = Context{S}(ctx.buffer, child_state, ctx.optionsTerminated)
+	child_state = isempty(ℒ_state(ctx)) ? p.parser.initialState : ℒ_state(ctx)[end]
+	child_ctx = widen_state(S, ctx_with_state(ctx, child_state))
 	result = parse(unwrapunion(p.parser), child_ctx)::ParseResult{S, String}
 
 	if is_error(result)
@@ -33,7 +33,7 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 			It can mean that it has finished consuming its pattern.
 			Erase its memory and try again from a blank slate. Maybe the pattern repeats.=#
 			child_state = p.parser.initialState
-			child_ctx = Context{S}(ctx.buffer, child_state, ctx.optionsTerminated)
+			child_ctx = widen_state(S, ctx_with_state(ctx, child_state))
 			result = parse(unwrapunion(p.parser), child_ctx)::ParseResult{S, String}
 
 			if is_error(result)
@@ -53,14 +53,10 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 	parse_ok = unwrap(result)
 	#=If the parent parser encounters a new repetition, add it at the end of the state.
 	Otherwise, update the last state with the latest result from the child parser.=#
-	nextst = hasadded ? deepcopy(ctx.state) : deepcopy(ctx.state[1:end-1])
+	nextst = hasadded ? deepcopy(ℒ_state(ctx)) : deepcopy(ℒ_state(ctx)[1:end-1])
 	push!(nextst, parse_ok.next.state)
-	nextctx = Context{MultipleState{S}}(
-		parse_ok.next.buffer,
-		nextst,
-		parse_ok.next.optionsTerminated
-	)
 
+	nextctx = widen_state(MultipleState{S}, ctx_with_state(parse_ok.next, nextst))
 	return ParseOk(parse_ok.consumed, nextctx)
 
 end

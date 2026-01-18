@@ -36,14 +36,15 @@ end
     valunion = Union{map(typeof ∘ Val, Tuple(collect(0:N)))...}
     for i in 1:N
         #=Iterate through all child parsers in order of priority.=#
-        parser_t = fieldtype(PTup, i)
-        parser_tstate = tstate(parser_t)
+        child_parser_t = fieldtype(PTup, i)
+        child_parser_tstate = tstate(child_parser_t)
         push!(
             unrolled_loop.args, quote
-                parser = parsers[$i]::$parser_t
-                innerstate = ctx.state[2][$i]
-                childstate = is_error(innerstate) ? parser.initialState : unwrap(innerstate).next.state
-                childctx = Context{$parser_tstate}(ctx.buffer, childstate, ctx.optionsTerminated)
+                parser = parsers[$i]::$child_parser_t
+
+                innerstate = ℒ_state(ctx)[2][$i]
+                childstate = is_error(innerstate) ? parser.initialState : ℒ_state(unwrap(innerstate).next)
+                childctx = widen_state($child_parser_tstate, ctx_with_state(ctx, childstate))
 
                 result = (@unionsplit parse(parser, childctx))::ParseResult{tstate(parser), String}
                 if !is_error(result) && length(unwrap(result).consumed) > 0 # (ignores constants)
@@ -53,20 +54,19 @@ end
                     # something else,
                     # and those two things aren't the same thing, then error. 'Or' only matches one parser.=#
                     if $j != 0 && $j != $i
+                        jstate = ℒ_state(ctx)[2][$j]
                         return ParseErr(
-                            length(ctx.buffer) - length(parse_ok.next.buffer),
-                            "$(unwrap(ctx.state[2][$j]).consumed[1]) and $(parse_ok.consumed[1]) can't be used together."
+                            ctx_length(ctx) - ctx_length(parse_ok.next),
+                            "$(unwrap(jstate).consumed[1]) and $(parse_ok.consumed[1]) can't be used together."
                         )
                     end
 
-                    new_innerstate = set(ctx.state[2], IndexLens($i), some(parse_ok))
 
+                    new_innerstate = set(ℒ_state(ctx)[2], IndexLens($i), some(parse_ok))
+                    nextctx = widen_state(OrState{$valunion, $X}, ctx_with_state(parse_ok.next, (Val($i), new_innerstate)))
                     return ParseOk(
-                        parse_ok.consumed, Context{OrState{$valunion, $X}}(
-                            parse_ok.next.buffer,
-                            (Val($i), new_innerstate),
-                            parse_ok.next.optionsTerminated
-                        )
+                        parse_ok.consumed,
+                        nextctx
                     )
                 elseif is_error(result)
                     if error[1] < unwrap_error(result).consumed

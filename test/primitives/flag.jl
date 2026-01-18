@@ -1,6 +1,6 @@
 @testset "should parse single short flag" begin
     parser = flag("-v")
-    context = Context(["-v"], parser.initialState, false)
+    context = Context(buffer=["-v"], state= parser.initialState)
 
     result = @unionsplit parse(parser, context)
 
@@ -14,7 +14,7 @@ end
 
 @testset "should parse long flag" begin
     parser = flag("--verbose")
-    context = Context(["--verbose"], parser.initialState, false)
+    context = Context(buffer=["--verbose"], state= parser.initialState)
 
     result = @unionsplit parse(parser, context)
 
@@ -30,14 +30,14 @@ end
     parser = flag("-v", "--verbose")
 
     # First: "-v"
-    context1 = Context(["-v"], parser.initialState, false)
+    context1 = Context(buffer=["-v"], state= parser.initialState)
     result1 = @unionsplit parse(parser, context1)
     @test is_ok_and(result1) do succ
         is_ok_and(==(true), succ.next.state)
     end
 
     # Second: "--verbose"
-    context2 = Context(["--verbose"], parser.initialState, false)
+    context2 = Context(buffer=["--verbose"], state= parser.initialState)
     result2 = @unionsplit parse(parser, context2)
     @test is_ok_and(result2) do succ
         is_ok_and(==(true), succ.next.state)
@@ -47,7 +47,7 @@ end
 @testset "should fail when flag is already set" begin
     parser = flag("-v")
     # Represent "already set" using Result-based state:
-    context = Context(["-v"], Result{Bool, String}(Ok(true)), false)
+    context = Context(buffer=["-v"], state= Result{Bool, String}(Ok(true)))
 
     result = @unionsplit parse(parser, context)
 
@@ -60,7 +60,7 @@ end
 
 @testset "should handle bundled short flags" begin
     parser = flag("-v")
-    context = Context(["-vd"], parser.initialState, false)
+    context = Context(buffer=["-vd"], state= parser.initialState)
 
     result = @unionsplit parse(parser, context)
 
@@ -74,7 +74,7 @@ end
 
 @testset "should fail when flags are terminated" begin
     parser = flag("-v")
-    context = Context(["-v"], parser.initialState, true)
+    context = Context(buffer=["-v"], state= parser.initialState, optionsTerminated=true)
 
     result = @unionsplit parse(parser, context)
 
@@ -87,7 +87,7 @@ end
 
 @testset "should handle flags terminator --" begin
     parser = flag("-v")
-    context = Context(["--"], parser.initialState, false)
+    context = Context(buffer=["--"], state=parser.initialState)
 
     result = @unionsplit parse(parser, context)
 
@@ -118,7 +118,7 @@ end
 
 @testset "should handle empty buffer" begin
     parser = flag("-v")
-    context = Context(String[], parser.initialState, false)
+    context = Context(buffer=String[], state=parser.initialState)
 
     result = @unionsplit parse(parser, context)
 

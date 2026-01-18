@@ -15,44 +15,45 @@ end
 function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S}})::ParseResult{ArgumentState{S}, String} where {T, S}
     optpattern = r"^--?[a-z0-9-]+$"i
 
-    if length(ctx.buffer) < 1
+    if ctx_hasnone(ctx)
         return ParseErr(0, "Expected an argument, but got end of input.")
     end
 
     i = 0
-    options_terminated = ctx.optionsTerminated
+
+    tok = ctx_peek(ctx)
+    options_terminated = ℒ_optterm(ctx)
     if !options_terminated
         #=Options aren't "officially" terminated yet. Need to be careful.=#
-        if ctx.buffer[1] == "--"
+        if tok == "--"
             #=If we encounter "--" consume it and update the context=#
             options_terminated = true
+            #=we have to consume an extra token=#
             i += 1
-        elseif !isnothing(match(optpattern, ctx.buffer[1 + i]))
+        elseif !isnothing(match(optpattern, ctx_peek(ctx, 1 + i)))
             #=Otherwise, check that we are not matching an option.=#
             return ParseErr(i, "Expected an argument, but got an option/flag.")
         end
     end
 
-    if length(ctx.buffer) < 1 + i
+    if ctx_haslessthan(1+i, ctx)
         #=Check again, in case we only had a "--" in the buffer.=#
         return ParseErr(i, "Expected an argument, but got end of input.")
     end
 
-    if !is_error(ctx.state)
+    if !is_error(ℒ_state(ctx))
         #=The state is a some, so this parser matched already with something.
         Add one to the consumed since we're technically consuming this duplicate=#
         return ParseErr(1 + i, "The argument `$(metavar(p.valparser))` cannot be used multiple times.")
     end
 
-    result = p.valparser(ctx.buffer[1 + i])::Result{T, String}
+    result = p.valparser(ctx_peek(ctx, 1 + i))::Result{T, String}
+
+    newctx = ctx_with_options_terminated(ctx_with_state(consume(ctx, i+1), some(result)), options_terminated)
 
     return ParseOk(
-        ctx.buffer[1:(i + 1)],
-        Context(
-            ctx.buffer[(i + 2):end],
-            some(result),
-            options_terminated
-        )
+        ctx_peekn(ctx, 1+i),
+        newctx
     )
 end
 

@@ -43,11 +43,9 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
             =#
             if $i ∉ matched_parsers
                 parser = parsers[$(perm[i])]
-                child_ctx = Context{$child_parser_tstate}(
-                    current_ctx.buffer,
-                    current_ctx.state[$(perm[i])],
-                    current_ctx.optionsTerminated
-                )
+
+                child_state = (IndexLens($(perm[i])) ∘ ℒ_state)(current_ctx)::$child_parser_tstate
+                child_ctx = ctx_with_state(current_ctx, child_state)
 
                 result = parse(unwrapunion(parser), child_ctx)::ParseResult{$child_parser_tstate, String}
 
@@ -55,11 +53,8 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
                     #= parser succeded and consumed input - match it =#
                     parse_ok = unwrap(result)
 
-                    current_ctx = Context{$S}(
-                        parse_ok.next.buffer,
-                        set(current_ctx.state, IndexLens($(perm[i])), parse_ok.next.state),
-                        parse_ok.next.optionsTerminated
-                    )
+                    newstate = set(ℒ_state(current_ctx), IndexLens($(perm[i])), ℒ_state(parse_ok.next))
+                    current_ctx = ctx_with_state(parse_ok.next, newstate)
 
                     allconsumed = (allconsumed..., parse_ok.consumed...)
                     push!(matched_parsers, $i)
@@ -79,11 +74,9 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
         push!(whilebody_nonconsumers.args, quote
             if $i ∉ matched_parsers
                 parser = parsers[$(perm[i])]
-                child_ctx = Context{$child_parser_tstate}(
-                    current_ctx.buffer,
-                    current_ctx.state[$(perm[i])],
-                    current_ctx.optionsTerminated
-                )
+
+                child_state = (IndexLens($(perm[i])) ∘ ℒ_state)(current_ctx)::$child_parser_tstate
+                child_ctx = ctx_with_state(current_ctx, child_state)
 
                 result = parse(unwrapunion(parser), child_ctx)::ParseResult{tstate(parser), String}
 
@@ -91,11 +84,8 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
                     #=parser succeded without consuming - match it as success=#
                     parse_ok = unwrap(result)
 
-                    current_ctx = Context{$S}(
-                        parse_ok.next.buffer,
-                        set(current_ctx.state, IndexLens($(perm[i])), parse_ok.next.state),
-                        parse_ok.next.optionsTerminated
-                    )
+                    newstate = set(ℒ_state(current_ctx), IndexLens($(perm[i])), ℒ_state(parse_ok.next))
+                    current_ctx = ctx_with_state(parse_ok.next, newstate)
 
                     push!(matched_parsers, $i)
                     found_match = true

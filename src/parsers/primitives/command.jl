@@ -16,11 +16,11 @@ end
 
 
 function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState{PState}})::ParseResult{CommandState{PState}, String} where {T, PState}
-    if is_error(ctx.state)
+    if is_error(ℒ_state(ctx))
         # command not yet matched
         # check if it starts with our command name
-        if length(ctx.buffer) < 1 || ctx.buffer[1] ∉ p.names
-            actual = length(ctx.buffer) > 0 ? ctx.buffer[1] : nothing
+        if ctx_hasnone(ctx) || ctx_peek(ctx) ∉ p.names
+            actual = ctx_hasnone(ctx) ? nothing : ctx_peek(ctx)
 
             if actual === nothing
                 return ParseErr(0, "Expected command `$(p.names[1])`, but got end of input.")
@@ -30,17 +30,15 @@ function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState
         end
 
         # command matched, consume it and move to the matched state
+        nextctx = ctx_with_state(consume(ctx, 1), some(none(PState)))
         return ParseOk(
-            ctx.buffer[1:1], Context{CommandState{PState}}(
-                ctx.buffer[2:end],
-                some(none(PState)),
-                ctx.optionsTerminated
-            )
+           ctx_peekn(ctx), nextctx
         )
+
     else
-        maybestate = base(unwrap(ctx.state))
+        maybestate = base(unwrap(ℒ_state(ctx)))
         childstate = isnothing(maybestate) ? p.parser.initialState : @something maybestate
-        childctx = Context{tstate(p.parser)}(ctx.buffer, childstate, ctx.optionsTerminated)
+        childctx = widen_state(tstate(p.parser), ctx_with_state(ctx, childstate))
 
         result = parse(unwrapunion(p.parser), childctx)::ParseResult{PState, String}
 
@@ -50,7 +48,7 @@ function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState
             nextctx = parse_ok.next
             return ParseOk(
                 parse_ok.consumed,
-                Context{CommandState{PState}}(nextctx.buffer, some(some(nextctx.state)), nextctx.optionsTerminated)
+                widen_state(CommandState{PState}, ctx_with_state(nextctx, some(some(ℒ_state(nextctx)))))
             )
         else
             parse_err = unwrap_error(result)

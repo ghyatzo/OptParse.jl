@@ -183,7 +183,7 @@ end
     multipleParser = multiple(baseParser)
 
     state = getproperty(multipleParser, :initialState)
-    ctx1 = Context(["-l", "en", "-l", "fr"], state)
+    ctx1 = Context(buffer=["-l", "en", "-l", "fr"], state=state)
 
     parseRes1 = @unionsplit  parse(multipleParser, ctx1)
     @test !is_error(parseRes1)
@@ -194,7 +194,7 @@ end
 
     # Parse next occurrence with updated buffer and carried state
     nextState1 = getproperty(getproperty(succ1, :next), :state)
-    ctx2 = Context(["-l", "fr"], nextState1)
+    ctx2 = Context(buffer=["-l", "fr"], state=nextState1)
 
     parseRes2 = @unionsplit  parse(multipleParser, ctx2)
     @test !is_error(parseRes2)

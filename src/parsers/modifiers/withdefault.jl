@@ -14,8 +14,9 @@ end
 
 function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefaultState{S}})::ParseResult{WithDefaultState{S}, String} where {T, S}
 
-    childstate = is_error(ctx.state) ? p.parser.initialState : unwrap(ctx.state)
-    childctx = @set ctx.state = childstate
+    childstate = is_error(ℒ_state(ctx)) ? p.parser.initialState : unwrap(ℒ_state(ctx))
+    childctx = ctx_with_state(ctx, childstate)
+
     result = parse(unwrapunion(p.parser), childctx)::ParseResult{S, String}
 
     if is_error(result)
@@ -32,11 +33,11 @@ function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefau
     parse_ok = unwrap(result)
     if parse_ok.next.state != childstate || length(parse_ok.consumed) == 0
         #=Inner parser actually consumed something or changed its state=#
-        newctx = set(parse_ok.next, PropertyLens(:state), some(parse_ok.next.state))
+        newctx = ctx_with_state(parse_ok.next, some(ℒ_state(parse_ok.next)))
     else
         #=Inner parser returned success but nothing changed while consuming input. (i.e. "--")
         Treat as unmatched, but still propagate side effects.=#
-        newctx = set(parse_ok.next, PropertyLens(:state), ctx.state)
+        newctx = ctx_with_state(parse_ok.next, ℒ_state(ctx))
     end
 
     return ParseOk(parse_ok.consumed, newctx)

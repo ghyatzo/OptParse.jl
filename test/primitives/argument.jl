@@ -8,7 +8,8 @@ end
 @testset "should parse a string argument" begin
     parser = argument(str(; metavar = "FILE"))
     state = getproperty(parser, :initialState)
-    ctx = Context(["myfile.txt"], state)
+    buffer = ["myfile.txt"]
+    ctx = Context(;buffer, state)
 
     res = parse(unwrapunion(parser), ctx)
     @test !is_error(res)
@@ -27,7 +28,8 @@ end
 @testset "should parse an integer argument" begin
     parser = argument(integer(; min = 0))
     state = getproperty(parser, :initialState)
-    ctx = Context(["42"], state)
+    buffer = ["42"]
+    ctx = Context(;buffer, state)
 
     res = parse(unwrapunion(parser), ctx)
     @test !is_error(res)
@@ -46,7 +48,8 @@ end
 @testset "should fail when buffer is empty" begin
     parser = argument(str(; metavar = "FILE"))
     state = getproperty(parser, :initialState)
-    ctx = Context(String[], state)
+    buffer = String[]
+    ctx = Context(; buffer, state)
 
     res = parse(unwrapunion(parser), ctx)
     @test is_error(res)
@@ -59,7 +62,8 @@ end
 @testset "should propagate value parser failures" begin
     parser = argument(integer(; min = 1, max = 100))
     state = getproperty(unwrapunion(parser), :initialState)
-    ctx = Context(["invalid"], state)
+    buffer = ["invalid"]
+    ctx = Context(;buffer, state)
 
     res = parse(unwrapunion(parser), ctx)
     @test !is_error(res)
@@ -123,7 +127,7 @@ end
     @test !is_error(result)
     @test (@? result) == "abc"
 
-    ctx = Context(["abc", "--"], parser.initialState)
+    ctx = Context(buffer=["abc", "--"], state=parser.initialState)
     presult = splitparse(parser, ctx)
     @test !is_error(presult)
     pok = unwrap(presult)

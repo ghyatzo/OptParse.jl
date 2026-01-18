@@ -12,7 +12,7 @@ end
 
     buffer = ["-v"]
     state = defaultParser.initialState
-    ctx = Context(buffer, state)
+    ctx = Context(;buffer, state)
 
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
@@ -69,7 +69,7 @@ end
 
     buffer = ["-n", "Alice"]
     state = defaultParser.initialState
-    ctx = Context(buffer, state)
+    ctx = Context(;buffer, state)
 
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
@@ -92,7 +92,7 @@ end
 
     buffer = ["--help"]
     state = defaultParser.initialState
-    ctx = Context(buffer, state)
+    ctx = Context(;buffer, state)
 
     parseResult = splitparse(defaultParser, ctx)
 
@@ -117,7 +117,7 @@ end
 
     # Defaults case
     argv_defaults = ["-v"]
-    ctx_defaults = Context(argv_defaults, parser.initialState)
+    ctx_defaults = Context(buffer=argv_defaults, state=parser.initialState)
     res_defaults = splitparse(parser, ctx_defaults)
     @test !is_error(res_defaults)
     if !is_error(res_defaults)
@@ -129,7 +129,7 @@ end
 
     # Provided values case
     argv_values = ["-v", "-p", "3000", "-h", "example.com"]
-    ctx_values = Context(argv_values, parser.initialState)
+    ctx_values = Context(buffer=argv_values, state=parser.initialState)
     res_values = splitparse(parser, ctx_values)
     @test !is_error(res_values)
     if !is_error(res_values)
@@ -146,7 +146,7 @@ end
 
     buffer = String[]
     state = defaultParser.initialState
-    ctx = Context(buffer, state)
+    ctx = Context(; buffer, state)
 
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
@@ -214,7 +214,7 @@ end
 
     # Test state wrapping during successful parse
     buffer = ["-n", "test"]
-    ctx = Context(buffer, none(tstate(baseParser)))
+    ctx = Context(buffer=buffer, state=none(tstate(baseParser)))
     parseResult = splitparse(defaultParser, ctx)
 
     @test !is_error(parseResult)
@@ -322,7 +322,7 @@ end
     @test (@? result) == "bob"
 
     # should also correctly propagate the side effects properly optionsTerminated state.
-    ctx = Context(["--", "arg"], def.initialState)
+    ctx = Context(buffer=["--", "arg"], state=def.initialState)
     pres = splitparse(def, ctx)
     @test !is_error(pres)
     pok = unwrap(pres)
@@ -353,7 +353,7 @@ end
         )
     )
 
-    @test_opt parse(unwrapunion(parser), Context(["-c", "start", "-p", "3000", "-d"], parser.initialState))
+    @test_opt parse(unwrapunion(parser), Context(buffer=["-c", "start", "-p", "3000", "-d"], state=parser.initialState))
 
 
     @test_opt argparse(parser, ["-c", "start", "-p", "3000", "-d"])

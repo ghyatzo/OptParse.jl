@@ -6,30 +6,29 @@ tval(::AbstractParser{T}) where {T} = T
 tstate(::Type{<:AbstractParser{T, S}}) where {T, S} = S
 tstate(::AbstractParser{T, S}) where {T, S} = S
 
-(priority(::Type{<:AbstractParser{T, S, _p}})::Int) where {T, S, _p} = _p
-(priority(::AbstractParser{T, S, _p})::Int) where {T, S, _p} = _p
+function priority(::Type{<:AbstractParser{T, S, _p}})::Int where {T, S, _p}
+ return _p
+end
+function priority(::AbstractParser{T, S, _p})::Int where {T, S, _p}
+ return _p
+end
 
 ptypes(::Type{<:AbstractParser{T, S, _p, P}}) where {T, S, _p, P} = P
 ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
 
 
-struct Context{S}
-    buffer::Vector{String}
-    state::S # accumulator for partial states (eg named tuple, single result, etc)
-    optionsTerminated::Bool
-end
-
-# Context(args::Vector{String}, state) =
-#     Context{typeof(state)}(args, state, false)
-
+include("context.jl")
 
 struct ParseSuccess{S}
     consumed::Tuple{Vararg{String}}
     next::Context{S}
 end
 
-ParseSuccess(cons::Vector{String}, next::Context{S}) where {S} = ParseSuccess{S}((cons...,), next)
-ParseSuccess(cons::String, next::Context{S}) where {S} = ParseSuccess{S}((cons,), next)
+ParseSuccess(cons::Vector{String}, next::Context{S}) where {S} =
+    ParseSuccess{S}((cons...,), next)
+
+ParseSuccess(cons::String, next::Context{S}) where {S} =
+    ParseSuccess{S}((cons,), next)
 
 struct ParseFailure{E}
     consumed::Int
@@ -38,9 +37,8 @@ end
 
 const ParseResult{S, E} = Result{ParseSuccess{S}, ParseFailure{E}}
 
-ParseOk(consumed, next::Context{S}) where {S} = Ok(ParseSuccess(consumed, next))
-ParseErr(consumed, error) = Err(ParseFailure(consumed, error))
-
+@inline ParseOk(consumed, next::Context{S}) where {S} = Ok(ParseSuccess(consumed, next))
+@inline ParseErr(consumed, error) = Err(ParseFailure(consumed, error))
 
 include("valueparsers/valueparsers.jl")
 include("primitives/primitives.jl")
@@ -59,7 +57,6 @@ include("modifiers/modifiers.jl")
         ConstrOr{T, S, p, P},
         ConstrTuple{T, S, p, P},
 
-        ModOptional{T, S, p, P},
         ModWithDefault{T, S, p, P},
         ModMultiple{T, S, p, P},
     }

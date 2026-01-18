@@ -1,6 +1,6 @@
 @testset "should parse option with separated value" begin
     parser = option(("-p", "--port"), integer())
-    context = Context(["--port", "8080"], parser.initialState)
+    context = Context(buffer=["--port", "8080"], state=parser.initialState)
 
     res = @unionsplit parse(parser, context)  # :: ParseResult
 
@@ -17,7 +17,7 @@ end
 
 @testset "should parse option with equals-separated value" begin
     parser = option("--port", integer())
-    context = Context(["--port=8080"], parser.initialState)
+    context = Context(buffer=["--port=8080"], state=parser.initialState)
 
     res = @unionsplit parse(parser, context)
 
@@ -53,7 +53,7 @@ end
 
 # @testset "should parse DOS-style option with colon" begin
 #     parser  = option("/P", integer())
-#     context = Context(["/P:8080"], parser.initialState)
+#     context = Context(buffer=["/P:8080"], state=parser.initialState)
 
 #     res = @unionsplit parse(parser, context)
 
@@ -67,7 +67,7 @@ end
 
 @testset "should fail when value is missing" begin
     parser = option("--port", integer())
-    context = Context(["--port"], parser.initialState)
+    context = Context(buffer=["--port"], state=parser.initialState)
 
     res = @unionsplit parse(parser, context)
 
@@ -80,7 +80,7 @@ end
 
 @testset "should parse string values" begin
     parser = option("--name", str(; metavar = "NAME"))
-    context = Context(["--name", "Alice"], parser.initialState)
+    context = Context(buffer=["--name", "Alice"], state=parser.initialState)
 
     res = @unionsplit parse(parser, context)
 
@@ -93,7 +93,7 @@ end
 
 @testset "should propagate value parser failures" begin
     parser = option("--port", integer(; min = 1, max = 0xffff))
-    context = Context(["--port", "invalid"], parser.initialState)
+    context = Context(buffer=["--port", "invalid"], state=parser.initialState)
 
     res = @unionsplit parse(parser, context)
 
@@ -108,7 +108,7 @@ end
 
 @testset "should fail on unmatched option" begin
     parser = option(("-v", "--verbose"), choice(["yes", "no"]))
-    context = Context(["--help"], parser.initialState)
+    context = Context(buffer=["--help"], state=parser.initialState)
 
     res = @unionsplit parse(parser, context)
 

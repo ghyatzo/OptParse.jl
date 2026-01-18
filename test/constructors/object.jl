@@ -24,7 +24,7 @@ end
     )
 
     argv = ["-v", "-p", "8080"]
-    ctx = Context(argv, parser.initialState)
+    ctx = Context(buffer=argv, state=parser.initialState)
     res = @unionsplit parse(parser, ctx)
 
     @test !is_error(res)
@@ -71,7 +71,7 @@ end
 
     buffer = ["--help"]
     state = parser.initialState
-    ctx = Context(buffer, state)  # optionsTerminated defaults to false
+    ctx = Context(;buffer, state)  # optionsTerminated defaults to false
     res = @unionsplit parse(parser, ctx)
 
     @test is_error(res)
@@ -91,7 +91,7 @@ end
     )
 
     argv = String[]
-    ctx = Context(argv, parser.initialState)
+    ctx = Context(buffer=argv, state=parser.initialState)
     res = @unionsplit parse(parser, ctx)
 
     @test is_error(res)
@@ -113,7 +113,7 @@ end
         )
     )
 
-    ctx = Context(["--verbose", "--host", "me", "--test", "--", "--test"], obj.initialState)
+    ctx = Context(buffer=["--verbose", "--host", "me", "--test", "--", "--test"], state=obj.initialState)
 
     result = @unionsplit parse(obj, ctx)
     @test !is_error(result)
@@ -176,7 +176,7 @@ end
         )
     )
 
-    ctx = Context(["--verbose", "--host", "me", "--test", "--", "--test"], obj.initialState)
+    ctx = Context(buffer=["--verbose", "--host", "me", "--test", "--", "--test"], state=obj.initialState)
 
     @test_opt parse(unwrapunion(obj), ctx)
 

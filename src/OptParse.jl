@@ -5,7 +5,8 @@ using Accessors:
     insert,
     PropertyLens,
     set,
-    @set
+    @set,
+    @optic
 
 using WrappedUnions:
     @unionsplit,
@@ -155,7 +156,7 @@ I'm thinking a higher level approach that either returns the desired result or t
 that simply returns the Result type for the user to deal with... maybe. I don't know yet.=#
 function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} where {T, S}
 
-    ctx = Context{S}(args, pp.initialState, false)
+    ctx = Context(buffer=args, state=pp.initialState)
 
     while true
         mayberesult::ParseResult{S, String} = @unionsplit parse(pp, ctx)
@@ -165,22 +166,22 @@ function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} whe
         end
         result = unwrap(mayberesult)
 
-        previous_buffer = ctx.buffer
+        previous_buffer = ctx_remaining(ctx)
         ctx = result.next
 
         if (
-                length(ctx.buffer) > 0
-                    && length(ctx.buffer) == length(previous_buffer)
-                    && ctx.buffer == previous_buffer
+                ctx_length(ctx) > 0
+                    && ctx_length(ctx) == length(previous_buffer)
+                    && ctx_remaining(ctx) == previous_buffer
             )
 
-            return Err("Unexpected option or argument: $(ctx.buffer[1]).")
+            return Err("Unexpected option or argument: $(ctx_peek(ctx)).")
         end
 
-        length(ctx.buffer) > 0 || break
+        ctx_length(ctx) > 0 || break
     end
 
-    return @unionsplit complete(pp, ctx.state)
+    return @unionsplit complete(pp, ℒ_state(ctx))
 end
 
 end # module OptParse

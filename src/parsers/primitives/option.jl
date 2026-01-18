@@ -17,40 +17,37 @@ end
 
 function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::ParseResult{OptionState{T}, String} where {T}
 
-    if ctx.optionsTerminated
+    if ℒ_optterm(ctx)
         return ParseErr(0, "No more options to be parsed.")
-    elseif length(ctx.buffer) < 1
+    elseif ctx_hasnone(ctx)
         return ParseErr(0, "Expected option got end of input.")
     end
 
+    tok = ctx_peek(ctx)
+
     # When the input contains `--` is a signal to stop parsing options
-    if (ctx.buffer[1] === "--")
-        next = Context(ctx.buffer[2:end], ctx.state, true)
-        return ParseOk(("--",), next)
+    if (tok === "--")
+        next = ctx_with_options_terminated(consume(ctx, 1), true)
+        return ParseOk(tok, next)
     end
 
     # when options are of the form `--option value` or `/O value`
-    if ctx.buffer[1] in p.names
+    if tok in p.names
 
         # st = @? ctx.state
-        if !is_error(ctx.state) && unwrap(ctx.state) isa T
-            return ParseErr(1, "$(ctx.buffer[1]) cannot be used multiple times")
+        if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx)) isa T
+            return ParseErr(1, "$(tok) cannot be used multiple times")
         end
 
-        if length(ctx.buffer) < 2 || ctx.buffer[2] == "--"
-            return ParseErr(1, "Option $(ctx.buffer[1]) requires a value, but got no value.")
+        if ctx_haslessthan(2, ctx) || ctx_peek(ctx, 2) == "--"
+            return ParseErr(1, "Option $(tok) requires a value, but got no value.")
         end
 
-        result = p.valparser(ctx.buffer[2])::Result{T, String}
+        result = p.valparser(ctx_peek(ctx, 2))::Result{T, String}
 
         return ParseOk(
-            ctx.buffer[1:2],
-
-            Context(
-                ctx.buffer[3:end],
-                result,
-                ctx.optionsTerminated
-            )
+            ctx_peekn(ctx, 2),
+            ctx_with_state(consume(ctx, 2), result)
         )
     end
 
@@ -62,29 +59,24 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::P
         startswith(name, "/") ? "$name:" : "$name="
     end
     for prefix in prefixes
-        startswith(ctx.buffer[1], prefix) || continue
+        startswith(tok, prefix) || continue
 
-        if !is_error(ctx.state) && unwrap(ctx.state)
+        if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx))
             return ParseErr(1, "$(prefix[1:(end - 1)]) cannot be used multiple times")
         end
 
-        value = ctx.buffer[1][(length(prefix) + 1):end]
+        value = tok[(length(prefix) + 1):end]
         result = p.valparser(value)::Result{T, String}
 
         return ParseOk(
-            ctx.buffer[1:1],
-
-            Context(
-                ctx.buffer[2:end],
-                result,
-                ctx.optionsTerminated
-            )
+            tok,
+            ctx_with_state(consume(ctx, 1), result)
         )
 
     end
 
     return ParseErr(
-        0, "No Matched option for $(ctx.buffer[1])"
+        0, "No Matched option for $(tok)"
     )
 end
 

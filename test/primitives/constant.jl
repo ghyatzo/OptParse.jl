@@ -7,7 +7,7 @@ end
 
 @testset "should parse without consuming any input" begin
     parser = @constant(:hello)
-    context = Context(["--option", "value"], Val(:hello))
+    context = Context(buffer=["--option", "value"], state=Val(:hello))
 
     result = @unionsplit parse(parser, context)
     @test is_ok_and(result) do succ

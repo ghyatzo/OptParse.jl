@@ -68,10 +68,11 @@ end
     for field in labels
         push!(
             whilebody.args, quote
-                field = $(QuoteNode(field))
+                child_state_lens = PropertyLens($(QuoteNode(field))) ∘ ℒ_state
+
                 child_parser = p[$(QuoteNode(field))]
-                child_state = current_ctx.state[$(QuoteNode(field))]
-                child_ctx = Context{tstate(child_parser)}(current_ctx.buffer, child_state, current_ctx.optionsTerminated)
+                child_state = child_state_lens(current_ctx)
+                child_ctx = widen_state(tstate(child_parser), ctx_with_state(current_ctx, child_state))
 
                 result = (@unionsplit parse(child_parser, child_ctx))::ParseResult{tstate(child_parser), String}
 
@@ -85,8 +86,11 @@ end
 
                     if length(parse_ok.consumed) > 0
 
-                        newstate = set(current_ctx.state, PropertyLens($(QuoteNode(field))), parse_ok.next.state)
-                        newctx = Context{$S}(parse_ok.next.buffer, newstate, parse_ok.next.optionsTerminated)
+                        #= we update the current context state with the result from the parse=#
+                        newstate = set(ℒ_state(current_ctx), PropertyLens($(QuoteNode(field))), ℒ_state(parse_ok.next))
+
+                        #= then we continue the parse using the information from the parse result but with the new state=#
+                        newctx = widen_state($S, ctx_with_state(parse_ok.next, newstate))
 
                         allconsumed = (allconsumed..., parse_ok.consumed...)
                         current_ctx = newctx
