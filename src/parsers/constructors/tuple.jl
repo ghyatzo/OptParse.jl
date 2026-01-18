@@ -25,62 +25,44 @@ end
 sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
 
 
-function parse(p::ConstrTuple{T, S}, ctx::Context{S})::ParseResult{S, String} where {T, S <: Tuple}
+@generated function _generated_tup_parse(parsers::PTup, ctx::Context{S}) where {PTup <: Tuple, S <: Tuple}
 
-    # TODO: Checking for duplcates will need setting up the infrastructure of automatic help
-    # generation, we can have two equal options that get the same value but for different
-    # reasons.
+    N = fieldcount(PTup)
+    perm, sorted_ptup = _sortperm_by_priority(fieldtypes(parsers))
 
-    current_ctx = ctx
-    allconsumed::Tuple{Vararg{String}} = ()
-    matched_parsers = Set{Int}()
+    whilebody_consumers = Expr(:block)
+    whilebody_nonconsumers = Expr(:block)
 
-    # instead of sorting each time:
-    # 	- calculate the sortpermutation by priority
-    #	- each time we have a match remove the matching item in the permutation
+    for (i, parser_t) in enumerate(sorted_ptup)
+        child_parser_tstate = tstate(parser_t)
 
-    #= match the parsers in priority order but maintain tuple order =#
-    perm, sorted_ptup = _sortperm_by_priority(p.parsers)
-
-    while length(matched_parsers) < length(p.parsers)
-        found_match = false
-
-        error = (0, "No remaining parsers could match the input.")
-
-        #= instead of filtering by the already matched parsers
-        # we iterate over all parsers and skip those already matched.
-        # this way we know which parser we're working with at compile time.
-        # less efficient computationally but at least type stable
-        =#
-        i = 0
-        # TODO: switch to a generated function to unroll based on the length of the tuple without random ass magic numbers
-        @unroll 10 for parser in sorted_ptup
-            i += 1
+        push!(whilebody_consumers.args, quote
+            # child_state = ℒ_state(current_ctx)[$(perm[i])]
             #= we need to simulate a i in matched_parsers && continue but in an unrolled loop
             # so it becomes a whole if, this unrolled part only happens if it's not yet matched!
             =#
-            if i ∉ matched_parsers
-                # @info current_ctx.state perm[i] current_ctx.state[perm[i]]
-                child_ctx = Context{tstate(parser)}(
+            if $i ∉ matched_parsers
+                parser = parsers[$(perm[i])]
+                child_ctx = Context{$child_parser_tstate}(
                     current_ctx.buffer,
-                    current_ctx.state[perm[i]],
+                    current_ctx.state[$(perm[i])],
                     current_ctx.optionsTerminated
                 )
 
-                result = parse(unwrapunion(parser), child_ctx)::ParseResult{tstate(parser), String}
+                result = parse(unwrapunion(parser), child_ctx)::ParseResult{$child_parser_tstate, String}
 
                 if !is_error(result) && length(unwrap(result).consumed) > 0
                     #= parser succeded and consumed input - match it =#
                     parse_ok = unwrap(result)
 
-                    current_ctx = Context{S}(
+                    current_ctx = Context{$S}(
                         parse_ok.next.buffer,
-                        set(current_ctx.state, IndexLens(perm[i]), parse_ok.next.state),
+                        set(current_ctx.state, IndexLens($(perm[i])), parse_ok.next.state),
                         parse_ok.next.optionsTerminated
                     )
 
                     allconsumed = (allconsumed..., parse_ok.consumed...)
-                    push!(matched_parsers, i)
+                    push!(matched_parsers, $i)
                     found_match = true
                     #= take the first (highest priority) match that consumes input =#
                     @goto endloop_consumers #= it simulates a "break" by using @goto.
@@ -91,59 +73,87 @@ function parse(p::ConstrTuple{T, S}, ctx::Context{S})::ParseResult{S, String} wh
                     error = (parse_err.consumed, parse_err.error)
                 end
             end
-        end
-        @label endloop_consumers
+        end)
 
+        # we can generate both unrolls at the same time!
+        push!(whilebody_nonconsumers.args, quote
+            if $i ∉ matched_parsers
+                parser = parsers[$(perm[i])]
+                child_ctx = Context{$child_parser_tstate}(
+                    current_ctx.buffer,
+                    current_ctx.state[$(perm[i])],
+                    current_ctx.optionsTerminated
+                )
 
-        #=if no consuming parser is matched, try non consuming ones (like optional or constant)=#
-        if !found_match
-            i = 0
-            @unroll 10 for parser in sorted_ptup
-                i += 1
-                if i ∉ matched_parsers
+                result = parse(unwrapunion(parser), child_ctx)::ParseResult{tstate(parser), String}
 
-                    child_ctx = Context{tstate(parser)}(
-                        current_ctx.buffer,
-                        current_ctx.state[perm[i]],
-                        current_ctx.optionsTerminated
+                if !is_error(result) && length(unwrap(result).consumed) < 1
+                    #=parser succeded without consuming - match it as success=#
+                    parse_ok = unwrap(result)
+
+                    current_ctx = Context{$S}(
+                        parse_ok.next.buffer,
+                        set(current_ctx.state, IndexLens($(perm[i])), parse_ok.next.state),
+                        parse_ok.next.optionsTerminated
                     )
 
-                    result = parse(unwrapunion(parser), child_ctx)::ParseResult{tstate(parser), String}
-
-                    if !is_error(result) && length(unwrap(result).consumed) < 1
-                        #=parser succeded without consuming - match it as success=#
-                        parse_ok = unwrap(result)
-
-                        current_ctx = Context{S}(
-                            parse_ok.next.buffer,
-                            set(current_ctx.state, IndexLens(perm[i]), parse_ok.next.state),
-                            parse_ok.next.optionsTerminated
-                        )
-
-                        push!(matched_parsers, i)
-                        found_match = true
-                        @goto endloop_nonconsumers
-                    elseif is_error(result) && unwrap_error(result).consumed < 1
-                        #=parser failed without consuming input, this could be an optional
-                    	# parser that doesn't match.
-                    	# mark it as matched anyway.
-                    	=#
-                        push!(matched_parsers, i)
-                        found_match = true
-                        @goto endloop_nonconsumers
-                    end
+                    push!(matched_parsers, $i)
+                    found_match = true
+                    #= take the first (highest priority) match that consumes input =#
+                    @goto endloop_nonconsumers
+                elseif is_error(result) && unwrap_error(result).consumed < 1
+                    #=parser failed without consuming input, this could be an optional
+                    # parser that doesn't match.
+                    # mark it as matched anyway.
+                    =#
+                    push!(matched_parsers, $i)
+                    found_match = true
+                    @goto endloop_nonconsumers
                 end
             end
-            @label endloop_nonconsumers
-        end
-
-        if !found_match
-            #=If we still haven't found a match then cry=#
-            return Err(error[1], error[2])
-        end
+        end)
     end
 
-    return ParseOk(allconsumed, current_ctx)
+    return ex = quote
+        current_ctx = ctx
+        allconsumed::Tuple{Vararg{String}} = ()
+        matched_parsers = Set{Int}()
+
+        while length(matched_parsers) < length(parsers)
+            found_match = false
+
+            error = (0, "No remaining parsers could match the input.")
+
+            #= instead of filtering by the already matched parsers
+            # we iterate over all parsers and skip those already matched.
+            # this way we know which parser we're working with at compile time.
+            # less efficient computationally but at least type stable
+            =#
+            j = 0
+            $whilebody_consumers
+            @label endloop_consumers
+
+            #=if no consuming parser is matched, try non consuming ones (like optional or constant)=#
+            if !found_match
+                $whilebody_nonconsumers
+                @label endloop_nonconsumers
+            end
+
+            if !found_match
+                #=If we still haven't found a match then cry=#
+                return Err(error[1], error[2])
+            end
+        end
+
+        return ParseOk(allconsumed, current_ctx)
+    end
+
+end
+
+function parse(p::ConstrTuple{T, S}, ctx::Context{S})::ParseResult{S, String} where {T, S <: Tuple}
+
+    _generated_tup_parse(p.parsers, ctx)
+
 end
 
 
