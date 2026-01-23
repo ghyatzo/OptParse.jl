@@ -156,7 +156,7 @@ I'm thinking a higher level approach that either returns the desired result or t
 that simply returns the Result type for the user to deal with... maybe. I don't know yet.=#
 function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} where {T, S}
 
-    ctx = Context(buffer=args, state=pp.initialState)
+    ctx = Context{S}(buffer=args, state=pp.initialState)
 
     while true
         mayberesult::ParseResult{S, String} = @unionsplit parse(pp, ctx)
