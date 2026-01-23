@@ -142,7 +142,7 @@ restore_state_marker(ctx, original_marker) = @set ctx.state = original_marker
 
 
 # -----------------------------------------------------------------------------
-# Optional: Parse result types + constructors (include now if you want centralization)
+# Optional: Parse result types + constructors
 # -----------------------------------------------------------------------------
 
 
@@ -183,15 +183,9 @@ Construct an empty consumption at position `pos` (range `pos:pos-1`).
 
 
 # struct ParseSuccess{S}
-#     consumed::Tuple{Vararg{String}}  # keep your current representation for now
+#     consumed::Tuple{Vararg{String}} # keep your current representation for now
 #     next::Context{S}
 # end
-
-# ParseSuccess(cons::Vector{String}, next::Context{S}) where {S} =
-#     ParseSuccess{S}((cons...,), next)
-
-# ParseSuccess(cons::String, next::Context{S}) where {S} =
-#     ParseSuccess{S}((cons,), next)
 
 # struct ParseFailure{E}
 #     consumed::Int
@@ -200,11 +194,11 @@ Construct an empty consumption at position `pos` (range `pos:pos-1`).
 
 # const ParseResult{S, E} = Result{ParseSuccess{S}, ParseFailure{E}}
 
-# @inline ParseOk(consumed, next::Context{S}) where {S} = Ok(ParseSuccess(consumed, next))
+# @inline ParseOk(cons::Tuple{Vararg{String}}, next::Context{S}) where {S} = Ok(ParseSuccess{S}(cons, next))
 # @inline ParseErr(consumed::Int, error) = Err(ParseFailure(consumed, error))
 
 
-function ok(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n)) where {S}
-    cons = Consumed(ctx.buffer, ctx.pos:(ctx.pos+n-1))
-    return ParseOk(cons, nextctx)
-end
+# function ok(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n)) where {S}
+#     cons = ctx_peekn(ctx)
+#     return ParseOk(cons, nextctx)
+# end

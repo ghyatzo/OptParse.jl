@@ -24,12 +24,6 @@ struct ParseSuccess{S}
     next::Context{S}
 end
 
-ParseSuccess(cons::Vector{String}, next::Context{S}) where {S} =
-    ParseSuccess{S}((cons...,), next)
-
-ParseSuccess(cons::String, next::Context{S}) where {S} =
-    ParseSuccess{S}((cons,), next)
-
 struct ParseFailure{E}
     consumed::Int
     error::E
@@ -37,7 +31,9 @@ end
 
 const ParseResult{S, E} = Result{ParseSuccess{S}, ParseFailure{E}}
 
-@inline ParseOk(consumed, next::Context{S}) where {S} = Ok(ParseSuccess(consumed, next))
+@inline ParseOk(cons::Tuple{Vararg{String}}, next::Context{S}) where {S} = Ok(ParseSuccess{S}(cons, next))
+@inline ParseOk(cons::Vector{String}, next::Context{S}) where {S} = Ok(ParseSuccess{S}(Tuple(cons), next))
+@inline ParseOk(cons::String, next::Context{S}) where {S} = Ok(ParseSuccess{S}((cons,), next))
 @inline ParseErr(consumed, error) = Err(ParseFailure(consumed, error))
 
 include("valueparsers/valueparsers.jl")
