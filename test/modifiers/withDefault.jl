@@ -17,7 +17,7 @@ end
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
     if !is_error(parseResult)
-        next_state = ℒ_state(unwrap(parseResult).next)
+        next_state = ℒ_nextstate(unwrap(parseResult))
         completeResult = splitcomplete(defaultParser, next_state)
         @test !is_error(completeResult)
         if !is_error(completeResult)
@@ -75,8 +75,8 @@ end
     @test !is_error(parseResult)
     if !is_error(parseResult)
         ps = unwrap(parseResult)
-        @test ctx_remaining(ps.next) == String[]
-        @test ps.consumed == ("-n", "Alice")
+        @test ctx_remaining(ℒ_nextctx(ps)) == String[]
+        @test as_tuple(ℒ_consumed(ps)) == ("-n", "Alice")
 
         completeResult = splitcomplete(defaultParser, ℒ_state(ps.next))
         @test !is_error(completeResult)
@@ -101,7 +101,7 @@ end
     @test !is_error(parseResult)
     if !is_error(parseResult)
         pf = unwrap(parseResult)
-        @test length(pf.consumed) == 0
+        @test length(ℒ_consumed(pf)) == 0
         @test ctx_remaining(pf.next) == ["--help"]
     end
 end
@@ -121,7 +121,7 @@ end
     res_defaults = splitparse(parser, ctx_defaults)
     @test !is_error(res_defaults)
     if !is_error(res_defaults)
-        st = ℒ_state(unwrap(res_defaults).next)
+        st = ℒ_nextstate(unwrap(res_defaults))
         @test (@? getfield(st, :verbose)) == true
         @test (@? getfield(st, :port)) == 8080
         @test (@? getfield(st, :host)) == "localhost"
@@ -133,7 +133,7 @@ end
     res_values = splitparse(parser, ctx_values)
     @test !is_error(res_values)
     if !is_error(res_values)
-        st = ℒ_state(unwrap(res_values).next)
+        st = ℒ_nextstate(unwrap(res_values))
         @test (@? getfield(st, :verbose)) == true
         @test (@? getfield(st, :port)) == 3000
         @test (@? getfield(st, :host)) == "example.com"
@@ -151,7 +151,7 @@ end
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
     if !is_error(parseResult)
-        next_state = ℒ_state(unwrap(parseResult).next)
+        next_state = ℒ_nextstate(unwrap(parseResult))
         completeResult = splitcomplete(defaultParser, next_state)
         @test !is_error(completeResult)
         if !is_error(completeResult)
@@ -220,7 +220,7 @@ end
     @test !is_error(parseResult)
     if !is_error(parseResult)
         ps = unwrap(parseResult)
-        st = ℒ_state(ps.next)
+        st = ℒ_nextstate(ps)
         @test !is_error(st)
         if !is_error(st)
             @test unwrap(unwrap(st)) == "test"
@@ -326,9 +326,9 @@ end
     pres = splitparse(def, ctx)
     @test !is_error(pres)
     pok = unwrap(pres)
-    @test pok.consumed == ("--",)
-    @test ℒ_optterm(pok.next) == true
-    @test ctx_remaining(pok.next) == ["arg"]
+    @test as_tuple(ℒ_consumed(pok)) == ("--",)
+    @test ℒ_optterm(ℒ_nextctx(pok)) == true
+    @test ctx_remaining(ℒ_nextctx(pok)) == ["arg"]
 
 end
 

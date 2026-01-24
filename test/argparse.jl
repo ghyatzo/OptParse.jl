@@ -124,11 +124,11 @@ end
         (;
             unixshort = flag("-u"),
             unixlong = flag("--long"),
-            dosstyle = flag("/D"),
+            dosstyle = flag("--D"),
         )
     )
 
-    result1 = argparse(parser, ["-u", "--long", "/D"])
+    result1 = argparse(parser, ["-u", "--long", "--D"])
 
     @test !is_error(result1)
     val = unwrap(result1)

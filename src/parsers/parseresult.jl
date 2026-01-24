@@ -45,21 +45,6 @@ Construct an empty consumption at position `pos` (range `pos:pos-1`).
 @inline as_tuple(c::Consumed) = Tuple(collect(c))
 
 
-
-"""
-    merge(consumed::Vector{Consumed})
-
-merges all the consumed into a single Consumed object. The buffer of each consumed can only increase.
-In particular, it only changes when boundled options "-abc" are expanded into "-a" "-b" "-c".
-all the ranges in each consumed object are relative to its buffer. what must happen is that those ranges must be
-modified accordingly to the most expanded buffer (longest).
-"""
-function merge(consumed::Vector{Consumed})
-
-
-end
-
-
 struct ParseSuccess{S}
     consumed::Consumed
     next::Context{S}
@@ -81,27 +66,62 @@ const ℒ_ranges = (@optic _.ranges) ∘ ℒ_consumed
 const ℒ_error = @optic _.error
 const ℒ_nextstate = ℒ_state ∘ ℒ_nextctx
 
-@inline ok_restate(parseok::ParseSuccess, newctx::Context{S}) where {S} =
-    set(parseok, ℒ_nextctx, newctx)
 
-@inline err_rethrow(parseerr::ParseFailure) =
-    Err(ParseFailure(ℒ_nconsumed(parseerr), ℒ_error(parseerr)))
-
-@inline ok_with_consumed(parseok::ParseSuccess, cons::Consumed) =
-    set(parseok, ℒ_consumed, cons)
-
-@inline ok_with_consumed(parseok::ParseSuccess, ctx::Context{S}) where {S} =
-    set(parseok, ℒ_nextctx, ctx)
-
-function ParseOk(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n)) where {S}
+@inline parseok(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n)) where {S} = let
     p = ℒ_pos(ctx)
-    consumed = Consumed(
-        ℒ_buffer(ctx),
-        [p:p+n-1]
-    )
+    consumed = Consumed(ℒ_buffer(ctx), [p:p+n-1])
     return Ok(ParseSuccess{S}(consumed, nextctx))
 end
 
-function ParseErr(err::String, ctx::Context{S}; consumed::Int = 0) where {S}
-    return Err(ParseFailure(consumed, err))
+@inline parseok(next::Context{S}, cons::Consumed) where {S} =
+    Ok(ParseSuccess{S}(cons, next))
+
+
+@inline parseerr(_ctx::Context, e; consumed::Int=0) =
+    Err(ParseFailure(consumed, e))
+
+@inline parseerr(perr::ParseFailure) =
+    Err(ParseFailure(perr.consumed, perr.error))
+
+
+function _normalize_ranges(ranges::Vector{UnitRange{Int}})
+    isempty(ranges) && return ranges
+    rs = sort(ranges; by = r -> (first(r), last(r)))
+
+    out = UnitRange{Int}[]
+    cur = rs[1]
+    for r in rs[2:end]
+        if first(r) <= last(cur) + 1
+            cur = first(cur):max(last(cur), last(r))
+        else
+            push!(out, cur)
+            cur = r
+        end
+    end
+    push!(out, cur)
+    return out
+end
+
+"""
+    merge(consumed::Vector{Consumed})
+
+merges all the consumed into a single Consumed object. The buffer of each consumed can only increase.
+In particular, it only changes when boundled options "-abc" are expanded into "-a" "-b" "-c".
+all the ranges in each consumed object are relative to its buffer. what must happen is that those ranges must be
+modified accordingly to the most expanded buffer (longest).
+"""
+function merge(consumed::Vector{Consumed})
+    isempty(consumed) && error("merge(consumed): input vector is empty")
+
+    buf = consumed[1].buffer
+    @inbounds for c in consumed
+        c.buffer === buf || error("merge(consumed): buffers differ; expected normalization to ensure a shared buffer")
+    end
+
+    all = UnitRange{Int}[]
+    for c in consumed
+        append!(all, c.ranges)
+    end
+
+    return Consumed(buf, _normalize_ranges(all))
 end

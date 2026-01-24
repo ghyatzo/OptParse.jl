@@ -27,9 +27,9 @@ end
 function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::ParseResult{FlagState, String}
 
     if ℒ_optterm(ctx)
-        return ParseErr("No more options to be parsed.", ctx)
+        return parseerr(ctx, "No more options to be parsed.")
     elseif ctx_hasnone(ctx)
-        return ParseErr("Expected a flag, got end of input.", ctx)
+        return parseerr(ctx, "Expected a flag, got end of input.")
     end
 
     tok = ctx_peek(ctx)
@@ -37,18 +37,17 @@ function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::ParseResul
     #= When the input contains `--` stop parsing options =#
     if (tok === "--")
         nextctx = ctx_with_options_terminated(consume(ctx, 1), true)
-        return ParseOk(ctx, 1; nextctx)
+        return parseok(ctx, 1; nextctx)
     end
 
     if tok in p.names
 
         if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx))
-            return ParseErr("$(tok) cannot be used multiple times", ctx; consumed = 1)
+            return parseerr(ctx, "$(tok) cannot be used multiple times"; consumed = 1)
         end
 
-        return ParseOk(ctx, 1;
-            nextctx = ctx_with_state(consume(ctx, 1), FlagState(Ok(true)))
-        )
+        nextctx = ctx_with_state(consume(ctx, 1), FlagState(Ok(true)))
+        return parseok(ctx, 1; nextctx)
     end
 
     #= This is no longer needed. We expand all bundled options beforehand =#
@@ -61,7 +60,7 @@ function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::ParseResul
     #     startswith(tok, short_opt) || continue
 
     #     if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx))
-    #         return ParseErr("Flag $(short_opt) cannot be used multiple times", ctx; consumed = 1)
+    #         return parseerr(ctx, "Flag $(short_opt) cannot be used multiple times"; consumed = 1)
     #     end
 
     #     #= we consume only the first option in case they are bundled. =#
@@ -78,11 +77,11 @@ function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::ParseResul
     #     nextctx = ctx_with_state(nextctx, Result{Bool, String}(Ok(true)))
 
     #     #= we need to consume afterwards since otherwise we consume twice =#
-    #     return ParseOk(nextctx, 1; nextctx=consume(nextctx,1))
+    #     return parseok(nextctx, 1; nextctx=consume(nextctx,1))
 
     # end
 
-    return ParseErr("No Matched Flag for $(tok)", ctx)
+    return parseerr(ctx, "No Matched Flag for $(tok)")
 end
 
 function complete(p::ArgFlag, st::FlagState)::Result{Bool, String}

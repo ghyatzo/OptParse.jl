@@ -3,7 +3,7 @@
     multipleParser = multiple(baseParser)
 
     @test priority(multipleParser) == priority(baseParser)
-    @test getproperty(multipleParser, :initialState) == tval(baseParser)[]
+    @test multipleParser.initialState == tval(baseParser)[]
 end
 
 @testset "should parse multiple occurrences of wrapped parser" begin
@@ -29,8 +29,8 @@ end
     @test !is_error(res)
 
     val = unwrap(res)
-    @test getproperty(val, :locales) == []
-    @test getproperty(val, :verbose) == true
+    @test val.locales == []
+    @test val.verbose == true
 end
 
 @testset "should work with argument parsers" begin
@@ -105,8 +105,8 @@ end
     resEmpty = argparse(parser, ["-h"])
     @test !is_error(resEmpty)
     valEmpty = unwrap(resEmpty)
-    @test getproperty(valEmpty, :options) == []
-    @test getproperty(valEmpty, :help) == true
+    @test valEmpty.options == []
+    @test valEmpty.help == true
 
     # Test with many values to ensure no arbitrary limit
     manyArgs = String[]
@@ -118,10 +118,10 @@ end
     resMany = argparse(parser, manyArgs)
     @test !is_error(resMany)
     valMany = unwrap(resMany)
-    @test length(getproperty(valMany, :options)) == 10
-    @test getproperty(valMany, :options)[1] == "value0"
-    @test getproperty(valMany, :options)[10] == "value9"
-    @test getproperty(valMany, :help) == true
+    @test length(valMany.options) == 10
+    @test valMany.options[1] == "value0"
+    @test valMany.options[10] == "value9"
+    @test valMany.help == true
 end
 
 @testset "should work in object combinations" begin
@@ -137,9 +137,9 @@ end
     @test !is_error(res)
 
     val = unwrap(res)
-    @test getproperty(val, :locales) == ["en", "fr"]
-    @test getproperty(val, :verbose) == true
-    @test getproperty(val, :files) == ["file1.txt", "file2.txt"]
+    @test val.locales == ["en", "fr"]
+    @test val.verbose == true
+    @test val.files == ["file1.txt", "file2.txt"]
 end
 
 @testset "should propagate wrapped parser failures" begin
@@ -163,8 +163,8 @@ end
     @test !is_error(res)
 
     val = unwrap(res)
-    @test getproperty(val, :numbers) == [42, 100]
-    @test getproperty(val, :other) == "value"
+    @test val.numbers == [42, 100]
+    @test val.other == "value"
 end
 
 @testset "should work with boolean flag options" begin
@@ -182,26 +182,26 @@ end
     baseParser = option(("-l", "--locale"), str())
     multipleParser = multiple(baseParser)
 
-    state = getproperty(multipleParser, :initialState)
+    state = multipleParser.initialState
     ctx1 = Context(buffer=["-l", "en", "-l", "fr"], state=state)
 
     parseRes1 = @unionsplit  parse(multipleParser, ctx1)
     @test !is_error(parseRes1)
     succ1 = unwrap(parseRes1)
 
-    @test getproperty(succ1, :consumed) == ("-l", "en")
-    @test length(getproperty(getproperty(succ1, :next), :state)) == 1
+    @test as_tuple(ℒ_consumed(succ1)) == ("-l", "en")
+    @test length(ℒ_nextstate(succ1)) == 1
 
     # Parse next occurrence with updated buffer and carried state
-    nextState1 = getproperty(getproperty(succ1, :next), :state)
+    nextState1 = ℒ_nextstate(succ1)
     ctx2 = Context(buffer=["-l", "fr"], state=nextState1)
 
     parseRes2 = @unionsplit  parse(multipleParser, ctx2)
     @test !is_error(parseRes2)
     succ2 = unwrap(parseRes2)
 
-    @test getproperty(succ2, :consumed) == ("-l", "fr")
-    @test length(getproperty(getproperty(succ2, :next), :state)) == 2
+    @test as_tuple(ℒ_consumed(succ2)) == ("-l", "fr")
+    @test length(ℒ_nextstate(succ2)) == 2
 end
 
 @testset "should complete with proper value array" begin
@@ -268,9 +268,9 @@ end
     res1 = argparse(parser1, ["-n", "John", "-l", "en-US", "-l", "fr-FR", "user123"])
     @test !is_error(res1)
     val1 = unwrap(res1)
-    @test getproperty(val1, :name) == "John"
-    @test getproperty(val1, :locales) == ["en-US", "fr-FR"]
-    @test getproperty(val1, :id) == "user123"
+    @test val1.name == "John"
+    @test val1.locales == ["en-US", "fr-FR"]
+    @test val1.id == "user123"
 
     # Example 2: constrained multiple arguments
     parser2 = object(
@@ -282,8 +282,8 @@ end
     res2 = argparse(parser2, ["-t", "My Title", "id1", "id2"])
     @test !is_error(res2)
     val2 = unwrap(res2)
-    @test getproperty(val2, :title) == "My Title"
-    @test getproperty(val2, :ids) == ["id1", "id2"]
+    @test val2.title == "My Title"
+    @test val2.ids == ["id1", "id2"]
 
     # Constraint violation
     res3 = argparse(parser2, ["-t", "Title", "id1", "id2", "id3", "id4"])
@@ -303,8 +303,8 @@ end
     @test !is_error(res)
 
     val = unwrap(res)
-    @test getproperty(val, :locales) == ["en"]
-    @test getproperty(val, :args) == ["-l", "fr"]
+    @test val.locales == ["en"]
+    @test val.args == ["-l", "fr"]
 end
 
 @testset "should handle state transitions and updates correctly" begin
@@ -319,7 +319,7 @@ end
     @test !is_error(parseRes1)
     succ1 = unwrap(parseRes1)
     @test length(ℒ_state(succ1.next)) == 1
-    @test succ1.consumed == ("arg1",)
+    @test as_tuple(ℒ_consumed(succ1)) == ("arg1",)
 
     # Next context with carried state but new buffer
     carried = ℒ_state(succ1.next)
@@ -328,7 +328,7 @@ end
     @test !is_error(parseRes2)
     succ2 = unwrap(parseRes2)
     @test length(ℒ_state(succ2.next)) == 2
-    @test succ2.consumed == ("arg2",)
+    @test as_tuple(ℒ_consumed(succ2)) == ("arg2",)
 end
 
 @testset "should work with complex value parsers" begin

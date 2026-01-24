@@ -53,19 +53,18 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
                     #= parser succeded and consumed input - match it =#
                     parse_ok = unwrap(result)
 
-                    newstate = set(ℒ_state(current_ctx), IndexLens($(perm[i])), ℒ_state(parse_ok.next))
-                    current_ctx = ctx_with_state(parse_ok.next, newstate)
+                    newstate = set(ℒ_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
+                    current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), newstate)
 
-                    allconsumed = (allconsumed..., parse_ok.consumed...)
+                    push!(allconsumed, ℒ_consumed(parse_ok))
                     push!(matched_parsers, $i)
                     found_match = true
                     #= take the first (highest priority) match that consumes input =#
                     @goto endloop_consumers #= it simulates a "break" by using @goto.
                     # tecnically the @unroll macro also already uses a "loopend" label, but It seems that
                     # these goto macros are expanded before the @unroll and therefore is not there yet. =#
-                elseif is_error(result) && error[1] < unwrap_error(result).consumed
-                    parse_err = unwrap_error(result)
-                    error = (parse_err.consumed, parse_err.error)
+                elseif is_error(result) && error.consumed < unwrap_error(result).consumed
+                    error = unwrap_error(result)
                 end
             end
         end)
@@ -84,8 +83,8 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
                     #=parser succeded without consuming - match it as success=#
                     parse_ok = unwrap(result)
 
-                    newstate = set(ℒ_state(current_ctx), IndexLens($(perm[i])), ℒ_state(parse_ok.next))
-                    current_ctx = ctx_with_state(parse_ok.next, newstate)
+                    newstate = set(ℒ_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
+                    current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), newstate)
 
                     push!(matched_parsers, $i)
                     found_match = true
@@ -106,13 +105,13 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
 
     return ex = quote
         current_ctx = ctx
-        allconsumed::Tuple{Vararg{String}} = ()
+        allconsumed = Consumed[consumed_empty(ctx)]
         matched_parsers = Set{Int}()
 
         while length(matched_parsers) < length(parsers)
             found_match = false
 
-            error = (0, "No remaining parsers could match the input.")
+            error = ParseFailure(0, "No remaining parsers could match the input.")
 
             #= instead of filtering by the already matched parsers
             # we iterate over all parsers and skip those already matched.
@@ -131,11 +130,12 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
 
             if !found_match
                 #=If we still haven't found a match then cry=#
-                return Err(error[1], error[2])
+                return parseerr(error)
             end
         end
 
-        return ParseOk(allconsumed, current_ctx)
+        mergedcons = merge(allconsumed)
+        return parseok(current_ctx, mergedcons)
     end
 
 end

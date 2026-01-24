@@ -23,24 +23,24 @@ function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefau
         parse_err = unwrap_error(result)
         #=the inner parser failed without consuming any input, which means that it wasn't matched.=#
         if parse_err.consumed == 0
-            return ParseOk((), ctx)
+            return parseok(ctx, consumed_empty(ctx))
         else
             #=otherwise the parser failed midway, and that we should propagate.=#
-            return Err(parse_err)
+            return parseerr(parse_err)
         end
     end
 
     parse_ok = unwrap(result)
-    if parse_ok.next.state != childstate || length(parse_ok.consumed) == 0
+    if ℒ_nextstate(parse_ok) != childstate || length(parse_ok.consumed) == 0
         #=Inner parser actually consumed something or changed its state=#
-        newctx = ctx_with_state(parse_ok.next, some(ℒ_state(parse_ok.next)))
+        newctx = ctx_restate(ℒ_nextctx(parse_ok), some(ℒ_nextstate(parse_ok)))
     else
         #=Inner parser returned success but nothing changed while consuming input. (i.e. "--")
         Treat as unmatched, but still propagate side effects.=#
-        newctx = ctx_with_state(parse_ok.next, ℒ_state(ctx))
+        newctx = ctx_restate(ℒ_nextctx(parse_ok), ℒ_state(ctx))
     end
 
-    return ParseOk(parse_ok.consumed, newctx)
+    return parseok(newctx, ℒ_consumed(parse_ok))
 
 end
 

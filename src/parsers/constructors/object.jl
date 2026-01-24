@@ -84,6 +84,7 @@ end
                 else
                     parse_ok = unwrap(result)
 
+
                     if length(ℒ_consumed(parse_ok)) > 0
 
                         #= we update the current context state with the result from the parse=#
@@ -92,7 +93,7 @@ end
                         #= then we continue the parse using the information from the parse result but with the new state=#
                         newctx = widen_restate($S, ℒ_nextctx(parse_ok), newstate)
 
-                        append!(allconsumed, ℒ_consumed(parse_ok))
+                        push!(allconsumed, ℒ_consumed(parse_ok))
                         current_ctx = newctx
                         madeprogress = true
                         anysuccess = true
@@ -113,7 +114,7 @@ end
             ParseFailure(0, "Expected option or argument, got end of input.")
         #= greedy parsing trying to consume as many field as possible =#
         anysuccess = false
-        allconsumed = Consumed[]
+        allconsumed = Consumed[consumed_empty(ctx)]
 
         #= keep trying to parse fields until no more can be matched =#
         current_ctx = ctx
@@ -142,23 +143,24 @@ function parse(p::ConstrObject{NamedTuple{fields, Tup}, S}, ctx::Context)::Parse
 
     outctx, error, allconsumed, anysuccess = _generated_object_parse(p.parsers, ctx)
 
+    #= we must coalesce all the consumed tokens into a single Consumed object =#
+    mergedcons = merge(allconsumed)
+
+    # TODO: continue.
     if anysuccess
-        return ParseOk(
-            allconsumed,
-            outctx
-        )
+        return parseok(outctx, mergedcons)
     end
 
     #= if buffer is empty check if all parsers can complete anyway =#
-    if length(ctx.buffer) == 0
-        all_can_complete, _ = _generated_object_complete(p.parsers, ctx.state)
+    if ctx_hasnone(ctx) == 0
+        all_can_complete, _ = _generated_object_complete(p.parsers, ℒ_state(ctx))
 
         if all_can_complete
-            return ParseOk((), ctx)
+            return parseok(ctx, consumed_empty(ctx))
         end
     end
 
-    return Err(error)
+    return parseerr(error)
 end
 
 @generated function _generated_object_complete(p::NamedTuple{labels, PTup}, state::NamedTuple{labels, STup}) where {labels, PTup, STup}

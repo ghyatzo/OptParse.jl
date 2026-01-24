@@ -24,7 +24,7 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 
 	#=With a non empty state, pass in the latest state to the parser that maybe needs to keep parsing.=#
 	child_state = isempty(ℒ_state(ctx)) ? p.parser.initialState : ℒ_state(ctx)[end]
-	child_ctx = widen_state(S, ctx_with_state(ctx, child_state))
+	child_ctx = widen_restate(S, ctx, child_state)
 	result = parse(unwrapunion(p.parser), child_ctx)::ParseResult{S, String}
 
 	if is_error(result)
@@ -33,20 +33,18 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 			It can mean that it has finished consuming its pattern.
 			Erase its memory and try again from a blank slate. Maybe the pattern repeats.=#
 			child_state = p.parser.initialState
-			child_ctx = widen_state(S, ctx_with_state(ctx, child_state))
+			child_ctx = widen_restate(S, ctx, child_state)
 			result = parse(unwrapunion(p.parser), child_ctx)::ParseResult{S, String}
 
 			if is_error(result)
 				#=The error is real, return it.=#
-				parse_err = unwrap_error(result)
-				return ParseErr(parse_err.consumed, parse_err.error)
+				return parseerr(unwrap_error(result))
 			end
 
 			#=Otherwise, we've encountered a new repetition. Add it to the state.=#
 			hasadded = true
 		else
-			parse_err = unwrap_error(result)
-			return ParseErr(parse_err.consumed, parse_err.error)
+			return parseerr(unwrap_error(result))
 		end
 	end
 
@@ -54,10 +52,10 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 	#=If the parent parser encounters a new repetition, add it at the end of the state.
 	Otherwise, update the last state with the latest result from the child parser.=#
 	nextst = hasadded ? deepcopy(ℒ_state(ctx)) : deepcopy(ℒ_state(ctx)[1:end-1])
-	push!(nextst, parse_ok.next.state)
+	push!(nextst, ℒ_nextstate(parse_ok))
 
-	nextctx = widen_state(MultipleState{S}, ctx_with_state(parse_ok.next, nextst))
-	return ParseOk(parse_ok.consumed, nextctx)
+	nextctx = widen_restate(MultipleState{S}, ℒ_nextctx(parse_ok), nextst)
+	return parseok(nextctx, ℒ_consumed(parse_ok))
 
 end
 

@@ -17,6 +17,7 @@ ConstrOr(parsers::PTup) where {PTup <: Tuple} = let
     possible_vals = ntuple(fieldcount(PTup) + 1) do i
         Val{i - 1}
     end
+
     ConstrOr{
         Union{map(tval, parsers)...},
         OrState{Union{possible_vals...}, typeof(inner_state)},
@@ -27,8 +28,8 @@ end
 
 @generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{I, X}}, ::Val{j}) where {PTup <: Tuple, I, X <: Tuple, j}
     preamble = quote
-        error = length(ctx.buffer) < 1 ?
-            (0, "Expected token, got end of input.") : (0, "Unexpected option or subcommand: $(ctx.buffer[1])")
+        error = ctx_haslessthan(1, ctx) ?
+            ParseFailure(0, "Expected token, got end of input.") : ParseFailure(0, "Unexpected option or subcommand: $(ctx.buffer[1])")
     end
     N = fieldcount(PTup)
     unrolled_loop = Expr(:block)
@@ -43,8 +44,8 @@ end
                 parser = parsers[$i]::$child_parser_t
 
                 innerstate = ℒ_state(ctx)[2][$i]
-                childstate = is_error(innerstate) ? parser.initialState : ℒ_state(unwrap(innerstate).next)
-                childctx = widen_state($child_parser_tstate, ctx_with_state(ctx, childstate))
+                childstate = is_error(innerstate) ? parser.initialState : ℒ_nextstate(unwrap(innerstate))
+                childctx = widen_restate($child_parser_tstate, ctx, childstate)
 
                 result = (@unionsplit parse(parser, childctx))::ParseResult{tstate(parser), String}
                 if !is_error(result) && length(unwrap(result).consumed) > 0 # (ignores constants)
@@ -55,30 +56,27 @@ end
                     # and those two things aren't the same thing, then error. 'Or' only matches one parser.=#
                     if $j != 0 && $j != $i
                         jstate = ℒ_state(ctx)[2][$j]
-                        return ParseErr(
-                            ctx_length(ctx) - ctx_length(parse_ok.next),
-                            "$(unwrap(jstate).consumed[1]) and $(parse_ok.consumed[1]) can't be used together."
+                        return parseerr(ctx,
+                            "$(unwrap(jstate).consumed[1]) and $(parse_ok.consumed[1]) can't be used together.";
+                            consumed=ctx_length(ctx) - ctx_length(ℒ_nextctx(parse_ok))
                         )
                     end
 
 
                     new_innerstate = set(ℒ_state(ctx)[2], IndexLens($i), some(parse_ok))
-                    nextctx = widen_state(OrState{$valunion, $X}, ctx_with_state(parse_ok.next, (Val($i), new_innerstate)))
-                    return ParseOk(
-                        parse_ok.consumed,
-                        nextctx
-                    )
+                    nextctx = widen_restate(OrState{$valunion, $X}, ℒ_nextctx(parse_ok), (Val($i), new_innerstate))
+                    return parseok(nextctx, ℒ_consumed(parse_ok))
+
                 elseif is_error(result)
-                    if error[1] < unwrap_error(result).consumed
-                        parse_err = unwrap_error(result)
-                        error = (parse_err.consumed, parse_err.error)
+                    if error.consumed < unwrap_error(result).consumed
+                        error = parseerr(unwrap_error(result))
                     end
                 end
             end
         )
     end
 
-    epilogue = :(return ParseErr(error[1], error[2]))
+    epilogue = :(return parseerr(error))
 
     return quote
         $preamble
@@ -89,6 +87,7 @@ end
 
 parse(p::ConstrOr{T, OrState{I, S}}, ctx::Context{OrState{I, S}}) where {T, I, S <: Tuple} = let
     valunion = Union{ntuple(i -> Val{i - 1}, fieldcount(S) + 1)...}
+
     state_t = typeof(
         map(p.parsers) do p
             none(ParseSuccess{tstate(p)})

@@ -147,7 +147,7 @@ end
     result = argparse(obj, ["ARG", "--host", "host", "--", "-v"])
     @test is_error(result)
     # the "-v" is correctly interpreted not as an option but as an argument.
-    @test occursin("cannot be used multiple times", unwrap_error(result))
+    @test occursin("Unexpected", unwrap_error(result))
 
     result = argparse(obj, ["--host", "host", "ARG", "--"])
     @test !is_error(result)
