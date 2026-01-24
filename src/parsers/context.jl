@@ -7,12 +7,14 @@
     Context{S}
 
 Parsing context carrying:
-- `buffer`: remaining arguments/tokens (currently represented directly; cursor/span may come later)
-- `state`: parser state accumulator
+- `buffer`: contains all the arguments/tokens passed in to the program.
+- `pos`: contains the position in the buffer. The current token.
+- `state`: parser state accumulator.
 - `optionsTerminated`: whether `--` or equivalent was encountered
 """
 Base.@kwdef struct Context{S}
     buffer::Vector{String}
+    pos::Int = 1
     state::S
     optionsTerminated::Bool = false
 end
@@ -26,8 +28,11 @@ end
 
 Stable optics for Context fields. Use these instead of `@optic _.field`
 throughout the codebase to make refactors easier.
+
+Note: the ℒ is `\\scrL<TAB>`
 """
 const ℒ_buffer  = @optic _.buffer
+const ℒ_pos     = @optic _.pos
 const ℒ_state   = @optic _.state
 const ℒ_optterm = @optic _.optionsTerminated
 
@@ -41,32 +46,24 @@ const ℒ_optterm = @optic _.optionsTerminated
 Creates a new context with the same buffer/options flag but **forces** the
 context's state parameter to be `S`. This is the canonical "inference checkpoint".
 
-Use this instead of `Context{S}(...)` in parser code.
 """
 @inline function ctx_with_state(ctx::Context, s::S) where {S}
-    return Context{S}(ℒ_buffer(ctx), s, ℒ_optterm(ctx))
+    return Context{S}(ℒ_buffer(ctx), ℒ_pos(ctx), s, ℒ_optterm(ctx))
 end
 
-"""
-    ctx_restate(ctx, newstate) -> Context{typeof(newstate)}
-
-Retags the context to a new state type (e.g. `S` -> `MultipleState{S}`).
-
-Use this when "upgrading" or switching accumulator types.
-"""
-@inline ctx_restate(ctx::Context, newstate) = ctx_with_state(ctx, newstate)
 
 """
     widen_state(::Type{B}, ctx::Context{T}) where {B, T <: B} -> Context{B}
 
 Returns a context whose state parameter is widened to `B` where B must be a supertype of T.
 This is useful when you need to "upgrade" `Context{T}` to `Context{Union{T,B}}` for example.
-in a type-stable way (as long as `B` is a compile-time type).
+in a type-stable way (as long as `B` is a compile-time type known value).
 """
-@inline function widen_state(::Type{B}, ctx::Context{T}) where {T,B}
+@inline function widen_state(::Type{B}, ctx::Context{T}) where {B, T <: B}
     U = promote_type(T, B)
     return Context{U}(
         ℒ_buffer(ctx),
+        ℒ_pos(ctx),
         convert(U, ℒ_state(ctx)),
         ℒ_optterm(ctx)
     )
@@ -91,7 +88,7 @@ Applies `f` to the current state and returns a new context.
 Serves as a convenient place to hide state transformations.
 
 Note: inference usually succeeds if `f` is type-stable and concrete at call site.
-If you hit inference issues, prefer `ctx_with_state(ctx, f(state))` explicitly.
+If hitting inference issues, prefer `ctx_with_state(ctx, f(state))` explicitly.
 """
 @inline function ctx_map_state(f, ctx::Context)
     s2 = f(ℒ_state(ctx))
@@ -102,43 +99,31 @@ end
 
 
 # -----------------------------------------------------------------------------
-# Buffer helpers (still slice-based for now)
+# Buffer helpers
 # -----------------------------------------------------------------------------
 
 """
     ctx_buffer(ctx) -> Vector{String}
     ctx_with_buffer(ctx, buf::Vector{String})
 
-Small wrappers around buffer access. If you later move to cursor/span, you’ll
-update these and the rest of the code can stay the same.
+Small wrappers around buffer access.
 """
 
 
 @inline ctx_with_buffer(ctx::Context, buf::Vector{String}) = set(ctx, ℒ_buffer, buf)
-@inline ctx_hasmore(ctx::Context) = length(ℒ_buffer(ctx)) > 0
-@inline ctx_haslessthan(n::Int, ctx::Context) = length(ℒ_buffer(ctx)) < n
+
+@inline ctx_hasmore(ctx::Context) = length(ℒ_buffer(ctx)) - (ℒ_pos(ctx) - 1) > 0
+@inline ctx_haslessthan(n::Int, ctx::Context) = length(ℒ_buffer(ctx)) - (ℒ_pos(ctx) - 1) < n
 @inline ctx_hasnone(ctx::Context) = !ctx_hasmore(ctx)
 
-@inline ctx_peek(ctx::Context, n::Int=1) = ℒ_buffer(ctx)[n]
-@inline ctx_peekn(ctx::Context, n::Int=1) = ℒ_buffer(ctx)[1:n]
+@inline ctx_peek(ctx::Context, n::Int=1) = ℒ_buffer(ctx)[ℒ_pos(ctx)+n-1]
+@inline ctx_peekn(ctx::Context, n::Int=1) = ℒ_buffer(ctx)[ℒ_pos(ctx):ℒ_pos(ctx)+n-1]
+
+@inline ctx_remaining(ctx::Context) = ℒ_buffer(ctx)[ℒ_pos(ctx):end]
+@inline ctx_length(ctx::Context) = length(ℒ_buffer(ctx)) - (ℒ_pos(ctx) - 1)
 
 @inline consume(ctx::Context, n::Int) =
-    set(ctx, ℒ_buffer, ℒ_buffer(ctx)[n+1:end])
-
-@inline ctx_remaining(ctx::Context) = ℒ_buffer(ctx)
-@inline ctx_length(ctx::Context) = length(ctx_remaining(ctx))
-
-
-# -----------------------------------------------------------------------------
-# Generic state helpers (optional, but handy)
-# -----------------------------------------------------------------------------
-
-# these are just an idea.
-effective_state(ctx, fallback) = is_error(ctx.state) ? fallback : unwrap(ctx.state)
-
-mark_state(ctx, s) = @set ctx.state = some(s)
-
-restore_state_marker(ctx, original_marker) = @set ctx.state = original_marker
+    set(ctx, ℒ_pos, ℒ_pos(ctx)+n)
 
 
 # -----------------------------------------------------------------------------

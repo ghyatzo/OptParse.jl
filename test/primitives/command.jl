@@ -15,7 +15,7 @@
     )
 
     @test priority(showParser) == 15
-    @test getproperty(showParser, :initialState) === none(Option{tstate(inner_obj)})
+    @test showParser.initialState === none(Option{tstate(inner_obj)})
 end
 
 @testset "should parse a basic subcommand with arguments" begin
@@ -36,9 +36,9 @@ end
 
     # Value lives in next.state (Ok(...)); unwrap to get the parsed object
     val = unwrap(res)
-    @test getproperty(val, :type) == Val(:show)
-    @test getproperty(val, :progress) == true
-    @test getproperty(val, :id) == "item123"
+    @test val.type == Val(:show)
+    @test val.progress == true
+    @test val.id == "item123"
 end
 
 @testset "should suport aliases (multiple names)" begin
@@ -59,9 +59,9 @@ end
 
     # Value lives in next.state (Ok(...)); unwrap to get the parsed object
     val = unwrap(res)
-    @test getproperty(val, :type) == Val(:show)
-    @test getproperty(val, :progress) == true
-    @test getproperty(val, :id) == "item123"
+    @test val.type == Val(:show)
+    @test val.progress == true
+    @test val.id == "item123"
 end
 
 @testset "should fail when wrong subcommand is provided" begin

@@ -58,11 +58,18 @@ function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::ParseResul
         single_opt = tok[1:2] #= the "-a" in "-abc" =#
         rem_opts = tok[3:end] #= the "bc" in "-abc" =#
 
-        newbuff = ["-$(rem_opts )", ℒ_buffer(ctx)[2:end]...]
+        # newbuff = ["-$(rem_opts )", ℒ_buffer(ctx)[2:end]...]
+        # newbuff = copy(ℒ_buffer(ctx))
+        # newbuff[ℒ_pos(ctx)] = "-$rem_opts"
 
+        nextctx = ctx_with_state(
+            set(ctx, IndexLens(ℒ_pos(ctx)) ∘ ℒ_buffer, "-$rem_opts"),
+            Result{Bool, String}(Ok(true))
+        )
         return ParseOk(
             single_opt,
-            ctx_with_state(ctx_with_buffer(ctx, newbuff), Result{Bool, String}(Ok(true)))
+            nextctx
+            # ctx_with_state(ctx_with_buffer(ctx, newbuff), Result{Bool, String}(Ok(true)))
         )
     end
 

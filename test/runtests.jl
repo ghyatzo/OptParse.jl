@@ -1,6 +1,20 @@
 using Test
 using OptParse
-using OptParse: Context, parse, priority, complete, tstate, tval, Parser
+using OptParse:
+    Context,
+    parse,
+    priority,
+    complete,
+    tstate,
+    tval,
+    Parser,
+    ℒ_state,
+    ℒ_buffer,
+    ℒ_pos,
+    ℒ_optterm,
+    ctx_remaining,
+    widen_state
+
 using ErrorTypes
 using WrappedUnions: @unionsplit, unwrap as unwrapunion
 using JET
@@ -17,7 +31,7 @@ val(::Val{x}) where {x} = x
 
 end
 
-@testset "Primitives" begin
+@testset "Primitives" failfast=true begin
 
     @testset "Constant parser" begin
         include("primitives/constant.jl")
@@ -40,7 +54,7 @@ end
     end
 end
 
-@testset "Constructors" begin
+@testset "Constructors" failfast=true begin
 
     @testset "Objects" begin
         include("constructors/object.jl")
@@ -56,7 +70,7 @@ end
 
 end
 
-@testset "Modifiers" begin
+@testset "Modifiers" failfast=true begin
 
     # @testset "Optional parser" begin
     #     include("modifiers/optional.jl")
@@ -72,7 +86,7 @@ end
 
 end
 
-@testset "Integration Tests" begin
+@testset "Integration Tests" failfast=true begin
 
     @testset "Argparse" begin
         include("argparse.jl")

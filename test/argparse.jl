@@ -244,7 +244,7 @@ end
     @test val1.verbose == true
 
     res2 = argparse(parser, ["--"])
-    @info res2
+
     @test !is_error(res2)
     val2 = unwrap(res2)
     @test val2.verbose == false

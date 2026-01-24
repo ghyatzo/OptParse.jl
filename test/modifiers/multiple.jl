@@ -312,23 +312,23 @@ end
     multipleParser = multiple(baseParser)
 
     # Test initial state
-    @test getproperty(multipleParser, :initialState) == tval(baseParser)[]
+    @test multipleParser.initialState == tval(baseParser)[]
 
-    ctx1 = Context{tstate(multipleParser)}(["arg1"], getproperty(multipleParser, :initialState), false)
+    ctx1 = Context(buffer=["arg1"], state=multipleParser.initialState)
     parseRes1 = @unionsplit  parse(multipleParser, ctx1)
     @test !is_error(parseRes1)
     succ1 = unwrap(parseRes1)
-    @test length(getproperty(getproperty(succ1, :next), :state)) == 1
-    @test getproperty(succ1, :consumed) == ("arg1",)
+    @test length(ℒ_state(succ1.next)) == 1
+    @test succ1.consumed == ("arg1",)
 
     # Next context with carried state but new buffer
-    carried = getproperty(getproperty(succ1, :next), :state)
-    ctx2 = Context{tstate(multipleParser)}(["arg2"], carried, false)
+    carried = ℒ_state(succ1.next)
+    ctx2 = widen_state(tstate(multipleParser), Context(buffer=["arg2"], state=carried))
     parseRes2 = @unionsplit  parse(multipleParser, ctx2)
     @test !is_error(parseRes2)
     succ2 = unwrap(parseRes2)
-    @test length(getproperty(getproperty(succ2, :next), :state)) == 2
-    @test getproperty(succ2, :consumed) == ("arg2",)
+    @test length(ℒ_state(succ2.next)) == 2
+    @test succ2.consumed == ("arg2",)
 end
 
 @testset "should work with complex value parsers" begin

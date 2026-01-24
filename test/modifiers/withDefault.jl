@@ -3,7 +3,7 @@
     defaultParser = withDefault(baseParser, false)
 
     @test priority(defaultParser) == priority(baseParser)
-    @test getproperty(defaultParser, :initialState) === none(tstate(baseParser))
+    @test defaultParser.initialState === none(tstate(baseParser))
 end
 
 @testset "should return wrapped parser value when it succeeds" begin
@@ -17,7 +17,7 @@ end
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
     if !is_error(parseResult)
-        next_state = unwrap(parseResult).next.state
+        next_state = ℒ_state(unwrap(parseResult).next)
         completeResult = splitcomplete(defaultParser, next_state)
         @test !is_error(completeResult)
         if !is_error(completeResult)
@@ -75,10 +75,10 @@ end
     @test !is_error(parseResult)
     if !is_error(parseResult)
         ps = unwrap(parseResult)
-        @test ps.next.buffer == String[]
+        @test ctx_remaining(ps.next) == String[]
         @test ps.consumed == ("-n", "Alice")
 
-        completeResult = splitcomplete(defaultParser, ps.next.state)
+        completeResult = splitcomplete(defaultParser, ℒ_state(ps.next))
         @test !is_error(completeResult)
         if !is_error(completeResult)
             @test unwrap(completeResult) == "Alice"
@@ -102,7 +102,7 @@ end
     if !is_error(parseResult)
         pf = unwrap(parseResult)
         @test length(pf.consumed) == 0
-        @test pf.next.buffer == ["--help"]
+        @test ctx_remaining(pf.next) == ["--help"]
     end
 end
 
@@ -121,7 +121,7 @@ end
     res_defaults = splitparse(parser, ctx_defaults)
     @test !is_error(res_defaults)
     if !is_error(res_defaults)
-        st = unwrap(res_defaults).next.state
+        st = ℒ_state(unwrap(res_defaults).next)
         @test (@? getfield(st, :verbose)) == true
         @test (@? getfield(st, :port)) == 8080
         @test (@? getfield(st, :host)) == "localhost"
@@ -133,7 +133,7 @@ end
     res_values = splitparse(parser, ctx_values)
     @test !is_error(res_values)
     if !is_error(res_values)
-        st = unwrap(res_values).next.state
+        st = ℒ_state(unwrap(res_values).next)
         @test (@? getfield(st, :verbose)) == true
         @test (@? getfield(st, :port)) == 3000
         @test (@? getfield(st, :host)) == "example.com"
@@ -151,7 +151,7 @@ end
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
     if !is_error(parseResult)
-        next_state = unwrap(parseResult).next.state
+        next_state = ℒ_state(unwrap(parseResult).next)
         completeResult = splitcomplete(defaultParser, next_state)
         @test !is_error(completeResult)
         if !is_error(completeResult)
@@ -220,7 +220,7 @@ end
     @test !is_error(parseResult)
     if !is_error(parseResult)
         ps = unwrap(parseResult)
-        st = ps.next.state
+        st = ℒ_state(ps.next)
         @test !is_error(st)
         if !is_error(st)
             @test unwrap(unwrap(st)) == "test"
@@ -327,8 +327,8 @@ end
     @test !is_error(pres)
     pok = unwrap(pres)
     @test pok.consumed == ("--",)
-    @test pok.next.optionsTerminated == true
-    @test pok.next.buffer == ["arg"]
+    @test ℒ_optterm(pok.next) == true
+    @test ctx_remaining(pok.next) == ["arg"]
 
 end
 

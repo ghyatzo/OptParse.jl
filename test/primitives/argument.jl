@@ -7,7 +7,7 @@ end
 
 @testset "should parse a string argument" begin
     parser = argument(str(; metavar = "FILE"))
-    state = getproperty(parser, :initialState)
+    state = parser.initialState
     buffer = ["myfile.txt"]
     ctx = Context(;buffer, state)
 
@@ -15,19 +15,19 @@ end
     @test !is_error(res)
 
     succ = unwrap(res)
-    next = getproperty(succ, :next)
+    next = succ.next
 
-    st = getproperty(next, :state)
+    st = ℒ_state(next)
     @test !is_error(unwrap(st))
     @test unwrap(unwrap(st)) == "myfile.txt"
 
-    @test getproperty(next, :buffer) == String[]
+    @test ctx_remaining(next) == String[]
     @test getproperty(succ, :consumed) == ("myfile.txt",)
 end
 
 @testset "should parse an integer argument" begin
     parser = argument(integer(; min = 0))
-    state = getproperty(parser, :initialState)
+    state = parser.initialState
     buffer = ["42"]
     ctx = Context(;buffer, state)
 
@@ -35,19 +35,19 @@ end
     @test !is_error(res)
 
     succ = unwrap(res)
-    next = getproperty(succ, :next)
+    next = succ.next
 
-    st = getproperty(next, :state)
+    st = ℒ_state(next)
     @test !is_error(unwrap(st))
     @test unwrap(unwrap(st)) == 42
 
-    @test getproperty(next, :buffer) == String[]
+    @test ctx_remaining(next) == String[]
     @test getproperty(succ, :consumed) == ("42",)
 end
 
 @testset "should fail when buffer is empty" begin
     parser = argument(str(; metavar = "FILE"))
-    state = getproperty(parser, :initialState)
+    state = parser.initialState
     buffer = String[]
     ctx = Context(; buffer, state)
 
@@ -69,7 +69,7 @@ end
     @test !is_error(res)
 
     succ = unwrap(res)
-    st = getproperty(getproperty(succ, :next), :state)
+    st = getproperty(succ.next, :state)
     @test st !== nothing
     @test is_error(unwrap(st))
 end
@@ -130,11 +130,12 @@ end
     ctx = Context(buffer=["abc", "--"], state=parser.initialState)
     presult = splitparse(parser, ctx)
     @test !is_error(presult)
+    
     pok = unwrap(presult)
     @test pok.consumed == ("abc",)
-    @test pok.next.buffer == ["--"]
+    @test ctx_remaining(pok.next) == ["--"]
 
-    val = splitcomplete(parser, pok.next.state)
+    val = splitcomplete(parser, ℒ_state(pok.next))
     @test (@? val) == "abc"
 
     result = argparse(parser, ["--"])

@@ -8,10 +8,10 @@
     ps = unwrap(res)      # :: ParseSuccess
 
     # next.state should itself be a successful value (Result/Option)
-    @test !is_error(ps.next.state)
-    @test unwrap(ps.next.state) == 8080
+    @test !is_error(ℒ_state(ps.next))
+    @test unwrap(ℒ_state(ps.next)) == 8080
 
-    @test ps.next.buffer == String[]  # buffer consumed
+    @test ctx_remaining(ps.next) == String[]  # buffer consumed
     @test ps.consumed == ("--port", "8080")  # tuple, not Vector
 end
 
@@ -24,10 +24,10 @@ end
     @test !is_error(res)
     ps = unwrap(res)
 
-    @test !is_error(ps.next.state)
-    @test unwrap(ps.next.state) == 8080
+    @test !is_error(ℒ_state(ps.next))
+    @test unwrap(ℒ_state(ps.next)) == 8080
 
-    @test ps.next.buffer == String[]
+    @test ctx_remaining(ps.next) == String[]
     @test ps.consumed == ("--port=8080",)
 end
 
@@ -60,8 +60,8 @@ end
 #     @test !is_error(res)
 #     ps = unwrap(res)
 
-#     @test !is_error(ps.next.state)
-#     @test unwrap(ps.next.state) == 8080
+#     @test !is_error(ℒ_state(ps.next))
+#     @test unwrap(ℒ_state(ps.next)) == 8080
 #     # TS test does not check buffer/consumed here
 # end
 
@@ -87,8 +87,8 @@ end
     @test !is_error(res)
     ps = unwrap(res)
 
-    @test !is_error(ps.next.state)
-    @test unwrap(ps.next.state) == "Alice"
+    @test !is_error(ℒ_state(ps.next))
+    @test unwrap(ℒ_state(ps.next)) == "Alice"
 end
 
 @testset "should propagate value parser failures" begin
@@ -102,8 +102,8 @@ end
     ps = unwrap(res)
 
     # ...but the inner value parser failed (carry failure in state)
-    @test is_error(ps.next.state)
-    @test occursin("Expected valid integer", string(unwrap_error(ps.next.state)))
+    @test is_error(ℒ_state(ps.next))
+    @test occursin("Expected valid integer", string(unwrap_error(ℒ_state(ps.next))))
 end
 
 @testset "should fail on unmatched option" begin

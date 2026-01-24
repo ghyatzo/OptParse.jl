@@ -183,7 +183,7 @@ function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} whe
         ctx_length(ctx) > 0 || break
     end
 
-    return (@unionsplit complete(pp, ℒ_state(ctx)))::T
+    return @unionsplit complete(pp, ℒ_state(ctx))
 end
 
 end # module OptParse

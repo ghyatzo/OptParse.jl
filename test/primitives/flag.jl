@@ -5,10 +5,10 @@
     result = @unionsplit parse(parser, context)
 
     @test is_ok_and(result) do succ
-        is_ok_and(==(true), succ.next.state)
+        is_ok_and(==(true), ℒ_state(succ.next))
     end
     succ = unwrap(result)
-    @test succ.next.buffer == String[]
+    @test ctx_remaining(succ.next) == String[]
     @test succ.consumed == ("-v",)
 end
 
@@ -19,10 +19,10 @@ end
     result = @unionsplit parse(parser, context)
 
     @test is_ok_and(result) do succ
-        is_ok_and(==(true), succ.next.state)
+        is_ok_and(==(true), ℒ_state(succ.next))
     end
     succ = unwrap(result)
-    @test succ.next.buffer == String[]
+    @test ctx_remaining(succ.next) == String[]
     @test succ.consumed == ("--verbose",)
 end
 
@@ -33,14 +33,14 @@ end
     context1 = Context(buffer=["-v"], state= parser.initialState)
     result1 = @unionsplit parse(parser, context1)
     @test is_ok_and(result1) do succ
-        is_ok_and(==(true), succ.next.state)
+        is_ok_and(==(true), ℒ_state(succ.next))
     end
 
     # Second: "--verbose"
     context2 = Context(buffer=["--verbose"], state= parser.initialState)
     result2 = @unionsplit parse(parser, context2)
     @test is_ok_and(result2) do succ
-        is_ok_and(==(true), succ.next.state)
+        is_ok_and(==(true), ℒ_state(succ.next))
     end
 end
 
@@ -60,15 +60,15 @@ end
 
 @testset "should handle bundled short flags" begin
     parser = flag("-v")
-    context = Context(buffer=["-vd"], state= parser.initialState)
+    context = Context(buffer=["-vd", "ss"], state= parser.initialState)
 
     result = @unionsplit parse(parser, context)
 
     @test is_ok_and(result) do succ
-        is_ok_and(==(true), succ.next.state)
+        is_ok_and(==(true), ℒ_state(succ.next))
     end
     succ = unwrap(result)
-    @test succ.next.buffer == ["-d"]
+    @test ctx_remaining(succ.next) == ["-d", "ss"]
     @test succ.consumed == ("-v",)
 end
 
@@ -94,7 +94,7 @@ end
     @test !is_error(result)
     is_ok_and(result) do succ
         @test succ.next.optionsTerminated == true
-        @test succ.next.buffer == String[]
+        @test ctx_remaining(succ.next) == String[]
         @test succ.consumed == ("--",)
         true
     end
