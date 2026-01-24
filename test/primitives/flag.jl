@@ -70,19 +70,22 @@ end
     end
 end
 
-@testset "should handle bundled short flags" begin
-    parser = flag("-v")
-    context = Context(buffer=["-vd", "ss"], state= parser.initialState)
+#= bundled options are no longer responsibility of the flag parser =#
+# @testset "should handle bundled short flags" begin
+#     parser = flag("-v")
+#     context = Context(buffer=["-vd", "ss"], state= parser.initialState)
 
-    result = @unionsplit parse(parser, context)
+#     result = @unionsplit parse(parser, context)
 
-    @test is_ok_and(result) do succ
-        is_ok_and(==(true), ℒ_state(succ.next))
-    end
-    succ = unwrap(result)
-    @test ctx_remaining(ℒ_nextctx(succ)) == ["-d", "ss"]
-    @test as_tuple(ℒ_consumed(succ)) == ("-v",)
-end
+#     succ = unwrap(result)
+#     @info ℒ_nextstate(succ)
+#     @test is_ok_and(result) do succ
+#         is_ok_and(==(true), ℒ_nextstate(succ))
+#     end
+#     succ = unwrap(result)
+#     @test ctx_remaining(ℒ_nextctx(succ)) == ["-d", "ss"]
+#     @test as_tuple(ℒ_consumed(succ)) == ("-v",)
+# end
 
 @testset "should fail when flags are terminated" begin
     parser = flag("-v")

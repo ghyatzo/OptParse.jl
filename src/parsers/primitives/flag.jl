@@ -51,35 +51,36 @@ function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::ParseResul
         )
     end
 
-    #= When the input contains bundled options: -abc =#
-    short_options = filter(p.names) do name
-        match(r"^-[^-]$", name) !== nothing
-    end
+    #= This is no longer needed. We expand all bundled options beforehand =#
+    # #= When the input contains bundled options: -abc =#
+    # short_options = filter(p.names) do name
+    #     match(r"^-[^-]$", name) !== nothing
+    # end
 
-    for short_opt in short_options
-        startswith(tok, short_opt) || continue
+    # for short_opt in short_options
+    #     startswith(tok, short_opt) || continue
 
-        if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx))
-            return ParseErr("Flag $(short_opt) cannot be used multiple times", ctx; consumed = 1)
-        end
+    #     if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx))
+    #         return ParseErr("Flag $(short_opt) cannot be used multiple times", ctx; consumed = 1)
+    #     end
 
-        #= we consume only the first option in case they are bundled. =#
-        single_opt = tok[1:2] #= the "-a" in "-abc" =#
-        rem_opts = tok[3:end] #= the "bc" in "-abc" =#
+    #     #= we consume only the first option in case they are bundled. =#
+    #     single_opt = tok[1:2] #= the "-a" in "-abc" =#
+    #     rem_opts = tok[3:end] #= the "bc" in "-abc" =#
 
-        #= we create a new buffer:
-            - we turn the "-abc" entry at position p into "-bc"
-            - then we add the "-a" entry at position p (which is now before "-bc")
-            - we can now consume the "-a" value
-        =#
-        nextctx = set(ctx, IndexLens(ℒ_pos(ctx)) ∘ ℒ_buffer, "-$rem_opts")
-        nextctx = insert(nextctx, IndexLens(ℒ_pos(ctx)) ∘ ℒ_buffer, single_opt)
-        nextctx = ctx_with_state(nextctx, Result{Bool, String}(Ok(true)))
+    #     #= we create a new buffer:
+    #         - we turn the "-abc" entry at position p into "-bc"
+    #         - then we add the "-a" entry at position p (which is now before "-bc")
+    #         - we can now consume the "-a" value
+    #     =#
+    #     nextctx = set(ctx, IndexLens(ℒ_pos(ctx)) ∘ ℒ_buffer, "-$rem_opts")
+    #     nextctx = insert(nextctx, IndexLens(ℒ_pos(ctx)) ∘ ℒ_buffer, single_opt)
+    #     nextctx = ctx_with_state(nextctx, Result{Bool, String}(Ok(true)))
 
-        #= we need to consume afterwards since otherwise we consume twice =#
-        return ParseOk(nextctx, 1; nextctx=consume(nextctx,1))
+    #     #= we need to consume afterwards since otherwise we consume twice =#
+    #     return ParseOk(nextctx, 1; nextctx=consume(nextctx,1))
 
-    end
+    # end
 
     return ParseErr("No Matched Flag for $(tok)", ctx)
 end
