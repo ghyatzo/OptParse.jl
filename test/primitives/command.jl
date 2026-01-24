@@ -114,17 +114,17 @@ end
     res1 = argparse(editParser, ["edit", "-e", "vim", "item123"])
     @test !is_error(res1)
     val1 = unwrap(res1)
-    @test getproperty(val1, :type) == Val(:edit)
-    @test getproperty(val1, :editor) == "vim"
-    @test getproperty(val1, :id) == "item123"
+    @test val1.type == Val(:edit)
+    @test val1.editor == "vim"
+    @test val1.id == "item123"
 
     # Test without optional option
     res2 = argparse(editParser, ["edit", "item456"])
     @test !is_error(res2)
     val2 = unwrap(res2)
-    @test getproperty(val2, :type) == Val(:edit)
-    @test getproperty(val2, :editor) === nothing
-    @test getproperty(val2, :id) == "item456"
+    @test val2.type == Val(:edit)
+    @test val2.editor === nothing
+    @test val2.id == "item456"
 end
 
 @testset "should work with or() combinator for multiple subcommands" begin
@@ -155,17 +155,17 @@ end
     showRes = argparse(parser, ["show", "--progress", "item123"])
     @test !is_error(showRes)
     showVal = unwrap(showRes)
-    @test getproperty(showVal, :type) == Val(:show)
-    @test getproperty(showVal, :progress) == true
-    @test getproperty(showVal, :id) == "item123"
+    @test showVal.type == Val(:show)
+    @test showVal.progress == true
+    @test showVal.id == "item123"
 
     # Test edit command
     editRes = argparse(parser, ["edit", "-e", "vim", "item456"])
     @test !is_error(editRes)
     editVal = unwrap(editRes)
-    @test getproperty(editVal, :type) == Val(:edit)
-    @test getproperty(editVal, :editor) == "vim"
-    @test getproperty(editVal, :id) == "item456"
+    @test editVal.type == Val(:edit)
+    @test editVal.editor == "vim"
+    @test editVal.id == "item456"
 end
 
 @testset "should fail gracefully when no matching subcommand is found in or() combinator" begin
@@ -245,14 +245,14 @@ end
     @test !is_error(editRes)
 
     showVal = unwrap(showRes)
-    @test getproperty(showVal, :type) == Val(:show)
-    @test getproperty(showVal, :progress) == true
-    @test getproperty(showVal, :id) == "item123"
+    @test showVal.type == Val(:show)
+    @test showVal.progress == true
+    @test showVal.id == "item123"
 
     editVal = unwrap(editRes)
-    @test getproperty(editVal, :type) == Val(:edit)
-    @test getproperty(editVal, :editor) == "vim"
-    @test getproperty(editVal, :id) == "item456"
+    @test editVal.type == Val(:edit)
+    @test editVal.editor == "vim"
+    @test editVal.id == "item456"
 end
 
 # @testset "should maintain type safety with complex nested objects" begin
@@ -272,13 +272,13 @@ end
 #     @test !is_error(res)
 
 #     val = unwrap(res)
-#     @test getproperty(val, :type) == :deploy
+#     @test val.type == :deploy
 
-#     cfg = getproperty(val, :config)
-#     @test getproperty(cfg, :env) == "production"
-#     @test getproperty(cfg, :dryRun) == true
+#     cfg = val.config
+#     @test cfg.env == "production"
+#     @test cfg.dryRun == true
 
-#     @test getproperty(val, :targets) == ["web", "api"]
+#     @test val.targets == ["web", "api"]
 # end
 
 @testset "should handle commands with same prefix names" begin
@@ -307,13 +307,13 @@ end
     res1 = argparse(parser, ["test", "item123"])
     @test !is_error(res1)
     val1 = unwrap(res1)
-    @test getproperty(val1, :type) == Val(:test)
+    @test val1.type == Val(:test)
 
     # Should match "testing" exactly
     res2 = argparse(parser, ["testing", "item456"])
     @test !is_error(res2)
     val2 = unwrap(res2)
-    @test getproperty(val2, :type) == Val(:testing)
+    @test val2.type == Val(:testing)
 end
 
 @testset "should handle commands that look like options" begin
@@ -329,7 +329,7 @@ end
     res = argparse(parser, ["--help"])
     @test !is_error(res)
     val = unwrap(res)
-    @test getproperty(val, :type) == Val(:help)
+    @test val.type == Val(:help)
 end
 
 # @testset "should handle command with array-like TState (state type safety test)" begin
@@ -366,11 +366,11 @@ end
     res = argparse(nestedParser, ["--global", "run", "build"])
     @test !is_error(res)
     val = unwrap(res)
-    @test getproperty(val, :globalFlag) == true
+    @test val.globalFlag == true
 
-    cmd = getproperty(val, :cmd)
-    @test getproperty(cmd, :type) == Val(:run)
-    @test getproperty(cmd, :script) == "build"
+    cmd = val.cmd
+    @test cmd.type == Val(:run)
+    @test cmd.script == "build"
 end
 
 # @testset "should fail when command is used with tuple parser and insufficient elements" begin
@@ -398,8 +398,8 @@ end
 #     res = argparse(parser, ["exec", "--", "--not-an-option", "arg1"])
 #     @test !is_error(res)
 #     val = unwrap(res)
-#     @test getproperty(val, :type) == :exec
-#     @test getproperty(val, :args) == ["--not-an-option", "arg1"]
+#     @test val.type == :exec
+#     @test val.args == ["--not-an-option", "arg1"]
 # end
 
 @testset "should handle commands with numeric names" begin

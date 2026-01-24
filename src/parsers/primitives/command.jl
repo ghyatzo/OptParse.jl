@@ -23,36 +23,35 @@ function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState
             actual = ctx_hasnone(ctx) ? nothing : ctx_peek(ctx)
 
             if actual === nothing
-                return ParseErr(0, "Expected command `$(p.names[1])`, but got end of input.")
+                return ParseErr("Expected command `$(p.names[1])`, but got end of input.", ctx)
             end
 
-            return ParseErr(0, "Expected command `$(p.names[1])`, but got `$actual`.")
+            return ParseErr("Expected command `$(p.names[1])`, but got `$actual`.", ctx)
         end
 
         # command matched, consume it and move to the matched state
         nextctx = ctx_with_state(consume(ctx, 1), some(none(PState)))
-        return ParseOk(
-           ctx_peekn(ctx), nextctx
-        )
+        return ParseOk(ctx, 1; nextctx)
 
     else
         maybestate = base(unwrap(ℒ_state(ctx)))
         childstate = isnothing(maybestate) ? p.parser.initialState : @something maybestate
-        childctx = widen_state(tstate(p.parser), ctx_with_state(ctx, childstate))
+        childctx = widen_restate(tstate(p.parser), ctx, childstate)
 
         result = parse(unwrapunion(p.parser), childctx)::ParseResult{PState, String}
 
         if !is_error(result)
             parse_ok = unwrap(result)
 
-            nextctx = parse_ok.next
-            return ParseOk(
-                parse_ok.consumed,
-                widen_state(CommandState{PState}, ctx_with_state(nextctx, some(some(ℒ_state(nextctx)))))
+            newctx = widen_restate(
+                CommandState{PState},
+                ℒ_nextctx(parse_ok),
+                some(some(ℒ_nextstate(parse_ok)))
             )
+            return ok_restate(parse_ok, newctx)
+
         else
-            parse_err = unwrap_error(result)
-            return ParseErr(parse_err.consumed, parse_err.error)
+            return err_rethrow(unwrap_error(result))
         end
     end
 end

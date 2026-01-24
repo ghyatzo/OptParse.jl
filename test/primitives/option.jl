@@ -8,11 +8,11 @@
     ps = unwrap(res)      # :: ParseSuccess
 
     # next.state should itself be a successful value (Result/Option)
-    @test !is_error(ℒ_state(ps.next))
-    @test unwrap(ℒ_state(ps.next)) == 8080
+    @test !is_error(ℒ_nextstate(ps))
+    @test unwrap(ℒ_nextstate(ps)) == 8080
 
     @test ctx_remaining(ps.next) == String[]  # buffer consumed
-    @test ps.consumed == ("--port", "8080")  # tuple, not Vector
+    @test as_tuple(ℒ_consumed(ps)) == ("--port", "8080")  # tuple, not Vector
 end
 
 @testset "should parse option with equals-separated value" begin
@@ -24,11 +24,11 @@ end
     @test !is_error(res)
     ps = unwrap(res)
 
-    @test !is_error(ℒ_state(ps.next))
-    @test unwrap(ℒ_state(ps.next)) == 8080
+    @test !is_error(ℒ_nextstate(ps))
+    @test unwrap(ℒ_nextstate(ps)) == 8080
 
-    @test ctx_remaining(ps.next) == String[]
-    @test ps.consumed == ("--port=8080",)
+    @test ctx_remaining(ℒ_nextctx(ps)) == String[]
+    @test as_tuple(ℒ_consumed(ps)) == ("--port=8080",)
 end
 
 @testset "should handle option terminator edge cases correctly" begin
@@ -60,8 +60,8 @@ end
 #     @test !is_error(res)
 #     ps = unwrap(res)
 
-#     @test !is_error(ℒ_state(ps.next))
-#     @test unwrap(ℒ_state(ps.next)) == 8080
+#     @test !is_error(ℒ_nextstate(ps))
+#     @test unwrap(ℒ_nextstate(ps)) == 8080
 #     # TS test does not check buffer/consumed here
 # end
 
@@ -74,7 +74,7 @@ end
     @test is_error(res)  # failure
     pf = unwrap_error(res)  # :: ParseFailure
 
-    @test pf.consumed == 1
+    @test ℒ_nconsumed(pf) == 1
     @test occursin("requires a value", string(pf.error))
 end
 
@@ -87,8 +87,8 @@ end
     @test !is_error(res)
     ps = unwrap(res)
 
-    @test !is_error(ℒ_state(ps.next))
-    @test unwrap(ℒ_state(ps.next)) == "Alice"
+    @test !is_error(ℒ_nextstate(ps))
+    @test unwrap(ℒ_nextstate(ps)) == "Alice"
 end
 
 @testset "should propagate value parser failures" begin
@@ -102,8 +102,8 @@ end
     ps = unwrap(res)
 
     # ...but the inner value parser failed (carry failure in state)
-    @test is_error(ℒ_state(ps.next))
-    @test occursin("Expected valid integer", string(unwrap_error(ℒ_state(ps.next))))
+    @test is_error(ℒ_nextstate(ps))
+    @test occursin("Expected valid integer", string(unwrap_error(ℒ_nextstate(ps))))
 end
 
 @testset "should fail on unmatched option" begin
@@ -115,7 +115,7 @@ end
     @test is_error(res)
     pf = unwrap_error(res)
 
-    @test pf.consumed == 0
+    @test ℒ_nconsumed(pf) == 0
     @test occursin("No Matched", string(pf.error))
 end
 

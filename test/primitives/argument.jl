@@ -15,14 +15,14 @@ end
     @test !is_error(res)
 
     succ = unwrap(res)
-    next = succ.next
+    next = ℒ_nextctx(succ)
 
     st = ℒ_state(next)
     @test !is_error(unwrap(st))
     @test unwrap(unwrap(st)) == "myfile.txt"
 
     @test ctx_remaining(next) == String[]
-    @test getproperty(succ, :consumed) == ("myfile.txt",)
+    @test as_tuple(ℒ_consumed(succ)) == ("myfile.txt",)
 end
 
 @testset "should parse an integer argument" begin
@@ -35,14 +35,14 @@ end
     @test !is_error(res)
 
     succ = unwrap(res)
-    next = succ.next
+    next = ℒ_nextctx(succ)
 
     st = ℒ_state(next)
     @test !is_error(unwrap(st))
     @test unwrap(unwrap(st)) == 42
 
     @test ctx_remaining(next) == String[]
-    @test getproperty(succ, :consumed) == ("42",)
+    @test as_tuple(ℒ_consumed(succ)) == ("42",)
 end
 
 @testset "should fail when buffer is empty" begin
@@ -55,7 +55,7 @@ end
     @test is_error(res)
 
     err = unwrap_error(res)
-    @test getproperty(err, :consumed) == 0
+    @test ℒ_nconsumed(err) == 0
     @test occursin("Expected an argument", string(err.error))
 end
 
@@ -69,7 +69,7 @@ end
     @test !is_error(res)
 
     succ = unwrap(res)
-    st = getproperty(succ.next, :state)
+    st = ℒ_nextstate(succ)
     @test st !== nothing
     @test is_error(unwrap(st))
 end
@@ -132,10 +132,10 @@ end
     @test !is_error(presult)
     
     pok = unwrap(presult)
-    @test pok.consumed == ("abc",)
-    @test ctx_remaining(pok.next) == ["--"]
+    @test as_tuple(ℒ_consumed(pok)) == ("abc",)
+    @test ctx_remaining(ℒ_nextctx(pok)) == ["--"]
 
-    val = splitcomplete(parser, ℒ_state(pok.next))
+    val = splitcomplete(parser, ℒ_nextstate(pok))
     @test (@? val) == "abc"
 
     result = argparse(parser, ["--"])

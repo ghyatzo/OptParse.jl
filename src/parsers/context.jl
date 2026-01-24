@@ -51,6 +51,17 @@ context's state parameter to be `S`. This is the canonical "inference checkpoint
     return Context{S}(ℒ_buffer(ctx), ℒ_pos(ctx), s, ℒ_optterm(ctx))
 end
 
+"""
+    ctx_restate(ctx, s::S) where S -> Context{S}
+
+Creates a new context with the same buffer/options flag but **forces** the
+context's state parameter to be `S`. This is the canonical "inference checkpoint".
+The difference with ctx_with_state is purely semantic. This is better used to
+indicate that we're simply wrapping the state of the context, instead of "creating a new context."
+
+"""
+@inline ctx_restate(ctx::Context, s::S) where {S} = ctx_with_state(ctx, s)
+
 
 """
     widen_state(::Type{B}, ctx::Context{T}) where {B, T <: B} -> Context{B}
@@ -65,6 +76,21 @@ in a type-stable way (as long as `B` is a compile-time type known value).
         ℒ_buffer(ctx),
         ℒ_pos(ctx),
         convert(U, ℒ_state(ctx)),
+        ℒ_optterm(ctx)
+    )
+end
+
+"""
+    widen_restate(::Type{B}, ctx::Context{T}, newstate) where {B, T <: B} -> Context{B}
+
+Utility function that combines a new state while also widening it
+"""
+@inline function widen_restate(::Type{B}, ctx::Context, s::S) where {B, S <: B}
+    U = promote_type(S, B)
+    return Context{U}(
+        ℒ_buffer(ctx),
+        ℒ_pos(ctx),
+        convert(U, s),
         ℒ_optterm(ctx)
     )
 end
@@ -125,65 +151,3 @@ Small wrappers around buffer access.
 @inline consume(ctx::Context, n::Int) =
     set(ctx, ℒ_pos, ℒ_pos(ctx)+n)
 
-
-# -----------------------------------------------------------------------------
-# Optional: Parse result types + constructors
-# -----------------------------------------------------------------------------
-
-
-"""
-    Consumed <: AbstractVector{String}
-
-A cheap, type-stable view of consumed CLI tokens.
-Stores a reference to the original `buffer::Vector{String}` plus a `range`
-into that buffer. Downstream code can index/iterate it like a vector of strings.
-
-Materialize only when needed via `collect(consumed)` or `Tuple(consumed)`.
-"""
-struct Consumed <: AbstractVector{String}
-    buffer::Vector{String}
-    range::UnitRange{Int}
-end
-
-Base.eltype(::Type{Consumed}) = String
-Base.IndexStyle(::Type{Consumed}) = IndexLinear()
-Base.size(c::Consumed) = (length(c.range),)
-Base.length(c::Consumed) = length(c.range)
-
-Base.getindex(c::Consumed, i::Int) = c.buffer[c.range[i]]
-
-Base.iterate(c::Consumed, st::Int=first(c.range)) =
-    st > last(c.range) ? nothing : (c.buffer[st], st + 1)
-
-"""
-    consumed_empty(buffer, pos)
-
-Construct an empty consumption at position `pos` (range `pos:pos-1`).
-"""
-@inline consumed_empty(buffer::Vector{String}, pos::Int) = Consumed(buffer, pos:(pos-1))
-
-# Optional convenience materializers (allocate on demand)
-@inline as_vector(c::Consumed) = collect(c)
-@inline as_tuple(c::Consumed) = Tuple(collect(c))
-
-
-# struct ParseSuccess{S}
-#     consumed::Tuple{Vararg{String}} # keep your current representation for now
-#     next::Context{S}
-# end
-
-# struct ParseFailure{E}
-#     consumed::Int
-#     error::E
-# end
-
-# const ParseResult{S, E} = Result{ParseSuccess{S}, ParseFailure{E}}
-
-# @inline ParseOk(cons::Tuple{Vararg{String}}, next::Context{S}) where {S} = Ok(ParseSuccess{S}(cons, next))
-# @inline ParseErr(consumed::Int, error) = Err(ParseFailure(consumed, error))
-
-
-# function ok(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n)) where {S}
-#     cons = ctx_peekn(ctx)
-#     return ParseOk(cons, nextctx)
-# end

@@ -18,17 +18,17 @@ end
 function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::ParseResult{OptionState{T}, String} where {T}
 
     if ℒ_optterm(ctx)
-        return ParseErr(0, "No more options to be parsed.")
+        return ParseErr("No more options to be parsed.", ctx)
     elseif ctx_hasnone(ctx)
-        return ParseErr(0, "Expected option got end of input.")
+        return ParseErr("Expected option got end of input.", ctx)
     end
 
     tok = ctx_peek(ctx)
 
     # When the input contains `--` is a signal to stop parsing options
     if (tok === "--")
-        next = ctx_with_options_terminated(consume(ctx, 1), true)
-        return ParseOk(tok, next)
+        nextctx = ctx_with_options_terminated(consume(ctx, 1), true)
+        return ParseOk(ctx, 1; nextctx)
     end
 
     # when options are of the form `--option value` or `/O value`
@@ -36,19 +36,16 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::P
 
         # st = @? ctx.state
         if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx)) isa T
-            return ParseErr(1, "$(tok) cannot be used multiple times")
+            return ParseErr("$(tok) cannot be used multiple times", ctx; consumed = 1)
         end
 
         if ctx_haslessthan(2, ctx) || ctx_peek(ctx, 2) == "--"
-            return ParseErr(1, "Option $(tok) requires a value, but got no value.")
+            return ParseErr("Option $(tok) requires a value, but got no value.", ctx; consumed = 1)
         end
 
         result = p.valparser(ctx_peek(ctx, 2))::Result{T, String}
 
-        return ParseOk(
-            ctx_peekn(ctx, 2),
-            ctx_with_state(consume(ctx, 2), result)
-        )
+        return ParseOk(ctx, 2; nextctx = ctx_with_state(consume(ctx, 2), result))
     end
 
     # when options are of the form `--option=value` or `/O:value`
@@ -62,22 +59,17 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::P
         startswith(tok, prefix) || continue
 
         if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx))
-            return ParseErr(1, "$(prefix[1:(end - 1)]) cannot be used multiple times")
+            return ParseErr("$(prefix[1:(end - 1)]) cannot be used multiple times", ctx; consumed = 1)
         end
 
         value = tok[(length(prefix) + 1):end]
         result = p.valparser(value)::Result{T, String}
 
-        return ParseOk(
-            tok,
-            ctx_with_state(consume(ctx, 1), result)
-        )
+        return ParseOk(ctx, 1; nextctx = ctx_with_state(consume(ctx, 1), result))
 
     end
 
-    return ParseErr(
-        0, "No Matched option for $(tok)"
-    )
+    return ParseErr("No Matched option for $(tok)", ctx)
 end
 
 function complete(p::ArgOption{T, OptionState{T}}, st::OptionState{T})::Result{T, String} where {T}

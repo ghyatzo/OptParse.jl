@@ -18,24 +18,25 @@ ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
 
 
 include("context.jl")
+include("parseresult.jl")
 
-struct ParseSuccess{S}
-    consumed::Tuple{Vararg{String}}
-    next::Context{S}
-end
+# struct ParseSuccess{S}
+#     consumed::Tuple{Vararg{String}}
+#     next::Context{S}
+# end
 
-struct ParseFailure{E}
-    consumed::Int
-    error::E
-end
+# struct ParseFailure{E}
+#     consumed::Int
+#     error::E
+# end
 
-const ParseResult{S, E} = Result{ParseSuccess{S}, ParseFailure{E}}
+# const ParseResult{S, E} = Result{ParseSuccess{S}, ParseFailure{E}}
 
-# TODO: the transformation to tuple is not trimmable
-@inline ParseOk(cons::Tuple{Vararg{String}}, next::Context{S}) where {S} = Ok(ParseSuccess{S}(cons, next))
-@inline ParseOk(cons::Vector{String}, next::Context{S}) where {S} = Ok(ParseSuccess{S}(Tuple(cons), next))
-@inline ParseOk(cons::String, next::Context{S}) where {S} = Ok(ParseSuccess{S}((cons,), next))
-@inline ParseErr(consumed, error) = Err(ParseFailure(consumed, error))
+# # TODO: the transformation to tuple is not trimmable
+# @inline ParseOk(cons::Tuple{Vararg{String}}, next::Context{S}) where {S} = Ok(ParseSuccess{S}(cons, next))
+# @inline ParseOk(cons::Vector{String}, next::Context{S}) where {S} = Ok(ParseSuccess{S}(Tuple(cons), next))
+# @inline ParseOk(cons::String, next::Context{S}) where {S} = Ok(ParseSuccess{S}((cons,), next))
+# @inline ParseErr(consumed, error) = Err(ParseFailure(consumed, error))
 
 include("valueparsers/valueparsers.jl")
 include("primitives/primitives.jl")

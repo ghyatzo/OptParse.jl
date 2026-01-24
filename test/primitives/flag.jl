@@ -8,8 +8,8 @@
         is_ok_and(==(true), ℒ_state(succ.next))
     end
     succ = unwrap(result)
-    @test ctx_remaining(succ.next) == String[]
-    @test succ.consumed == ("-v",)
+    @test ctx_remaining(ℒ_nextctx(succ)) == String[]
+    @test as_tuple(ℒ_consumed(succ)) == ("-v",)
 end
 
 @testset "should parse long flag" begin
@@ -22,8 +22,8 @@ end
         is_ok_and(==(true), ℒ_state(succ.next))
     end
     succ = unwrap(result)
-    @test ctx_remaining(succ.next) == String[]
-    @test succ.consumed == ("--verbose",)
+    @test ctx_remaining(ℒ_nextctx(succ)) == String[]
+    @test as_tuple(ℒ_consumed(succ)) == ("--verbose",)
 end
 
 @testset "should parse multiple flag names" begin
@@ -53,7 +53,7 @@ end
 
     @test is_error(result)
     unwrap_or_else(result) do fail
-        @test fail.consumed == 1
+        @test ℒ_nconsumed(fail) == 1
         @test occursin("cannot be used multiple times", fail.error)
     end
 end
@@ -68,8 +68,8 @@ end
         is_ok_and(==(true), ℒ_state(succ.next))
     end
     succ = unwrap(result)
-    @test ctx_remaining(succ.next) == ["-d", "ss"]
-    @test succ.consumed == ("-v",)
+    @test ctx_remaining(ℒ_nextctx(succ)) == ["-d", "ss"]
+    @test as_tuple(ℒ_consumed(succ)) == ("-v",)
 end
 
 @testset "should fail when flags are terminated" begin
@@ -80,7 +80,7 @@ end
 
     @test is_error(result)
     unwrap_or_else(result) do fail
-        @test fail.consumed == 0
+        @test ℒ_nconsumed(fail) == 0
         @test occursin("No more", fail.error)
     end
 end
@@ -93,9 +93,9 @@ end
 
     @test !is_error(result)
     is_ok_and(result) do succ
-        @test succ.next.optionsTerminated == true
-        @test ctx_remaining(succ.next) == String[]
-        @test succ.consumed == ("--",)
+        @test (ℒ_optterm ∘ ℒ_nextctx)(succ) == true
+        @test ctx_remaining(ℒ_nextctx(succ)) == String[]
+        @test as_tuple(ℒ_consumed(succ)) == ("--",)
         true
     end
 end
@@ -124,7 +124,7 @@ end
 
     @test is_error(result)
     unwrap_or_else(result) do fail
-        @test fail.consumed == 0
+        @test ℒ_nconsumed(fail) == 0
         @test occursin("Expected a", fail.error)
     end
 end

@@ -11,8 +11,8 @@ end
 
     result = @unionsplit parse(parser, context)
     @test is_ok_and(result) do succ
-        @test succ.consumed == ()
-        @test succ.next == context
+        @test ℒ_consumed(succ) == consumed_empty(context)
+        @test ℒ_nextctx(succ) == context
         !is_error(result)
     end
 end

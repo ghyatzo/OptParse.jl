@@ -2,18 +2,24 @@ using Test
 using OptParse
 using OptParse:
     Context,
+    Parser,
+    as_tuple,
+    as_vector,
+    complete,
+    consumed_empty,
+    ctx_remaining,
     parse,
     priority,
-    complete,
     tstate,
     tval,
-    Parser,
-    ℒ_state,
+    widen_state,
     ℒ_buffer,
-    ℒ_pos,
+    ℒ_consumed,
+    ℒ_nextctx,
+    ℒ_nextstate,
     ℒ_optterm,
-    ctx_remaining,
-    widen_state
+    ℒ_pos,
+    ℒ_state
 
 using ErrorTypes
 using WrappedUnions: @unionsplit, unwrap as unwrapunion
