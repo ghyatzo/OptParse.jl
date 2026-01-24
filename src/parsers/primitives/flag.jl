@@ -9,8 +9,18 @@ struct ArgFlag{T, S, p, P} <: AbstractParser{T, S, p, P}
     help::String
 
 
-    ArgFlag(names::Tuple{Vararg{String}}; help = "") =
+    ArgFlag(names::Tuple{Vararg{String}}; help = "") = begin
+        for name in names
+            if !startswith(name, r"^--?[^-]")
+                throw(ArgumentError("Flags and option names must start with `-` or `--`."))
+            end
+            if startswith(name, r"^-[^-]") && length(name) > 2
+                throw(ArgumentError("Short options and flags must only have 1 character."))
+            end
+
+        end
         new{Bool, FlagState, 9, Nothing}(Err("Missing Flag(s) $(names)."), nothing, [names...], help)
+    end
 end
 
 

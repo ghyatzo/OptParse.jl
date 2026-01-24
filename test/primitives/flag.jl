@@ -1,3 +1,15 @@
+@testset "should error with short flags longer than 1 character" begin
+    @test_throws ArgumentError flag("-invalid")
+end
+
+
+@testset "should error with flags not starting with - or --" begin
+    @test_throws ArgumentError flag("aaa")
+    @test_throws ArgumentError flag("?aaa")
+    @test_throws ArgumentError flag("/aaa")
+    @test_throws ArgumentError flag("---aaa")
+end
+
 @testset "should parse single short flag" begin
     parser = flag("-v")
     context = Context(buffer=["-v"], state= parser.initialState)

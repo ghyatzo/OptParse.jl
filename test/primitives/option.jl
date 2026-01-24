@@ -1,3 +1,14 @@
+@testset "should error with short names longer than 1 character" begin
+    @test_throws ArgumentError option("-port", integer())
+end
+
+@testset "should error with options not starting with - or --" begin
+    @test_throws ArgumentError option("port", integer())
+    @test_throws ArgumentError option("?port", integer())
+    @test_throws ArgumentError option("/port", integer())
+    @test_throws ArgumentError option("---port", integer())
+end
+
 @testset "should parse option with separated value" begin
     parser = option(("-p", "--port"), integer())
     context = Context(buffer=["--port", "8080"], state=parser.initialState)

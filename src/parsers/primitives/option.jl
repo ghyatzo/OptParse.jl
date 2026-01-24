@@ -10,8 +10,17 @@ struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
     help::String
 
 
-    ArgOption(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; help = "") where {T} =
-        new{T, OptionState{T}, 10, Nothing}(Err("Missing Option(s) $(names)."), nothing, valparser, [names...], help)
+    ArgOption(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; help = "") where {T} = begin
+        for name in names
+            if !startswith(name, r"^--?[^-]")
+                throw(ArgumentError("Flags and option names must start with `-` or `--`."))
+            end
+            if startswith(name, r"^-[^-]") && length(name) > 2
+                throw(ArgumentError("Short options and flags must only have 1 character."))
+            end
+        end
+        new{T, OptionState{T}, 10, Nothing}(Err("Missing Option(s): $(names)."), nothing, valparser, [names...], help)
+    end
 end
 
 
@@ -31,7 +40,7 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::P
         return ParseOk(ctx, 1; nextctx)
     end
 
-    # when options are of the form `--option value` or `/O value`
+    # when options are of the form `--option value`
     if tok in p.names
 
         # st = @? ctx.state
@@ -48,12 +57,12 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::P
         return ParseOk(ctx, 2; nextctx = ctx_with_state(consume(ctx, 2), result))
     end
 
-    # when options are of the form `--option=value` or `/O:value`
+    # when options are of the form `--option=value`
     prefixes = filter(p.names) do name
-        startswith(name, "--") || startswith(name, "/")
+        startswith(name, "--")
     end
     map!(prefixes) do name
-        startswith(name, "/") ? "$name:" : "$name="
+        "$name="
     end
     for prefix in prefixes
         startswith(tok, prefix) || continue
