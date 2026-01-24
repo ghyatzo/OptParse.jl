@@ -15,6 +15,7 @@ using OptParse:
     widen_state,
     ℒ_buffer,
     ℒ_consumed,
+    ℒ_nconsumed,
     ℒ_nextctx,
     ℒ_nextstate,
     ℒ_optterm,

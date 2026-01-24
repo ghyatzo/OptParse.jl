@@ -72,27 +72,27 @@ end
 
                 child_parser = p[$(QuoteNode(field))]
                 child_state = child_state_lens(current_ctx)
-                child_ctx = widen_state(tstate(child_parser), ctx_with_state(current_ctx, child_state))
+                child_ctx = widen_restate(tstate(child_parser), current_ctx, child_state)
 
                 result = (@unionsplit parse(child_parser, child_ctx))::ParseResult{tstate(child_parser), String}
 
                 if is_error(result)
                     parse_err = unwrap_error(result)
-                    if error.consumed < parse_err.consumed
+                    if ℒ_nconsumed(error) < ℒ_nconsumed(parse_err)
                         error = parse_err
                     end
                 else
                     parse_ok = unwrap(result)
 
-                    if length(parse_ok.consumed) > 0
+                    if length(ℒ_consumed(parse_ok)) > 0
 
                         #= we update the current context state with the result from the parse=#
-                        newstate = set(ℒ_state(current_ctx), PropertyLens($(QuoteNode(field))), ℒ_state(parse_ok.next))
+                        newstate = set(ℒ_state(current_ctx), PropertyLens($(QuoteNode(field))), ℒ_nextstate(parse_ok))
 
                         #= then we continue the parse using the information from the parse result but with the new state=#
-                        newctx = widen_state($S, ctx_with_state(parse_ok.next, newstate))
+                        newctx = widen_restate($S, ℒ_nextctx(parse_ok), newstate)
 
-                        allconsumed = (allconsumed..., parse_ok.consumed...)
+                        append!(allconsumed, ℒ_consumed(parse_ok))
                         current_ctx = newctx
                         madeprogress = true
                         anysuccess = true
@@ -109,11 +109,11 @@ end
 
     return ex = quote
         #= if nothing inside the object can match our token, then it's "unexpected" =#
-        error = length(ctx.buffer) > 0 ? ParseFailure(0, "Unexpected option or argument: `$(ctx.buffer[1])`") :
+        error = ctx_hasmore(ctx) > 0 ? ParseFailure(0, "Unexpected option or argument: `$(ctx_peek(ctx))`") :
             ParseFailure(0, "Expected option or argument, got end of input.")
         #= greedy parsing trying to consume as many field as possible =#
         anysuccess = false
-        allconsumed::Tuple{Vararg{String}} = ()
+        allconsumed = Consumed[]
 
         #= keep trying to parse fields until no more can be matched =#
         current_ctx = ctx
@@ -121,11 +121,15 @@ end
         iter = 0
         maxiter = 10000 # avoids infinite loops (mainly useful while debugging.)
         @label startwhile
-        while (madeprogress && length(current_ctx.buffer) > 0) && iter < maxiter
+        while (madeprogress && ctx_hasmore(current_ctx) > 0) && iter < maxiter
             madeprogress = false
             iter += 1
 
             $whilebody
+        end
+
+        if iter == maxiter
+            println(Core.stderr, "[DEBUG] Max iteration reached!")
         end
 
         return current_ctx, error, allconsumed, anysuccess

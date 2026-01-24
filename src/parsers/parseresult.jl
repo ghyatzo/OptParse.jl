@@ -9,29 +9,55 @@ Materialize only when needed via `collect(consumed)` or `Tuple(consumed)`.
 """
 struct Consumed <: AbstractVector{String}
     buffer::Vector{String}
-    range::UnitRange{Int}
+    ranges::Vector{UnitRange{Int}}
 end
 
 Base.eltype(::Type{Consumed}) = String
 Base.IndexStyle(::Type{Consumed}) = IndexLinear()
-Base.size(c::Consumed) = (length(c.range),)
-Base.length(c::Consumed) = length(c.range)
+Base.size(c::Consumed) = (sum(length, c.ranges),)
+Base.length(c::Consumed) = sum(length, c.ranges)
 
-Base.getindex(c::Consumed, i::Int) = c.buffer[c.range[i]]
+Base.getindex(c::Consumed, i::Int) = begin
 
-Base.iterate(c::Consumed, st::Int=first(c.range)) =
-    st > last(c.range) ? nothing : (c.buffer[st], st + 1)
+    breaks = cumsum(length.(c.ranges))
+
+    nextbreak = findfirst(>=(i), breaks)
+
+    isnothing(nextbreak) && throw(BoundsError(c, i))
+
+    pad = nextbreak == 1 ? 0 : breaks[nextbreak-1]
+
+    return c.buffer[c.ranges[nextbreak][i-pad]]
+end
+
+Base.iterate(c::Consumed, st::Int=1) =
+    st > length(c) ? nothing : (c[st], st + 1)
 
 """
     consumed_empty(buffer, pos)
 
 Construct an empty consumption at position `pos` (range `pos:pos-1`).
 """
-@inline consumed_empty(ctx; pos=ℒ_pos(ctx)) = Consumed(ℒ_buffer(ctx), pos:(pos-1))
+@inline consumed_empty(ctx; pos=ℒ_pos(ctx)) = Consumed(ℒ_buffer(ctx), [pos:(pos-1)])
 
 # Optional convenience materializers (allocate on demand)
 @inline as_vector(c::Consumed) = collect(c)
 @inline as_tuple(c::Consumed) = Tuple(collect(c))
+
+
+
+"""
+    merge(consumed::Vector{Consumed})
+
+merges all the consumed into a single Consumed object. The buffer of each consumed can only increase.
+In particular, it only changes when boundled options "-abc" are expanded into "-a" "-b" "-c".
+all the ranges in each consumed object are relative to its buffer. what must happen is that those ranges must be
+modified accordingly to the most expanded buffer (longest).
+"""
+function merge(consumed::Vector{Consumed})
+
+
+end
 
 
 struct ParseSuccess{S}
@@ -50,6 +76,8 @@ const ParseResult{S, E} = Result{ParseSuccess{S}, ParseFailure{E}}
 const ℒ_nextctx = @optic _.next
 const ℒ_consumed = @optic _.consumed
 const ℒ_nconsumed = @optic _.consumed
+
+const ℒ_ranges = (@optic _.ranges) ∘ ℒ_consumed
 const ℒ_error = @optic _.error
 const ℒ_nextstate = ℒ_state ∘ ℒ_nextctx
 
@@ -59,15 +87,17 @@ const ℒ_nextstate = ℒ_state ∘ ℒ_nextctx
 @inline err_rethrow(parseerr::ParseFailure) =
     Err(ParseFailure(ℒ_nconsumed(parseerr), ℒ_error(parseerr)))
 
-# # TODO: the transformation to tuple is not trimmable
-# @inline ParseOk(cons::Consumed, next::Context{S}) where {S} = Ok(ParseSuccess{S}(cons, next))
-# @inline ParseErr(consumed, error) = Err(ParseFailure(consumed, error))
+@inline ok_with_consumed(parseok::ParseSuccess, cons::Consumed) =
+    set(parseok, ℒ_consumed, cons)
+
+@inline ok_with_consumed(parseok::ParseSuccess, ctx::Context{S}) where {S} =
+    set(parseok, ℒ_nextctx, ctx)
 
 function ParseOk(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n)) where {S}
     p = ℒ_pos(ctx)
     consumed = Consumed(
         ℒ_buffer(ctx),
-        p:p+n-1
+        [p:p+n-1]
     )
     return Ok(ParseSuccess{S}(consumed, nextctx))
 end
