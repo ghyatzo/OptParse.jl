@@ -149,6 +149,46 @@ include("utils.jl")
 include("parsers/parser.jl")
 
 
+"""
+    normalize_argv(argv) -> (expanded, origin)
+
+Expands bundled boolean short flags:
+    "-abc" -> "-a", "-b", "-c"
+
+Rules:
+- Only expand before `--`
+- Do not expand tokens starting with "--"
+- After `--`, tokens are untouched
+
+Returns:
+- expanded::Vector{String}
+- origin::Vector{Int}  (expanded index -> original argv index)
+"""
+function normalize_argv(argv::Vector{String})
+    expanded = String[]
+    origin   = Int[]
+    optterm  = false
+
+    for (i, tok) in pairs(argv)
+        if tok == "--"
+            optterm = true
+            push!(expanded, tok); push!(origin, i)
+            continue
+        end
+
+        if !optterm && startswith(tok, "-") && !startswith(tok, "--") && lastindex(tok) > 2
+            # "-abc" => "-a","-b","-c"
+            for c in tok[2:end]
+                push!(expanded, "-" * string(c))
+                push!(origin, i)
+            end
+        else
+            push!(expanded, tok); push!(origin, i)
+        end
+    end
+
+    return expanded, origin
+end
 
 #####
 # entry point
@@ -159,7 +199,8 @@ I'm thinking a higher level approach that either returns the desired result or t
 that simply returns the Result type for the user to deal with... maybe. I don't know yet.=#
 function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} where {T, S}
 
-    ctx = Context{S}(buffer=args, state=pp.initialState)
+    canonical_argv, _ = normalize_argv(args)
+    ctx = Context{S}(buffer=canonical_argv, state=pp.initialState)
 
     while true
         mayberesult::ParseResult{S, String} = @unionsplit parse(pp, ctx)
