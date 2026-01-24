@@ -141,7 +141,9 @@ export argparse,
     # modifier
     optional,
     withDefault,
-    multiple
+    multiple,
+
+    @?
 
 include("utils.jl")
 include("parsers/parser.jl")
@@ -181,7 +183,7 @@ function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} whe
         ctx_length(ctx) > 0 || break
     end
 
-    return @unionsplit complete(pp, ℒ_state(ctx))
+    return (@unionsplit complete(pp, ℒ_state(ctx)))::T
 end
 
 end # module OptParse

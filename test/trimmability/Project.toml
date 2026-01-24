@@ -1,0 +1,7 @@
+name = "trimmability"
+uuid = "ea2f5604-9784-4b5f-a987-2d7e5f9fdef1"
+version = "0.1.0"
+authors = ["ghyatzo <camillo.schenone@jasco.com>"]
+
+[deps]
+OptParse = "1244ff17-1aa7-4121-9347-f4ead108e58f"

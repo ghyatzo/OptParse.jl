@@ -81,5 +81,5 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::P
 end
 
 function complete(p::ArgOption{T, OptionState{T}}, st::OptionState{T})::Result{T, String} where {T}
-    return !is_error(st) ? st : Err("$(p.names): $(unwrap_error(st))")
+    return !is_error(st) ? st : Err("$(p.names[1]): $(unwrap_error(st))") # string of vector calls show which is not trimmable.
 end
