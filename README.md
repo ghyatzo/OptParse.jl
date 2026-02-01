@@ -54,6 +54,12 @@ result = argparse(parser, ["--name", "myserver", "-p", "8080", "-v"])
 @assert result.verbose == true
 ```
 
+The style implemented in this library is the following:
+
+- short form names only accept single letters: `-n` is fine, `-run` will be treated as bundled `-r -u -n`.
+- short form options must separate the flag from the value: `-n name`. No gcc style `-L/usr/include`.
+- long form is represented with two dashes `--long`
+
 ## Core Concepts
 
 OptParse provides four types of building blocks:
@@ -63,8 +69,8 @@ OptParse provides four types of building blocks:
 The fundamental parsers that match command-line tokens:
 
 - **`option`** - Matches key-value pairs: `--port 8080` or `-p 8080`
-- **`flag`** - Boolean switches: `--verbose` or `-v`
-- **`argument`** - Positional arguments: `source destination`
+- **`flag`** - Boolean flags like: `--verbose` or `-v`. A plain `flag` MUST be present. See `switch` for a flag that is false if not passed.
+- **`argument`** - Positional arguments: `cp source destination`
 - **`command`** - Subcommands: `git add file.txt`
 
 ```julia

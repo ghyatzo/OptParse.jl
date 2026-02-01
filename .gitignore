@@ -28,3 +28,6 @@ LocalPreferences.toml
 JuliaLocalPreferences.toml
 .sublime
 manifest*
+
+
+test/trimmability/build
