@@ -94,14 +94,14 @@ parse(p::ConstrOr{T, OrState{I, S}}, ctx::Context{OrState{I, S}}) where {T, I, S
         end
     )
 
-    convert(ParseResult{OrState{valunion, state_t}, String}, _generated_or_parse(p.parsers, ctx, ctx.state[1]))
+    convert(ParseResult{OrState{valunion, state_t}, String}, _generated_or_parse(p.parsers, ctx, ℒ_state(ctx)[1]))
 end
 
 function complete(p::ConstrOr{T}, orstate::OrState{Val{i}, S})::Result{T, String} where {i, T, S}
     i == 0 && return Err("No matching option or command.")
     _, allmaybestates = orstate
 
-    result = @unionsplit complete(p.parsers[i], unwrap(allmaybestates[i]).next.state)
+    result = @unionsplit complete(p.parsers[i], ℒ_nextstate(unwrap(allmaybestates[i])))
 
     return Ok(@? result)
 end
