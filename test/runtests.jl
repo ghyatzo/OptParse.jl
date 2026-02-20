@@ -100,3 +100,6 @@ end
     end
 end
 
+@testset "Trimming" begin
+    include("trimming.jl")
+end

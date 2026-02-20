@@ -26,13 +26,8 @@ function @main(args::Vector{String})::Cint
 
 	obj = @? argparse(parser, args)
 
-	if obj isa OptParse.tval(greet)
-		println(Core.stdout, "Hello, $(obj.name) ! you're $(obj.age) years old!")
-	elseif obj isa OptParse.tval(greet)
-		println(Core.stdout, "Goodbye, $(obj.name) ! See you in $(obj.solong) years!")
-	end
+	doaction(obj)
 	
-	# doaction(obj)
     return 0
 end
 
