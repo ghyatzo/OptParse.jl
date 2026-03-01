@@ -27,7 +27,8 @@ using ErrorTypes:
     some,
     unwrap,
     unwrap_error,
-    @unwrap_or
+    @unwrap_or,
+    ErrorTypes
 
 using UUIDs:
     UUID,
@@ -211,7 +212,7 @@ function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} whe
         result = unwrap(mayberesult)
 
         previous_buffer = ctx_remaining(ctx)
-        ctx = result.next
+        ctx = ℒ_nextctx(result)
 
         if (
                 ctx_length(ctx) > 0
@@ -225,7 +226,9 @@ function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} whe
         ctx_length(ctx) > 0 || break
     end
 
-    return @unionsplit complete(pp, ℒ_state(ctx))
+    state = ℒ_state(ctx)
+
+    return @unionsplit complete(pp, state)
 end
 
 end # module OptParse

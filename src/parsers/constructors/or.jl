@@ -8,6 +8,12 @@ struct ConstrOr{T, S, p, P} <: AbstractParser{T, S, p, P}
     parsers::P
 end
 
+# todo! define a parametric wrapped union that stores all possible states.
+@wrapped struct OrState{U}
+    union::U
+end
+# the union is made out of possible states! we can then forgo the Val part most likely!
+
 ConstrOr(parsers::PTup) where {PTup <: Tuple} = let
 
     inner_state = map(parsers) do p
@@ -97,11 +103,55 @@ parse(p::ConstrOr{T, OrState{I, S}}, ctx::Context{OrState{I, S}}) where {T, I, S
     convert(ParseResult{OrState{valunion, state_t}, String}, _generated_or_parse(p.parsers, ctx, ℒ_state(ctx)[1]))
 end
 
-function complete(p::ConstrOr{T}, orstate::OrState{Val{i}, S})::Result{T, String} where {i, T, S}
-    i == 0 && return Err("No matching option or command.")
-    _, allmaybestates = orstate
+# function complete(p::ConstrOr{Or{U}}, orstate::OrState{Val{i}, S})::Result{Or{U}, String} where {i, U, S}
+#     i == 0 && return Err("No matching option or command.")
+#     _, allmaybestates = orstate
 
-    result = @unionsplit complete(p.parsers[i], ℒ_nextstate(unwrap(allmaybestates[i])))
+#     result = @unionsplit complete(p.parsers[i], ℒ_nextstate(unwrap(allmaybestates[i])))
 
-    return Ok(@? result)
+#     return Ok(@? Or{U}(result))
+@generated function complete(
+        p::ConstrOr{U, OrState{I, S}, _p, P},
+        orstate::OrState{I, S}
+    )::Result{U, String} where {U, I, S, _p, P}
+
+    vals = Base.uniontypes(I)
+    ex = quote
+        idx, allmaybestates = orstate
+    end
+
+    for V in vals
+        i = V.parameters[1]
+
+        if i == 0
+            push!(ex.args, quote
+                if idx isa Val{0}
+                    return Result{$U, String}(Err("No matching option or command."))
+                end
+            end)
+            continue
+        end
+
+        parser_t = fieldtype(P, i)
+        val_t = tval(parser_t)
+        push!(ex.args, quote
+            if idx isa Val{$i}
+                parser = p.parsers[$i]::$parser_t
+                maybestate = allmaybestates[$i]
+                result = Result{$val_t, String}(complete(
+                    unwrapunion(parser),
+                    ℒ_nextstate(unwrap(maybestate))
+                ))
+
+                if is_error(result)
+                    return Result{$U, String}(Err(unwrap_error(result)))
+                end
+
+                return Result{$U, String}(Ok(unwrap(result)))
+            end
+        end)
+    end
+
+    push!(ex.args, :(return Result{$U, String}(Err("No matching option or command."))))
+    return ex
 end

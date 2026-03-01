@@ -3,7 +3,7 @@ using JuliaC
 const TRIM_PROJ = abspath(joinpath(@__DIR__, "trimmability"))
 
 @testset "Trimming" begin
-    outdir = mktempdir()
+    outdir = joinpath(TRIM_PROJ, "build")
     exeout = joinpath(outdir, "out")
 
     img = JuliaC.ImageRecipe(
@@ -22,5 +22,4 @@ const TRIM_PROJ = abspath(joinpath(@__DIR__, "trimmability"))
     actual_exe = Sys.iswindows() ? joinpath(outdir, "bin", basename(exeout) * ".exe") : joinpath(outdir, "bin", basename(exeout))
     @test isfile(actual_exe)
 
-    print_tree_with_sizes(outdir)
 end

@@ -65,6 +65,10 @@ _parser(x::AbstractParser{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x
 Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
 Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
 
+function complete(p::Parser{T, S}, st::S)::Result{T, String} where {T, S}
+    complete(unwrapunion(p), st)
+end
+
 # modifiers
 
 ## WithDefault
