@@ -1,14 +1,20 @@
-# const _InnerState = Tuple{Vararg{Option{<:ParseSuccess}}} # just for explicitness
-
-# const OrState{I, X} = Tuple{I, X} # X <: _InnerState and I == Val{int position}
-
-# todo! define a parametric wrapped union that stores all possible states.
 @wrapped struct InnerOrState{U}
     union::U
 end
 
+struct OrBranchState{I, S}
+    success::ParseSuccess{S}
+end
+
 const OrState{U} = Option{InnerOrState{U}}
-# the union is made out of possible states! we can then forgo the Val part most likely!
+
+Base.@assume_effects :foldable function _or_inner_branch_union(::Type{PTup}) where {PTup <: Tuple}
+    branch_types = ntuple(fieldcount(PTup)) do i
+        ptype = fieldtype(PTup, i)
+        OrBranchState{i, tstate(ptype)}
+    end
+    return Union{branch_types...}
+end
 
 # a parser that returns the first parsers that matches, in the order provided!
 struct ConstrOr{T, S, p, P} <: AbstractParser{T, S, p, P}
@@ -18,10 +24,7 @@ end
 
 ConstrOr(parsers::PTup) where {PTup <: Tuple} = let
 
-    inner_state_types = map(parsers) do p
-        ParseSuccess{tstate(p)}
-    end
-    innerstate_U = Union{inner_state_types...}
+    innerstate_U = _or_inner_branch_union(PTup)
 
     ConstrOr{
         Union{map(tval, parsers)...},
@@ -31,7 +34,7 @@ ConstrOr(parsers::PTup) where {PTup <: Tuple} = let
     }(none(InnerOrState{innerstate_U}), parsers)
 end
 
-@generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}, current_res::ResType) where {PTup <: Tuple, U, ResType}
+@generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}) where {PTup <: Tuple, U}
     preamble = quote
         error = ctx_haslessthan(1, ctx) ?
             ParseFailure(0, "Expected token, got end of input.") : ParseFailure(0, "Unexpected option or subcommand: $(ctx.buffer[1])")
@@ -46,12 +49,15 @@ end
         push!(unrolled_loop.args, quote
             parser = parsers[$i]::$child_parser_t
             innerstate = ℒ_state(ctx)
+            has_selection = !is_error(innerstate)
+
+
             if is_error(innerstate)
                 childstate = parser.initialState
             else
                 selected_state = unwrapunion(unwrap(innerstate))
-                childstate = selected_state isa ParseSuccess{$child_parser_tstate} ?
-                    ℒ_nextstate(selected_state) : parser.initialState
+                childstate = selected_state isa OrBranchState{$i, $child_parser_tstate} ?
+                    ℒ_nextstate(selected_state.success) : parser.initialState
             end
             childctx = ctx_with_state(ctx, childstate)
 
@@ -63,15 +69,15 @@ end
                 # something else,
                 # and those two things aren't the same thing, then error. 'Or' only matches one parser.=#
 
-                if !($ResType != Nothing) && !(ParseSuccess{$child_parser_tstate} <: $ResType)
+                if has_selection && !(selected_state isa OrBranchState{$i, $child_parser_tstate})
                     return parseerr(ctx,
-                        "$(unwrap(current_res).consumed[1]) and $(parse_ok.consumed[1]) can't be used together.";
+                        "$(selected_state.success.consumed[1]) and $(parse_ok.consumed[1]) can't be used together.";
                         consumed=ctx_length(ctx) - ctx_length(ℒ_nextctx(parse_ok))
                     )
                 end
 
-                new_innerstate = some(InnerOrState(parse_ok))
-                newctx = ctx_restate(ℒ_nextctx(parse_ok), new_innerstate)
+                new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
+                newctx = widen_restate(OrState{$U}, ℒ_nextctx(parse_ok), new_innerstate)
                 return parseok(newctx, ℒ_consumed(parse_ok))
             elseif is_error(result)
                 if ℒ_consumed(error) < ℒ_consumed(unwrap_error(result))
@@ -93,22 +99,17 @@ end
 
 parse(p::ConstrOr{T, OrState{U}}, ctx::Context{OrState{U}}) where {T,U} = let
 
-    inner_state_types = map(p.parsers) do par
-        ParseSuccess{tstate(par)}
-    end
-    innerstate_U = Union{inner_state_types...}
+    innerstate_U = _or_inner_branch_union(typeof(p.parsers))
 
-    currstate = is_error(ℒ_state(ctx)) ? Nothing : unwrap(ℒ_state(ctx))
-
-    convert(ParseResult{OrState{innerstate_U}, String}, _generated_or_parse(p.parsers, ctx, currstate))
+    convert(ParseResult{OrState{innerstate_U}, String}, _generated_or_parse(p.parsers, ctx))
 end
 
 function complete(p::ConstrOr{T}, orstate::OrState{U})::Result{T, String} where {T, U}
     is_error(orstate) && return Err("No matching option or command.")
 
-    state = ℒ_nextstate(unwrapunion(unwrap(orstate)))
+    selected = unwrapunion(unwrap(orstate))
 
-    result = _gencomplete(p.parsers, state)
+    result = _gencomplete(p.parsers, selected)
 
     # result = @unionsplit complete(p.parsers[i], ℒ_nextstate(unwrap(allmaybestates[i])))
 
@@ -125,8 +126,8 @@ end
         ptype = fieldtype(PTup, i)
         pstatetype = tstate(ptype)
 
-        if pstatetype == SelectedState
-            return :(@unionsplit complete(parsers[$i], orstate))
+        if SelectedState <: OrBranchState{i, pstatetype}
+            return :(@unionsplit complete(parsers[$i], ℒ_nextstate(orstate.success)))
         end
     end
 

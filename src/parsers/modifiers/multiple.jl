@@ -51,8 +51,12 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 	parse_ok = unwrap(result)
 	#=If the parent parser encounters a new repetition, add it at the end of the state.
 	Otherwise, update the last state with the latest result from the child parser.=#
-	nextst = hasadded ? deepcopy(ℒ_state(ctx)) : deepcopy(ℒ_state(ctx)[1:end-1])
-	push!(nextst, ℒ_nextstate(parse_ok))
+	nextst = [s for s in ℒ_state(ctx)]
+	if hasadded
+		push!(nextst, ℒ_nextstate(parse_ok))
+	else
+		nextst[end] = ℒ_nextstate(parse_ok)
+	end
 
 	nextctx = widen_restate(MultipleState{S}, ℒ_nextctx(parse_ok), nextst)
 	return parseok(nextctx, ℒ_consumed(parse_ok))

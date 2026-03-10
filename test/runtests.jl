@@ -32,48 +32,48 @@ splitparse(p::Parser, ctx::Context) = @unionsplit parse(p, ctx)
 splitcomplete(p::Parser, st) = @unionsplit complete(p, st)
 val(::Val{x}) where {x} = x
 
-# @testset "Value Parsers" begin
+@testset "Value Parsers" begin
 
-#     include("valueparsers.jl")
+    include("valueparsers.jl")
 
-# end
+end
 
-# @testset "Primitives" failfast=true begin
+@testset "Primitives" failfast=true begin
 
-#     @testset "Constant parser" begin
-#         include("primitives/constant.jl")
-#     end
+    @testset "Constant parser" begin
+        include("primitives/constant.jl")
+    end
 
-#     @testset "Flag parser" begin
-#         include("primitives/flag.jl")
-#     end
+    @testset "Flag parser" begin
+        include("primitives/flag.jl")
+    end
 
-#     @testset "Option parser" begin
-#         include("primitives/option.jl")
-#     end
+    @testset "Option parser" begin
+        include("primitives/option.jl")
+    end
 
-#     @testset "Argument parser" begin
-#         include("primitives/argument.jl")
-#     end
+    @testset "Argument parser" begin
+        include("primitives/argument.jl")
+    end
 
-#     # @testset "Command parser" begin
-#     #     include("primitives/command.jl")
-#     # end
-# end
+    # @testset "Command parser" begin
+    #     include("primitives/command.jl")
+    # end
+end
 
 @testset "Constructors" failfast=true begin
 
-    # @testset "Objects" begin
-    #     include("constructors/object.jl")
-    # end
+    @testset "Objects" begin
+        include("constructors/object.jl")
+    end
 
     @testset "Or" begin
         include("constructors/or.jl")
     end
 
-    # @testset "Tup" begin
-    #     include("constructors/tup.jl")
-    # end
+    @testset "Tup" begin
+        include("constructors/tup.jl")
+    end
 
 end
 
