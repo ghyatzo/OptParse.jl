@@ -26,7 +26,7 @@ const multiarg = multiple(argument(str()))
 
 function @main(args::Vector{String})::Cint
 
-	parser = or(simple, greet, multiarg)
+	parser = or(simple, greet, multiarg, goodbye)
 
 	obj = @? argparse(parser, args)
 

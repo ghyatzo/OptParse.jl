@@ -109,9 +109,7 @@ function complete(p::ConstrOr{T}, orstate::OrState{U})::Result{T, String} where 
 
     selected = unwrapunion(unwrap(orstate))
 
-    result = _gencomplete(p.parsers, selected)
-
-    # result = @unionsplit complete(p.parsers[i], ℒ_nextstate(unwrap(allmaybestates[i])))
+    result::Result{T, String} = _gencomplete(p.parsers, selected)
 
     return Ok(@? result)
 end
@@ -119,7 +117,7 @@ end
 @generated function _gencomplete(
         parsers::PTup,
         orstate::SelectedState
-    )::Result{T, String} where {PTup<:Tuple, SelectedState}
+    ) where {PTup<:Tuple, SelectedState}
 
     N = fieldcount(PTup)
     for i in 1:N
@@ -133,49 +131,3 @@ end
 
     return :(Err("Unreachable"))
 end
-
-# @generated function complete(
-#         p::ConstrOr{U, OrState{I, S}, _p, P},
-#         orstate::OrState{I, S}
-#     )::Result{U, String} where {U, I, S, _p, P}
-
-#     vals = Base.uniontypes(I)
-#     ex = quote
-#         idx, allmaybestates = orstate
-#     end
-
-#     for V in vals
-#         i = V.parameters[1]
-
-#         if i == 0
-#             push!(ex.args, quote
-#                 if idx isa Val{0}
-#                     return Result{$U, String}(Err("No matching option or command."))
-#                 end
-#             end)
-#             continue
-#         end
-
-#         parser_t = fieldtype(P, i)
-#         val_t = tval(parser_t)
-#         push!(ex.args, quote
-#             if idx isa Val{$i}
-#                 parser = p.parsers[$i]::$parser_t
-#                 maybestate = allmaybestates[$i]
-#                 result = Result{$val_t, String}(complete(
-#                     unwrapunion(parser),
-#                     ℒ_nextstate(unwrap(maybestate))
-#                 ))
-
-#                 if is_error(result)
-#                     return Result{$U, String}(Err(unwrap_error(result)))
-#                 end
-
-#                 return Result{$U, String}(Ok(unwrap(result)))
-#             end
-#         end)
-#     end
-
-#     push!(ex.args, :(return Result{$U, String}(Err("No matching option or command."))))
-#     return ex
-# end
