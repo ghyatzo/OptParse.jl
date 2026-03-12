@@ -48,7 +48,7 @@ function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDef
 
     # The state can be missing (none), in which case return the default.
     if is_error(maybestate)
-        return Result{T, String}(Ok{T}(ErrorTypes.unsafe, p.default))
+        return _okresult(T, p.default)
     end
     state = unwrap(maybestate)
 
@@ -63,9 +63,9 @@ function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDef
     Given that the user explicitly passed a value, he likely does not want the default value.=#
     result = complete(unwrapunion(p.parser), state)::Result{tval(p.parser), String}
     if is_error(result)
-        return Result{T, String}(Err{String}(ErrorTypes.unsafe, unwrap_error(result)))
+        return _errresult(T, unwrap_error(result))
     end
 
     # Rewrap as the widened output type of the modifier.
-    return Result{T, String}(Ok{T}(ErrorTypes.unsafe, unwrap(result)::T))
+    return _okresult(T, unwrap(result)::T)
 end

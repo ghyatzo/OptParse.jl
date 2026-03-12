@@ -69,6 +69,14 @@ function complete(p::Parser{T, S}, st::S)::Result{T, String} where {T, S}
     complete(unwrapunion(p), st)
 end
 
+@inline function typedOk(::Type{T}, value::V)::Result{T, String} where {T, V <: T}
+    return Ok(value)
+end
+
+@inline function typedErr(::Type{T}, msg::String)::Result{T, String} where {T}
+    return Err(msg)
+end
+
 # modifiers
 
 ## WithDefault
