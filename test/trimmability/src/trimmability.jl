@@ -24,9 +24,11 @@ const simple = flag("-v")
 
 const multiarg = multiple(argument(str()))
 
+const opt = option("-d", "--depth", integer())
+
 function @main(args::Vector{String})::Cint
 
-	parser = or(simple, greet, multiarg, goodbye)
+	parser = or(simple, greet, multiarg, goodbye, opt)
 
 	obj = @? argparse(parser, args)
 

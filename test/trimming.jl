@@ -1,25 +1,46 @@
 using JuliaC
 
 const TRIM_PROJ = abspath(joinpath(@__DIR__, "trimmability"))
+const TRIM_VARIANTS_DIR = joinpath(TRIM_PROJ, "src", "variants")
+const TRIM_CASES = (
+    (name = "project_default", file = TRIM_PROJ, project = nothing),
+    (name = "or_commands", file = joinpath(TRIM_VARIANTS_DIR, "or_commands.jl"), project = TRIM_PROJ),
+    (name = "tuple_defaults", file = joinpath(TRIM_VARIANTS_DIR, "tuple_defaults.jl"), project = TRIM_PROJ),
+    (name = "object_multiple", file = joinpath(TRIM_VARIANTS_DIR, "object_multiple.jl"), project = TRIM_PROJ),
+    (name = "nested_constructors", file = joinpath(TRIM_VARIANTS_DIR, "nested_constructors.jl"), project = TRIM_PROJ),
+)
 
 @testset "Trimming" begin
-    outdir = joinpath(TRIM_PROJ, "build")
-    exeout = joinpath(outdir, "out")
+    for case in TRIM_CASES
+        @testset "$(case.name)" begin
+            outdir = mktempdir()
+            exeout = joinpath(outdir, case.name)
 
-    img = JuliaC.ImageRecipe(
-        file = TRIM_PROJ,
-        output_type = "--output-exe",
-        # project = TRIM_PROJ,
-        trim_mode = "safe",
-        verbose = true,
-    )
-    JuliaC.compile_products(img)
-    link = JuliaC.LinkRecipe(image_recipe=img, outname=exeout)
-    JuliaC.link_products(link)
-    bun = JuliaC.BundleRecipe(link_recipe=link, output_dir=outdir)
-    JuliaC.bundle_products(bun)
+            img = isnothing(case.project) ?
+                JuliaC.ImageRecipe(
+                    file = case.file,
+                    output_type = "--output-exe",
+                    trim_mode = "safe",
+                    verbose = true,
+                ) :
+                JuliaC.ImageRecipe(
+                    file = case.file,
+                    project = case.project,
+                    output_type = "--output-exe",
+                    trim_mode = "safe",
+                    verbose = true,
+                )
 
-    actual_exe = Sys.iswindows() ? joinpath(outdir, "bin", basename(exeout) * ".exe") : joinpath(outdir, "bin", basename(exeout))
-    @test isfile(actual_exe)
+            JuliaC.compile_products(img)
+            link = JuliaC.LinkRecipe(image_recipe=img, outname=exeout)
+            JuliaC.link_products(link)
+            bun = JuliaC.BundleRecipe(link_recipe=link, output_dir=outdir)
+            JuliaC.bundle_products(bun)
 
+            actual_exe = Sys.iswindows() ?
+                joinpath(outdir, "bin", basename(exeout) * ".exe") :
+                joinpath(outdir, "bin", basename(exeout))
+            @test isfile(actual_exe)
+        end
+    end
 end

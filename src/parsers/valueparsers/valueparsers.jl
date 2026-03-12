@@ -23,11 +23,11 @@ end
 @kwdef struct Choice{T}
     metavar::String = "CHOICE"
     caseInsensitive::Bool = true
-    values::Vector{T}
+    values::Vector{String}
 
-    Choice(metavar, caseInsensitive, values::Vector{T}) where {T} = let
+    Choice(metavar, caseInsensitive, values::Vector{String}) = let
         normvals = caseInsensitive ? map(lowercase, values) : values
-        new{T}(metavar, caseInsensitive, normvals)
+        new{String}(metavar, caseInsensitive, normvals)
     end
 end
 
@@ -35,7 +35,7 @@ end
     norminput = c.caseInsensitive ? lowercase(input) : input
     index = findfirst(==(norminput), c.values)
 
-    isnothing(index) && return typedErr("Expected of of $(join(c.values, ',')), but got $input")
+    isnothing(index) && return typedErr("Expected one of $(join(c.values, ',')), but got $input")
     return typedOk(c.values[index])
 end
 
