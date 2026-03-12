@@ -46,8 +46,11 @@ end
 
 function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDefaultState{S})::Result{T, String} where {T, S}
 
-    #= The state can be missing (none), in which case simply return the result. =#
-    state = @unwrap_or maybestate (return Ok(p.default))
+    # The state can be missing (none), in which case return the default.
+    if is_error(maybestate)
+        return Result{T, String}(Ok{T}(ErrorTypes.unsafe, p.default))
+    end
+    state = unwrap(maybestate)
 
 
     #=This approach would also work, but is less conceptually correct. We're assuming that a state is a Result.
@@ -59,8 +62,10 @@ function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDef
     In case of validation errors from the value parser, we want to return an error instead of the default.
     Given that the user explicitly passed a value, he likely does not want the default value.=#
     result = complete(unwrapunion(p.parser), state)::Result{tval(p.parser), String}
+    if is_error(result)
+        return Result{T, String}(Err{String}(ErrorTypes.unsafe, unwrap_error(result)))
+    end
 
-
-    # we need to rewrap so that in case of a union it is properly rendered.
-    return Ok(@? result)
+    # Rewrap as the widened output type of the modifier.
+    return Result{T, String}(Ok{T}(ErrorTypes.unsafe, unwrap(result)::T))
 end

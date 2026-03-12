@@ -105,29 +105,37 @@ parse(p::ConstrOr{T, OrState{U}}, ctx::Context{OrState{U}}) where {T,U} = let
 end
 
 function complete(p::ConstrOr{T}, orstate::OrState{U})::Result{T, String} where {T, U}
-    is_error(orstate) && return Err("No matching option or command.")
+    is_error(orstate) &&
+        return Result{T, String}(Err{String}(ErrorTypes.unsafe, "No matching option or command."))
 
-    selected = unwrapunion(unwrap(orstate))
-
-    result::Result{T, String} = _gencomplete(p.parsers, selected)
-
-    return Ok(@? result)
+    selected = unwrapunion(unwrap(orstate))::U
+    return _gencomplete(p, selected)
 end
 
 @generated function _gencomplete(
-        parsers::PTup,
-        orstate::SelectedState
-    ) where {PTup<:Tuple, SelectedState}
+        p::ConstrOr{T, OrState{U}, pprio, PTup},
+        selected::U,
+    )::Result{T, String} where {T, U, pprio, PTup <: Tuple}
+    ex = Expr(:block)
 
-    N = fieldcount(PTup)
-    for i in 1:N
+    for branch_t in Base.uniontypes(U)
+        branch_t <: OrBranchState || continue
+
+        i = branch_t.parameters[1]
         ptype = fieldtype(PTup, i)
-        pstatetype = tstate(ptype)
+        out_t = tval(ptype)
 
-        if SelectedState <: OrBranchState{i, pstatetype}
-            return :(@unionsplit complete(parsers[$i], ℒ_nextstate(orstate.success)))
-        end
+        push!(ex.args, quote
+            if selected isa $branch_t
+                child_result = complete(p.parsers[$i], ℒ_nextstate(selected.success))::Result{$out_t, String}
+                if is_error(child_result)
+                    return Result{T, String}(Err{String}(ErrorTypes.unsafe, unwrap_error(child_result)))
+                end
+                return Result{T, String}(Ok{T}(ErrorTypes.unsafe, unwrap(child_result)::T))
+            end
+        end)
     end
 
-    return :(Err("Unreachable"))
+    push!(ex.args, :(return Result{T, String}(Err{String}(ErrorTypes.unsafe, "Unreachable"))))
+    return ex
 end
