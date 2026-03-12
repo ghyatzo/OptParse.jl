@@ -15,8 +15,8 @@ end
 
 (s::StringVal)(input::String)::Result{String, String} = let
     m = match(s.pattern, input)
-    isnothing(m) && return Err("Expected a string matching the pattern `$(s.pattern)`, but got `$input`.")
-    return Ok(input)
+    isnothing(m) && return typedErr("Expected a string matching the pattern `$(s.pattern)`, but got `$input`.")
+    return typedOk(input)
 end
 
 
@@ -35,8 +35,8 @@ end
     norminput = c.caseInsensitive ? lowercase(input) : input
     index = findfirst(==(norminput), c.values)
 
-    isnothing(index) && return Err("Expected of of $(join(c.values, ',')), but got $input")
-    return Ok(c.values[index])
+    isnothing(index) && return typedErr("Expected of of $(join(c.values, ',')), but got $input")
+    return typedOk(c.values[index])
 end
 
 
@@ -50,13 +50,13 @@ end
 ((iv::IntegerVal{T})(input::String)::Result{T, String}) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
-        return Err("Expected valid integer, got `$input`")
+        return typedErr("Expected valid integer, got `$input`")
     end
 
-    (!isnothing(iv.min) && val < iv.min) && return Err("Value $input is below the minimum: $(iv.min)")
-    (!isnothing(iv.max) && val > iv.max) && return Err("Value $input is above the maximum: $(iv.max)")
+    (!isnothing(iv.min) && val < iv.min) && return typedErr("Value $input is below the minimum: $(iv.min)")
+    (!isnothing(iv.max) && val > iv.max) && return typedErr("Value $input is above the maximum: $(iv.max)")
 
-    return Ok(val)
+    return typedOk(val)
 end
 
 
@@ -72,21 +72,21 @@ end
 ((f::FloatVal{T})(input::String)::Result{T, String}) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
-        return Err("Expected valid float, got `$input`")
+        return typedErr("Expected valid float, got `$input`")
     end
 
     if isinf(val) && !f.allowInfinity
-        return Err("Infinite floats are not allowed.")
+        return typedErr("Infinite floats are not allowed.")
     end
 
     if isnan(val) && !f.allowNan
-        return Err("NaNs are not allowed.")
+        return typedErr("NaNs are not allowed.")
     end
 
-    (!isnothing(f.min) && val < f.min) && return Err("Value $input is below the minimum: $(f.min)")
-    (!isnothing(f.max) && val > f.max) && return Err("Value $input is above the maximum: $(f.max)")
+    (!isnothing(f.min) && val < f.min) && return typedErr("Value $input is below the minimum: $(f.min)")
+    (!isnothing(f.max) && val > f.max) && return typedErr("Value $input is above the maximum: $(f.max)")
 
-    return Ok(val)
+    return typedOk(val)
 end
 
 
@@ -103,15 +103,15 @@ end
         nothing
     end
     if isnothing(maybeuuid)
-        return Err("Malformed UUID string: `$input`.")
+        return typedErr("Malformed UUID string: `$input`.")
     end
 
     version = uuid_version(maybeuuid)
     if isempty(u.allowedVersions) || version ∈ u.allowedVersions
-        return Ok(maybeuuid)
+        return typedOk(maybeuuid)
     end
 
-    return Err("Expected UUID of version [$(join(u.allowedVersions, ','))], but got version $version")
+    return typedErr("Expected UUID of version [$(join(u.allowedVersions, ','))], but got version $version")
 
 end
 

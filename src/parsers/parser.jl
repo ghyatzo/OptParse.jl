@@ -70,12 +70,15 @@ function complete(p::Parser{T, S}, st::S)::Result{T, String} where {T, S}
 end
 
 @inline function typedOk(::Type{T}, value::V)::Result{T, String} where {T, V <: T}
-    return Ok(value)
+    return convert(Result{T, String}, typedOk(value))
 end
 
 @inline function typedErr(::Type{T}, msg::String)::Result{T, String} where {T}
-    return Err(msg)
+    return convert(Result{T, String}, typedErr(msg))
 end
+
+@inline typedOk(x::T) where {T} = ErrorTypes.ResultConstructor{T, ErrorTypes.Ok}(x)
+@inline typedErr(x::T) where {T} = ErrorTypes.ResultConstructor{T, ErrorTypes.Err}(x)
 
 # modifiers
 

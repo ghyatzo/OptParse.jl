@@ -48,7 +48,7 @@ function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDef
 
     # The state can be missing (none), in which case return the default.
     if is_error(maybestate)
-        return _okresult(T, p.default)
+        return typedOk(T, p.default)
     end
     state = unwrap(maybestate)
 
@@ -56,16 +56,16 @@ function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDef
     #=This approach would also work, but is less conceptually correct. We're assuming that a state is a Result.
     This may lead to further headaches in the future. Instead we catch this case at parse time. (see if else on success)=#
     # The state exists but is an error.
-    #state isa Result && is_error(state) && return Ok(p.default)
+    #state isa Result && is_error(state) && return typedOk(p.default)
 
     #= Otherwise just ask the inner state to complete itself.
     In case of validation errors from the value parser, we want to return an error instead of the default.
     Given that the user explicitly passed a value, he likely does not want the default value.=#
     result = complete(unwrapunion(p.parser), state)::Result{tval(p.parser), String}
     if is_error(result)
-        return _errresult(T, unwrap_error(result))
+        return typedErr(T, unwrap_error(result))
     end
 
     # Rewrap as the widened output type of the modifier.
-    return _okresult(T, unwrap(result)::T)
+    return typedOk(T, unwrap(result)::T)
 end

@@ -181,7 +181,7 @@ end
 
                 result = (@unionsplit complete(child_parser, child_state))::Result{$Ti, String}
                 if is_error(result)
-                    return false, Result{$T, String}(Err(unwrap_error(result)))
+                    return false, Result{$T, String}(typedErr(unwrap_error(result)))
                 else
                     output = (output..., unwrap(result))
                 end
@@ -204,10 +204,10 @@ function complete(p::ConstrObject{T}, st::NamedTuple)::Result{T, String} where {
     cancomplete, _result = _generated_object_complete(p.parsers, st)
 
     if !cancomplete
-        return Err(unwrap_error(_result))
+        return typedErr(unwrap_error(_result))
     end
 
-    return Ok(_result)
+    return typedOk(T, _result)
 end
 
 

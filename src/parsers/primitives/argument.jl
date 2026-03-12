@@ -57,11 +57,11 @@ end
 function complete(p::ArgArgument{T, <:ArgumentState}, maybest::TState)::Result{T, String} where {T, TState <: ArgumentState}
 
     #=The parser never matched anything.=#
-    is_error(maybest) && return Err("Expected a `$(metavar(p.valparser))`, but too few arguments.")
+    is_error(maybest) && return typedErr("Expected a `$(metavar(p.valparser))`, but too few arguments.")
 
     st = unwrap(maybest)
     #=The parser matched but there was a parsing error.=#
-    is_error(st) && return Err("`$(metavar(p.valparser))`: $(unwrap_error(st)).")
+    is_error(st) && return typedErr("`$(metavar(p.valparser))`: $(unwrap_error(st)).")
 
     return st
 end

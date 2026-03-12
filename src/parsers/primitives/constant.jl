@@ -15,9 +15,9 @@ ArgConstant(val::T) where {T} = let
 end
 
 function parse(::ArgConstant{Val{val}, ConstantState{val}}, ctx::Context{ConstantState{val}})::ParseResult{ConstantState{val}, String} where {val}
-    return Ok(ParseSuccess(consumed_empty(ctx), ctx))
+    return typedOk(ParseSuccess(consumed_empty(ctx), ctx))
 end
 
 function complete(::ArgConstant{Val{val}, ConstantState{val}}, st::ConstantState{val})::Result{Val{val}, String} where {val}
-    return Ok(st)
+    return typedOk(st)
 end

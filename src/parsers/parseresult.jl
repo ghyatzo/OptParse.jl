@@ -70,18 +70,18 @@ const ℒ_nextstate = ℒ_state ∘ ℒ_nextctx
 @inline (parseok(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n))::ParseResult{S, String}) where {S} = let
     p = ℒ_pos(ctx)
     consumed = Consumed(ℒ_buffer(ctx), [p:p+n-1])
-    return Ok(ParseSuccess{S}(consumed, nextctx))
+    return typedOk(ParseSuccess{S}(consumed, nextctx))
 end
 
 @inline (parseok(next::Context{S}, cons::Consumed)::ParseResult{S, String}) where {S} =
-    Ok(ParseSuccess{S}(cons, next))
+    typedOk(ParseSuccess{S}(cons, next))
 
 
 @inline (parseerr(_ctx::Context{S}, e; consumed::Int=0)::ParseResult{S, String}) where {S} =
-    Err(ParseFailure(consumed, e))
+    typedErr(ParseFailure(consumed, e))
 
 @inline function parseerr(perr::ParseFailure)
-    Err(ParseFailure(perr.consumed, perr.error))
+    typedErr(ParseFailure(perr.consumed, perr.error))
 end
 
 

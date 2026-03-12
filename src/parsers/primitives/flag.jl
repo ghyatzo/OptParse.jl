@@ -19,7 +19,7 @@ struct ArgFlag{T, S, p, P} <: AbstractParser{T, S, p, P}
             end
 
         end
-        new{Bool, FlagState, 9, Nothing}(Err("Missing Flag(s) $(names)."), nothing, [names...], help)
+        new{Bool, FlagState, 9, Nothing}(typedErr("Missing Flag(s) $(names)."), nothing, [names...], help)
     end
 end
 
@@ -46,7 +46,7 @@ function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::ParseResul
             return parseerr(ctx, "$(tok) cannot be used multiple times"; consumed = 1)
         end
 
-        nextctx = ctx_with_state(consume(ctx, 1), FlagState(Ok(true)))
+        nextctx = ctx_with_state(consume(ctx, 1), FlagState(typedOk(true)))
         return parseok(ctx, 1; nextctx)
     end
 
@@ -74,7 +74,7 @@ function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::ParseResul
     #     =#
     #     nextctx = set(ctx, IndexLens(ℒ_pos(ctx)) ∘ ℒ_buffer, "-$rem_opts")
     #     nextctx = insert(nextctx, IndexLens(ℒ_pos(ctx)) ∘ ℒ_buffer, single_opt)
-    #     nextctx = ctx_with_state(nextctx, Result{Bool, String}(Ok(true)))
+    #     nextctx = ctx_with_state(nextctx, Result{Bool, String}(typedOk(true)))
 
     #     #= we need to consume afterwards since otherwise we consume twice =#
     #     return parseok(nextctx, 1; nextctx=consume(nextctx,1))
@@ -85,5 +85,5 @@ function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::ParseResul
 end
 
 function complete(p::ArgFlag, st::FlagState)::Result{Bool, String}
-    return !is_error(st) ? st : Err("$(p.names[1]): $(unwrap_error(st))")
+    return !is_error(st) ? st : typedErr("$(p.names[1]): $(unwrap_error(st))")
 end

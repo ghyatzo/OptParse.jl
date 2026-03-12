@@ -82,7 +82,7 @@ function complete(p::ArgCommand{T, CommandState{PState}}, maybemaybestate::Comma
 
     if is_error(maybemaybestate)
         # command never matched
-        return Err("Command $(p.names[1]) was not matched")
+        return typedErr("Command $(p.names[1]) was not matched")
     else
         maybestate = unwrap(maybemaybestate)
         if is_error(maybestate)

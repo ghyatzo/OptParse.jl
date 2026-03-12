@@ -156,5 +156,5 @@ function complete(p::ConstrTuple{T, TState}, st::TState)::Result{T, String} wher
         out = insert(out, IndexLens(i), @? result)
     end
 
-    return Ok(out)
+    return typedOk(out)
 end

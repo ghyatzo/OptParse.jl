@@ -71,11 +71,11 @@ function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleSta
 	end
 
 	if length(result) < p.min
-		return Err("Expected at least $(p.min) values, but got only $(length(result)).")
+		return typedErr("Expected at least $(p.min) values, but got only $(length(result)).")
 	elseif length(result) > p.max
-		return Err("Expected at most $(p.max) values, but got $(length(result)).")
+		return typedErr("Expected at most $(p.max) values, but got $(length(result)).")
 	end
 
-	return Ok(result)
+	return typedOk(result)
 
 end

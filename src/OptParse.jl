@@ -207,7 +207,7 @@ function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} whe
         mayberesult::ParseResult{S, String} = @unionsplit parse(pp, ctx)
 
         if is_error(mayberesult)
-            return Err(unwrap_error(mayberesult).error)
+            return typedErr(unwrap_error(mayberesult).error)
         end
         result = unwrap(mayberesult)
 
@@ -220,7 +220,7 @@ function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} whe
                     && ctx_remaining(ctx) == previous_buffer
             )
 
-            return Err("Unexpected option or argument: $(ctx_peek(ctx)).")
+            return typedErr("Unexpected option or argument: $(ctx_peek(ctx)).")
         end
 
         ctx_length(ctx) > 0 || break

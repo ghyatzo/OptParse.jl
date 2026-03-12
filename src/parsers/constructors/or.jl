@@ -106,7 +106,7 @@ end
 
 function complete(p::ConstrOr{T}, orstate::OrState{U})::Result{T, String} where {T, U}
     is_error(orstate) &&
-        return _errresult(T, "No matching option or command.")
+        return typedErr(T, "No matching option or command.")
 
     selected = unwrapunion(unwrap(orstate))::U
     return _gencomplete(p, selected)
@@ -129,13 +129,13 @@ end
             if selected isa $branch_t
                 child_result = complete(p.parsers[$i], ℒ_nextstate(selected.success))::Result{$out_t, String}
                 if is_error(child_result)
-                    return _errresult(T, unwrap_error(child_result))
+                    return typedErr(T, unwrap_error(child_result))
                 end
-                return _okresult(T, unwrap(child_result)::T)
+                return typedOk(T, unwrap(child_result)::T)
             end
         end)
     end
 
-    push!(ex.args, :(return _errresult(T, "Unreachable")))
+    push!(ex.args, :(return typedErr(T, "Unreachable")))
     return ex
 end

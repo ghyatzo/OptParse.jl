@@ -19,7 +19,7 @@ struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
                 throw(ArgumentError("Short options and flags must only have 1 character."))
             end
         end
-        new{T, OptionState{T}, 10, Nothing}(Err("Missing Option(s): $(names)."), nothing, valparser, [names...], help)
+        new{T, OptionState{T}, 10, Nothing}(typedErr("Missing Option(s): $(names)."), nothing, valparser, [names...], help)
     end
 end
 
@@ -82,5 +82,5 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::P
 end
 
 function complete(p::ArgOption{T, OptionState{T}}, st::OptionState{T})::Result{T, String} where {T}
-    return !is_error(st) ? st : Err("$(p.names[1]): $(unwrap_error(st))") # string of vector calls show which is not trimmable.
+    return !is_error(st) ? st : typedErr("$(p.names[1]): $(unwrap_error(st))") # string of vector calls show which is not trimmable.
 end
