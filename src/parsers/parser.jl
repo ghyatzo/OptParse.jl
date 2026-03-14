@@ -1002,10 +1002,6 @@ arguments appear in a different order.
 - `label::String`: Optional label for the tuple (used in help text)
 - `parsers...`: Variable number of parsers in desired result order
 
-# Keywords
-- `allowDuplicates::Bool = false`: Whether to allow duplicate parsers in the tuple
-- Additional keyword arguments are passed to the underlying `ConstrTuple` constructor
-
 # Returns
 A parser that returns a tuple of parsed values in the same order as the parsers.
 
@@ -1079,7 +1075,7 @@ tup(label::String, parsers...; kw...) = _parser(ConstrTuple(parsers; label, kw..
 ## Concat
 
 """
-    concat(tups...; label = "", allowDuplicates = false)
+    concat(tups...; label = "")
 
 Constructor that concatenates multiple tuple parsers into a single flat tuple.
 
@@ -1091,7 +1087,6 @@ a single flat result structure.
 
 # Keywords
 - `label::String = ""`: Optional label for the concatenated tuple
-- `allowDuplicates::Bool = false`: Whether to allow duplicate parsers in the result
 
 # Returns
 A parser that combines all elements from the input tuples into a single flat tuple.
@@ -1148,7 +1143,6 @@ julia> result
 
 # Notes
 - Results in a flat tuple, not nested tuples
-- By default, prevents duplicate parsers (set `allowDuplicates = true` to override)
 - Maintains order across all concatenated tuples
 - Useful for DRY principle with tuple-based parsers
 
@@ -1158,4 +1152,4 @@ julia> result
 """
 function concat end
 
-concat(tups...; label = "", allowDuplicates = false) = _parser(ConstrTuple(_concat(tups); label, allowDuplicates))
+concat(tups...; label = "") = _parser(ConstrTuple(_concat(tups); label))

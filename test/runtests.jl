@@ -56,12 +56,16 @@ end
         include("primitives/argument.jl")
     end
 
-    # @testset "Command parser" begin
-    #     include("primitives/command.jl")
-    # end
+    @testset "Command parser" begin
+        include("primitives/command.jl")
+    end
 end
 
 @testset "Constructors" failfast=true begin
+
+    @testset "Objmerge" begin
+        include("constructors/merge.jl")
+    end
 
     @testset "Objects" begin
         include("constructors/object.jl")
@@ -73,6 +77,10 @@ end
 
     @testset "Tup" begin
         include("constructors/tup.jl")
+    end
+
+    @testset "Concat" begin
+        include("constructors/concat.jl")
     end
 
 end
@@ -97,6 +105,10 @@ end
 
     @testset "Argparse" begin
         include("argparse.jl")
+    end
+
+    @testset "Argv Normalization" begin
+        include("normalize_argv.jl")
     end
 end
 
