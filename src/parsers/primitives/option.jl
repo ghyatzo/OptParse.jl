@@ -1,5 +1,23 @@
 const OptionState{X} = Result{X, String}
 
+@enum OptionErrCode::UInt8 begin
+    OPTION_NoMoreOptions
+    OPTION_EndOfInput
+    OPTION_Terminator
+    OPTION_Duplicate
+    OPTION_MissingValue
+    OPTION_NoMatch
+    OPTION_Missing
+    OPTION_InvalidValue
+end
+
+argoption_error(code::OptionErrCode; token = "", detail = "", subject="") =
+    mkerror(ParsePhase, ERR_ArgOption, UInt8(code);
+        token,
+        detail,
+        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgOption, subject)]
+    )
+
 # options with values: -o 123 / --option valu
 struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S

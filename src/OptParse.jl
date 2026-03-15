@@ -198,13 +198,13 @@ end
 to force the user to deal with them. Need to figure out a way in which to return errors to the user.
 I'm thinking a higher level approach that either returns the desired result or throws or a lower level one
 that simply returns the Result type for the user to deal with... maybe. I don't know yet.=#
-function argparse(pp::Parser{T, S}, args::Vector{String})::Result{T, String} where {T, S}
+function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}
 
     canonical_argv, _ = normalize_argv(args)
     ctx = Context{S}(buffer=canonical_argv, state=pp.initialState)
 
     while true
-        mayberesult::ParseResult{S, String} = @unionsplit parse(pp, ctx)
+        mayberesult::InnerParseResult{S} = @unionsplit parse(pp, ctx)
 
         if is_error(mayberesult)
             return typedErr(unwrap_error(mayberesult).error)

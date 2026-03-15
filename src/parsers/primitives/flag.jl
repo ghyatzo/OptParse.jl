@@ -1,5 +1,21 @@
 const FlagState = Result{Bool, String}
 
+@enum FlagErrCode::UInt8 begin
+    FLAG_NoMoreOptions
+    FLAG_EndOfInput
+    FLAG_Terminator
+    FLAG_Duplicate
+    FLAG_NoMatch
+    FLAG_Missing
+end
+
+argflag_error(code::FlagErrCode; token = "", detail = "", subject="") =
+    mkerror(ParsePhase, ERR_ArgFlag, UInt8(code);
+        token,
+        detail,
+        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgFlag, subject)]
+    )
+
 # single boolean flags: -q --long
 struct ArgFlag{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S

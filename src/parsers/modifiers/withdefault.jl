@@ -1,5 +1,16 @@
 const WithDefaultState{X} = Option{X}
 
+@enum WithDefaultErrCode::UInt8 begin
+    WITHDEFAULT_InnerError
+end
+
+modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "", subject="") =
+    mkerror(CompletePhase, ERR_ModWithDefault, UInt8(code);
+        token,
+        detail,
+        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModWithDefault, subject)]
+    )
+
 struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S
     parser::P

@@ -8,112 +8,11 @@
 # function format end # T -> String
 
 
-@kwdef struct StringVal{T}
-    metavar::String = "STRING"
-    pattern::Regex = r".*"
-end
-
-(s::StringVal)(input::String)::Result{String, String} = let
-    m = match(s.pattern, input)
-    isnothing(m) && return typedErr("Expected a string matching the pattern `$(s.pattern)`, but got `$input`.")
-    return typedOk(input)
-end
-
-
-@kwdef struct Choice{T}
-    metavar::String = "CHOICE"
-    caseInsensitive::Bool = true
-    values::Vector{String}
-
-    Choice(metavar, caseInsensitive, values::Vector{String}) = let
-        normvals = caseInsensitive ? map(lowercase, values) : values
-        new{String}(metavar, caseInsensitive, normvals)
-    end
-end
-
-(c::Choice)(input::String)::Result{String, String} = let
-    norminput = c.caseInsensitive ? lowercase(input) : input
-    index = findfirst(==(norminput), c.values)
-
-    isnothing(index) && return typedErr("Expected one of $(join(c.values, ',')), but got $input")
-    return typedOk(c.values[index])
-end
-
-
-@kwdef struct IntegerVal{T}
-    metavar::String = "INTEGER"
-    #
-    type::Type = T
-    min::Union{Int, Nothing} = nothing
-    max::Union{Int, Nothing} = nothing
-end
-((iv::IntegerVal{T})(input::String)::Result{T, String}) where {T} = let
-    val = tryparse(T, input)
-    if isnothing(val)
-        return typedErr("Expected valid integer, got `$input`")
-    end
-
-    (!isnothing(iv.min) && val < iv.min) && return typedErr("Value $input is below the minimum: $(iv.min)")
-    (!isnothing(iv.max) && val > iv.max) && return typedErr("Value $input is above the maximum: $(iv.max)")
-
-    return typedOk(val)
-end
-
-
-@kwdef struct FloatVal{T}
-    metavar::String = "FLOAT"
-    #
-    type::Type = T
-    min::Union{T, Nothing} = nothing
-    max::Union{T, Nothing} = nothing
-    allowInfinity::Bool = false
-    allowNan::Bool = false
-end
-((f::FloatVal{T})(input::String)::Result{T, String}) where {T} = let
-    val = tryparse(T, input)
-    if isnothing(val)
-        return typedErr("Expected valid float, got `$input`")
-    end
-
-    if isinf(val) && !f.allowInfinity
-        return typedErr("Infinite floats are not allowed.")
-    end
-
-    if isnan(val) && !f.allowNan
-        return typedErr("NaNs are not allowed.")
-    end
-
-    (!isnothing(f.min) && val < f.min) && return typedErr("Value $input is below the minimum: $(f.min)")
-    (!isnothing(f.max) && val > f.max) && return typedErr("Value $input is above the maximum: $(f.max)")
-
-    return typedOk(val)
-end
-
-
-@kwdef struct UUIDVal{T}
-    metavar::String = "UUID"
-    #
-    allowedVersions::Vector{Int} = Int[]
-end
-((u::UUIDVal)(input::String)::Result{UUID, String}) = let
-
-    maybeuuid = try
-        UUID(input)
-    catch
-        nothing
-    end
-    if isnothing(maybeuuid)
-        return typedErr("Malformed UUID string: `$input`.")
-    end
-
-    version = uuid_version(maybeuuid)
-    if isempty(u.allowedVersions) || version ∈ u.allowedVersions
-        return typedOk(maybeuuid)
-    end
-
-    return typedErr("Expected UUID of version [$(join(u.allowedVersions, ','))], but got version $version")
-
-end
+include("string.jl")
+include("choice.jl")
+include("integer.jl")
+include("float.jl")
+include("uuid.jl")
 
 
 @wrapped struct ValueParser{T}
@@ -129,7 +28,7 @@ end
 Base.getproperty(v::ValueParser, f::Symbol) = @unionsplit Base.getproperty(v, f)
 metavar(v::ValueParser) = v.metavar
 
-(parse(x::ValueParser{T}, input::String)::Result{T, String}) where {T} = @unionsplit parse(x, input)
+# (parse(x::ValueParser{T}, input::String)::Result{T, String}) where {T} = @unionsplit parse(x, input)
 ((v::ValueParser{T})(input::String)::Result{T, String}) where {T} = @unionsplit v(input)
 
 

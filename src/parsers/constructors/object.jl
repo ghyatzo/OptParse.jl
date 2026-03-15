@@ -1,5 +1,20 @@
 const ObjectState{L, P} = NamedTuple{L, P}
 
+@enum ObjectErrCode::UInt8 begin
+    OBJECT_UnexpectedToken
+    OBJECT_EndOfInput
+    OBJECT_MaxIter
+    OBJECT_InnerError
+    OBJECT_MissingField
+end
+
+constrobject_error(code::ObjectErrCode; token = "", detail = "", subject="") =
+    mkerror(ParsePhase, ERR_ConstrObject, UInt8(code);
+        token,
+        detail,
+        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrObject, subject)]
+    )
+
 struct ConstrObject{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S # NamedTuple of the states of its parsers
     #
@@ -218,4 +233,3 @@ end
 # const Tagged{tag} = NamedTuple{N, <: Tuple{Val{tag}, Vararg}} where {N}
 # f(nt::Tagged{:a}) = "this is tagged as :a"
 # f(nt::Tagged{:b}) = "this is tagged as :b"
-

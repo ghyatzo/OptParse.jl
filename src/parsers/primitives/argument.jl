@@ -1,5 +1,21 @@
 const ArgumentState{X} = Option{Result{X, String}}
 
+@enum ArgumentErrCode::UInt8 begin
+    ARGUMENT_EndOfInput
+    ARGUMENT_GotOption
+    ARGUMENT_Duplicate
+    ARGUMENT_TooFew
+    ARGUMENT_InvalidValue
+end
+
+argargument_error(code::ArgumentErrCode; token = "", detail = "", subject="") =
+    mkerror(ParsePhase, ERR_ArgArgument, UInt8(code);
+        token,
+        detail,
+        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgArgument, subject)]
+    )
+
+
 struct ArgArgument{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S
     _dummy::P

@@ -1,0 +1,26 @@
+@kwdef struct StringVal{T}
+    metavar::String = "STRING"
+    pattern::Regex = r".*"
+end
+
+@enum StringErrCode::UInt8 begin
+    STRING_InvalidPattern
+end
+
+stringval_error(code::StringErrCode; token = "", detail ="", subject="") =
+    mkerror(ValuePhase, ERR_StringVal, UInt8(code);
+        token,
+        detail,
+        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_StringVal, subject)]
+    )
+
+(s::StringVal)(input::String)::Result{String, String} = let
+    m = match(s.pattern, input)
+    isnothing(m) && return typedErr(stringval_error(
+        STRING_InvalidPattern;
+        token=input,
+        detail=s.pattern
+    ))
+    # isnothing(m) && return typedErr("Expected a string matching the pattern `$(s.pattern)`, but got `$input`.")
+    return typedOk(input)
+end

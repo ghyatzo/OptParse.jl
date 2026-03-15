@@ -1,5 +1,18 @@
 const MultipleState{X} = Vector{X}
 
+@enum MultipleErrCode::UInt8 begin
+	MULTIPLE_TooFew
+	MULTIPLE_TooMany
+	MULTIPLE_InnerError
+end
+
+modmultiple_error(code::MultipleErrCode; token = "", detail = "", subject="") =
+	mkerror(CompletePhase, ERR_ModMultiple, UInt8(code);
+		token,
+		detail,
+		context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModMultiple, subject)]
+	)
+
 struct ModMultiple{T, S, _p, P} <: AbstractParser{T, S, _p, P}
 	initialState::S
 	parser::P

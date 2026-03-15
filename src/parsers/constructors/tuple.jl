@@ -5,6 +5,18 @@ struct ConstrTuple{T, S, p, P} <: AbstractParser{T, S, p, P}
     label::String
 end
 
+@enum TupleErrCode::UInt8 begin
+    TUPLE_NoRemainingParser
+    TUPLE_InnerError
+end
+
+constrtuple_error(code::TupleErrCode; token = "", detail = "", subject="") =
+    mkerror(ParsePhase, ERR_ConstrTuple, UInt8(code);
+        token,
+        detail,
+        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrTuple, subject)]
+    )
+
 ConstrTuple(parsers::PTup; label::String = "") where {PTup} = let
     ConstrTuple{
         Tuple{map(tval, parsers)...},

@@ -18,25 +18,8 @@ ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
 
 
 include("context.jl")
+include("errors.jl")
 include("parseresult.jl")
-
-# struct ParseSuccess{S}
-#     consumed::Tuple{Vararg{String}}
-#     next::Context{S}
-# end
-
-# struct ParseFailure{E}
-#     consumed::Int
-#     error::E
-# end
-
-# const ParseResult{S, E} = Result{ParseSuccess{S}, ParseFailure{E}}
-
-# # TODO: the transformation to tuple is not trimmable
-# @inline ParseOk(cons::Tuple{Vararg{String}}, next::Context{S}) where {S} = Ok(ParseSuccess{S}(cons, next))
-# @inline ParseOk(cons::Vector{String}, next::Context{S}) where {S} = Ok(ParseSuccess{S}(Tuple(cons), next))
-# @inline ParseOk(cons::String, next::Context{S}) where {S} = Ok(ParseSuccess{S}((cons,), next))
-# @inline ParseErr(consumed, error) = Err(ParseFailure(consumed, error))
 
 include("valueparsers/valueparsers.jl")
 include("primitives/primitives.jl")
@@ -69,16 +52,7 @@ function complete(p::Parser{T, S}, st::S)::Result{T, String} where {T, S}
     complete(unwrapunion(p), st)
 end
 
-@inline function typedOk(::Type{T}, value::V)::Result{T, String} where {T, V <: T}
-    return Result{T, String}(ErrorTypes.Ok{T}(ErrorTypes.unsafe, convert(T, value)))
-end
 
-@inline function typedErr(::Type{T}, msg::String)::Result{T, String} where {T}
-    return Result{T, String}(ErrorTypes.Err{String}(ErrorTypes.unsafe, msg))
-end
-
-@inline typedOk(x) = Ok(x)
-@inline typedErr(x) = Err(x)
 
 # modifiers
 

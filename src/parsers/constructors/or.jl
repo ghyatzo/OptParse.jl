@@ -3,10 +3,26 @@
 end
 
 struct OrBranchState{I, S}
-    success::ParseSuccess{S}
+    success::InnerParseSuccess{S}
 end
 
 const OrState{U} = Option{InnerOrState{U}}
+
+@enum OrErrCode::UInt8 begin
+    OR_EndOfInput
+    OR_UnexpectedToken
+    OR_Conflict
+    OR_NoMatch
+    OR_Unreachable
+    OR_InnerError
+end
+
+constror_error(code::OrErrCode; token = "", detail = "", subject="") =
+    mkerror(ParsePhase, ERR_ConstrOr, UInt8(code);
+        token,
+        detail,
+        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrOr, subject)]
+    )
 
 Base.@assume_effects :foldable function _or_inner_branch_union(::Type{PTup}) where {PTup <: Tuple}
     branch_types = ntuple(fieldcount(PTup)) do i

@@ -1,5 +1,18 @@
 const CommandState{X} = Option{Option{X}}
 
+@enum CommandErrCode::UInt8 begin
+    COMMAND_EndOfInput
+    COMMAND_WrongName
+    COMMAND_NotMatched
+end
+
+argcommand_error(code::CommandErrCode; token = "", detail = "", subject="") =
+    mkerror(ParsePhase, ERR_ArgCommand, UInt8(code);
+        token,
+        detail,
+        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgCommand, subject)]
+    )
+
 
 struct ArgCommand{T, S, _p, P} <: AbstractParser{T, S, _p, P}
     initialState::S

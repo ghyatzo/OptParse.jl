@@ -45,46 +45,6 @@ Construct an empty consumption at position `pos` (range `pos:pos-1`).
 @inline as_tuple(c::Consumed) = Tuple(collect(c))
 
 
-struct ParseSuccess{S}
-    consumed::Consumed
-    next::Context{S}
-end
-
-struct ParseFailure{E}
-    consumed::Int
-    error::E
-end
-
-const ParseResult{S, E} = Result{ParseSuccess{S}, ParseFailure{E}}
-
-
-const ℒ_nextctx = @optic _.next
-const ℒ_consumed = @optic _.consumed
-const ℒ_nconsumed = @optic _.consumed
-
-const ℒ_ranges = (@optic _.ranges) ∘ ℒ_consumed
-const ℒ_error = @optic _.error
-const ℒ_nextstate = ℒ_state ∘ ℒ_nextctx
-
-
-@inline (parseok(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n))::ParseResult{S, String}) where {S} = let
-    p = ℒ_pos(ctx)
-    consumed = Consumed(ℒ_buffer(ctx), [p:p+n-1])
-    return typedOk(ParseSuccess{S}(consumed, nextctx))
-end
-
-@inline (parseok(next::Context{S}, cons::Consumed)::ParseResult{S, String}) where {S} =
-    typedOk(ParseSuccess{S}(cons, next))
-
-
-@inline (parseerr(_ctx::Context{S}, e; consumed::Int=0)::ParseResult{S, String}) where {S} =
-    typedErr(ParseFailure(consumed, e))
-
-@inline function parseerr(perr::ParseFailure)
-    typedErr(ParseFailure(perr.consumed, perr.error))
-end
-
-
 function _normalize_ranges(ranges::Vector{UnitRange{Int}})
     isempty(ranges) && return ranges
     rs = sort(ranges; by = r -> (first(r), last(r)))
@@ -126,3 +86,70 @@ function merge(consumed::Vector{Consumed})
 
     return Consumed(buf, _normalize_ranges(all))
 end
+
+
+
+
+#-----------------------------------------
+#   Results / Errors
+#--------------------------------------------
+
+
+
+
+struct InnerParseSuccess{S}
+    consumed::Consumed
+    next::Context{S}
+end
+
+struct InnerParseFailure
+    consumed::Int
+    error::ParseError
+end
+
+const InnerParseResult{S} = Result{InnerParseSuccess{S}, InnerParseFailure}
+
+
+const ℒ_nextctx = @optic _.next
+const ℒ_consumed = @optic _.consumed
+const ℒ_nconsumed = @optic _.consumed
+
+const ℒ_ranges = (@optic _.ranges) ∘ ℒ_consumed
+const ℒ_error = @optic _.error
+const ℒ_nextstate = ℒ_state ∘ ℒ_nextctx
+
+
+@inline function typedOk(::Type{T}, value::V)::Result{T, String} where {T, V <: T}
+    return Result{T, String}(ErrorTypes.Ok{T}(ErrorTypes.unsafe, convert(T, value)))
+end
+
+@inline function typedErr(::Type{T}, msg::String)::Result{T, String} where {T}
+    return Result{T, String}(ErrorTypes.Err{String}(ErrorTypes.unsafe, msg))
+end
+
+@inline typedOk(x) = Ok(x)
+@inline typedErr(x) = Err(x)
+
+
+@inline function parseok(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n))::ParseResult{S} where {S}
+    p = ℒ_pos(ctx)
+    consumed = Consumed(ℒ_buffer(ctx), [p:p+n-1])
+    return typedOk(InnerParseSuccess{S}(consumed, nextctx))
+end
+
+@inline function parseok(next::Context{S}, cons::Consumed)::ParseResult{S} where {S}
+    typedOk(InnerParseSuccess{S}(cons, next))
+end
+
+@inline function parseerr(_ctx::Context{S}, e::ParseError; consumed::Int=0)::ParseResult{S} where {S}
+    typedErr(InnerParseFailure(consumed, e))
+end
+
+@inline function parseerr(perr::InnerParseFailure)
+    typedErr(InnerParseFailure(ℒ_consumed(perr), ℒ_error(perr)))
+end
+
+
+
+const ParseResult{T} = Result{T, ParseError}
+
