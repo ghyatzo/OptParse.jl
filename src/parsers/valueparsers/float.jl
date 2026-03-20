@@ -24,11 +24,23 @@ floatval_error(code::FloatErrCode; token="", detail="", subject="") =
     )
 
 function floatval_render_error(io::IO, code::FloatErrCode, err::ParseError)
-    # pass
+    if code == FLOAT_Invalid
+        print(io, "Expected valid float, got $(err.token)")
+    elseif code == FLOAT_BelowMin
+        print(io, "Value $(err.token) is below the minimum allowed: $(err.detail)")
+    elseif code == FLOAT_AboveMax
+        print(io, "Value $(err.token) is above the maximum allowed: $(err.detail)")
+    elseif code == FLOAT_NoInf
+        print(io, "Infinite floats are not allowed")
+    elseif code == FLOAT_NoNaN
+        print(io, "NaNs are not allowed")
+    else
+        print(io, "unreachable")
+    end
 end
 
 
-((f::FloatVal{T})(input::String)::Result{T, String}) where {T} = let
+((f::FloatVal{T})(input::String)::ParseResult{T}) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
         return typedErr(floatval_error(FLOAT_Invalid; token=input))

@@ -15,10 +15,14 @@ stringval_error(code::StringErrCode; token = "", detail ="", subject="") =
     )
 
 function stringval_render_error(io::IO, code::StringErrCode, err::ParseError)
-    # pass
+    if code == STRING_InvalidPattern
+        print(io, "Expected a string matching the pattern $(err.detail), but got $(err.token)")
+    else
+        print(io, "unreachable")
+    end
 end
 
-(s::StringVal)(input::String)::Result{String, String} = let
+(s::StringVal)(input::String)::ParseResult{String} = let
     m = match(s.pattern, input)
     isnothing(m) && return typedErr(stringval_error(
         STRING_InvalidPattern;

@@ -38,10 +38,10 @@ function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefau
         parse_err = unwrap_error(result)
         #=the inner parser failed without consuming any input, which means that it wasn't matched.=#
         if parse_err.consumed == 0
-            return parseok(ctx, consumed_empty(ctx))
+            return innerparseok(ctx, consumed_empty(ctx))
         else
             #=otherwise the parser failed midway, and that we should propagate.=#
-            return parseerr(parse_err)
+            return innerparseerr(parse_err)
         end
     end
 
@@ -55,7 +55,7 @@ function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefau
         newctx = ctx_restate(ℒ_nextctx(parse_ok), ℒ_state(ctx))
     end
 
-    return parseok(newctx, ℒ_consumed(parse_ok))
+    return innerparseok(newctx, ℒ_consumed(parse_ok))
 
 end
 

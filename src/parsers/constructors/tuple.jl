@@ -146,12 +146,12 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
 
             if !found_match
                 #=If we still haven't found a match then cry=#
-                return parseerr(error)
+                return innerparseerr(error)
             end
         end
 
         mergedcons = merge(allconsumed)
-        return parseok(current_ctx, mergedcons)
+        return innerparseok(current_ctx, mergedcons)
     end
 
 end

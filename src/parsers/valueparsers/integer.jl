@@ -33,7 +33,7 @@ function integerval_render_error(io::IO, code::IntegerErrCode, err::ParseError)
 end
 
 
-((iv::IntegerVal{T})(input::String)::Result{T, String}) where {T} = let
+((iv::IntegerVal{T})(input::String)::ParseResult{T}) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
         return typedErr(integerval_error(

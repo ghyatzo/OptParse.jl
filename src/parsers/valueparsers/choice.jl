@@ -21,10 +21,14 @@ choice_error(code::ChoiceErrCode; token="", detail="", subject="") =
     )
 
 function choice_render_error(io::IO, code::ChoiceErrCode, err::ParseError)
-    # pass
+    if code == CHOICE_Invalid
+        print(io, "Expected one of $(err.detail), but got $(err.token)")
+    else
+        print(io, "unreachable")
+    end
 end
 
-(c::Choice)(input::String)::Result{String, String} = let
+(c::Choice)(input::String)::ParseResult{String} = let
     norminput = c.caseInsensitive ? lowercase(input) : input
     index = findfirst(==(norminput), c.values)
 

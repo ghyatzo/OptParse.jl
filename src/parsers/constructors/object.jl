@@ -167,7 +167,7 @@ function parse(p::ConstrObject{NamedTuple{fields, Tup}, S}, ctx::Context)::Parse
 
     # TODO: continue.
     if anysuccess
-        return parseok(outctx, mergedcons)
+        return innerparseok(outctx, mergedcons)
     end
 
     #= if buffer is empty check if all parsers can complete anyway =#
@@ -175,11 +175,11 @@ function parse(p::ConstrObject{NamedTuple{fields, Tup}, S}, ctx::Context)::Parse
         all_can_complete, _ = _generated_object_complete(p.parsers, ℒ_state(ctx))
 
         if all_can_complete
-            return parseok(ctx, consumed_empty(ctx))
+            return innerparseok(ctx, consumed_empty(ctx))
         end
     end
 
-    return parseerr(error)
+    return innerparseerr(error)
 end
 
 @generated function _generated_object_complete(p::NamedTuple{labels, PTup}, state::NamedTuple{labels, STup}) where {labels, PTup, STup}

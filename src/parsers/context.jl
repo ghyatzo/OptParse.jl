@@ -27,7 +27,6 @@ end
     ℒ_buffer, ℒ_pos, ℒ_state, ℒ_optterm
 
 Stable optics for Context fields. Use these instead of `@optic _.field`
-throughout the codebase to make refactors easier.
 
 Note: the ℒ is `\\scrL<TAB>`
 """

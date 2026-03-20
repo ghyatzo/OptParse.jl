@@ -90,7 +90,7 @@ end
                 # and those two things aren't the same thing, then error. 'Or' only matches one parser.=#
 
                 if has_selection && !(selected_state isa OrBranchState{$i, $child_parser_tstate})
-                    return parseerr(ctx,
+                    return innerparseerr(ctx,
                         "$(selected_state.success.consumed[1]) and $(parse_ok.consumed[1]) can't be used together.";
                         consumed=ctx_length(ctx) - ctx_length(ℒ_nextctx(parse_ok))
                     )
@@ -98,7 +98,7 @@ end
 
                 new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
                 newctx = widen_restate(OrState{$U}, ℒ_nextctx(parse_ok), new_innerstate)
-                return parseok(newctx, ℒ_consumed(parse_ok))
+                return innerparseok(newctx, ℒ_consumed(parse_ok))
             elseif is_error(result)
                 if ℒ_consumed(error) < ℒ_consumed(unwrap_error(result))
                     error = unwrap_error(result)
@@ -108,7 +108,7 @@ end
 
     end
 
-    epilogue = :(return parseerr(error))
+    epilogue = :(return innerparseerr(error))
 
     return quote
         $preamble

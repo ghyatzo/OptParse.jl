@@ -17,10 +17,16 @@ uuidval_error(code::UUIDErrCode; token="", detail="", subject="") =
     )
 
 function uuidval_render_error(io::IO, code::UUIDErrCode, err::ParseError)
-    # pass
+    if code == UUID_Invalid
+        print(io, "Malformed UUID string: $(err.token)")
+    elseif code == UUID_WrongVersion
+        print(io, "Expected UUID of version [$(err.detail)], but got version $(err.token)")
+    else
+        print(io, "unreachable")
+    end
 end
 
-((u::UUIDVal)(input::String)::Result{UUID, String}) = let
+((u::UUIDVal)(input::String)::ParseResult{UUID}) = let
 
     maybeuuid = try
         UUID(input)

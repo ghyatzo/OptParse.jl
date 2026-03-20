@@ -95,8 +95,6 @@ end
 #--------------------------------------------
 
 
-
-
 struct InnerParseSuccess{S}
     consumed::Consumed
     next::Context{S}
@@ -131,24 +129,23 @@ end
 @inline typedErr(x) = Err(x)
 
 
-@inline function parseok(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n))::ParseResult{S} where {S}
+@inline function innerparseok(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n))::ParseResult{S} where {S}
     p = ℒ_pos(ctx)
     consumed = Consumed(ℒ_buffer(ctx), [p:p+n-1])
     return typedOk(InnerParseSuccess{S}(consumed, nextctx))
 end
 
-@inline function parseok(next::Context{S}, cons::Consumed)::ParseResult{S} where {S}
+@inline function innerparseok(next::Context{S}, cons::Consumed)::ParseResult{S} where {S}
     typedOk(InnerParseSuccess{S}(cons, next))
 end
 
-@inline function parseerr(_ctx::Context{S}, e::ParseError; consumed::Int=0)::ParseResult{S} where {S}
+@inline function innerparseerr(_ctx::Context{S}, e::ParseError; consumed::Int=0)::ParseResult{S} where {S}
     typedErr(InnerParseFailure(consumed, e))
 end
 
-@inline function parseerr(perr::InnerParseFailure)
+@inline function innerparseerr(perr::InnerParseFailure)
     typedErr(InnerParseFailure(ℒ_consumed(perr), ℒ_error(perr)))
 end
-
 
 
 const ParseResult{T} = Result{T, ParseError}

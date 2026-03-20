@@ -216,7 +216,7 @@ integer_error(code::IntegerValCode; token="", detail="") =
 
 ## Example Usage In Parsers
 
-return parseerr(ctx, option_error(
+return innerparseerr(ctx, option_error(
   OPT_MissingValue;
   token = tok,
   subject = p.names[1],

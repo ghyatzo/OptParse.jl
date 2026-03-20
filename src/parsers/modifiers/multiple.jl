@@ -55,13 +55,13 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 
 			if is_error(result)
 				#=The error is real, return it.=#
-				return parseerr(unwrap_error(result))
+				return innerparseerr(unwrap_error(result))
 			end
 
 			#=Otherwise, we've encountered a new repetition. Add it to the state.=#
 			hasadded = true
 		else
-			return parseerr(unwrap_error(result))
+			return innerparseerr(unwrap_error(result))
 		end
 	end
 
@@ -76,7 +76,7 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 	end
 
 	nextctx = widen_restate(MultipleState{S}, ℒ_nextctx(parse_ok), nextst)
-	return parseok(nextctx, ℒ_consumed(parse_ok))
+	return innerparseok(nextctx, ℒ_consumed(parse_ok))
 
 end
 
