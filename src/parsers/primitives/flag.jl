@@ -16,6 +16,10 @@ argflag_error(code::FlagErrCode; token = "", detail = "", subject="") =
         context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgFlag, subject)]
     )
 
+function argflag_render_error(io::IO, code::FlagErrCode, err::ParseError)
+    #pass
+end
+
 # single boolean flags: -q --long
 struct ArgFlag{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S

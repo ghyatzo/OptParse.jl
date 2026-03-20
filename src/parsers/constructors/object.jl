@@ -15,6 +15,10 @@ constrobject_error(code::ObjectErrCode; token = "", detail = "", subject="") =
         context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrObject, subject)]
     )
 
+function constrobject_render_error(io::IO, code::ObjectErrCode, err::ParseError)
+    # pass
+end
+
 struct ConstrObject{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S # NamedTuple of the states of its parsers
     #

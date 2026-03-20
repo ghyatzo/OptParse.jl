@@ -15,6 +15,10 @@ argargument_error(code::ArgumentErrCode; token = "", detail = "", subject="") =
         context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgArgument, subject)]
     )
 
+function argargument_render_error(io::IO, code::ArgumentErrCode, err::ParseError)
+    # pass
+end
+
 
 struct ArgArgument{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S

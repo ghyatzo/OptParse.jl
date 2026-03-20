@@ -17,6 +17,10 @@ constrtuple_error(code::TupleErrCode; token = "", detail = "", subject="") =
         context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrTuple, subject)]
     )
 
+function constrtuple_render_error(io::IO, code::TupleErrCode, err::ParseError)
+    # pass
+end
+
 ConstrTuple(parsers::PTup; label::String = "") where {PTup} = let
     ConstrTuple{
         Tuple{map(tval, parsers)...},

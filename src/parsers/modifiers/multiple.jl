@@ -13,6 +13,10 @@ modmultiple_error(code::MultipleErrCode; token = "", detail = "", subject="") =
 		context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModMultiple, subject)]
 	)
 
+function modmultiple_render_error(io::IO, code::MultipleErrCode, err::ParseError)
+	# pass
+end
+
 struct ModMultiple{T, S, _p, P} <: AbstractParser{T, S, _p, P}
 	initialState::S
 	parser::P

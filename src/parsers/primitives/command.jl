@@ -13,6 +13,10 @@ argcommand_error(code::CommandErrCode; token = "", detail = "", subject="") =
         context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgCommand, subject)]
     )
 
+function argcommand_render_error(io::IO, code::CommandErrCode, err::ParseError)
+    # pass
+end
+
 
 struct ArgCommand{T, S, _p, P} <: AbstractParser{T, S, _p, P}
     initialState::S

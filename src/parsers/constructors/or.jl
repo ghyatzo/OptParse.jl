@@ -24,6 +24,10 @@ constror_error(code::OrErrCode; token = "", detail = "", subject="") =
         context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrOr, subject)]
     )
 
+function constror_render_error(io::IO, code::OrErrCode, err::ParseError)
+    # pass
+end
+
 Base.@assume_effects :foldable function _or_inner_branch_union(::Type{PTup}) where {PTup <: Tuple}
     branch_types = ntuple(fieldcount(PTup)) do i
         ptype = fieldtype(PTup, i)

@@ -51,32 +51,58 @@ mkerror(
 	context::Vector{ErrorSite} = ErrorSite[]
 ) = ParseError(phase, domain, code, token, detail, context)
 
-add_context!(err::ParseError, phase::ErrorPhase, domain::ErrorDomain, subject::String) = let
+add_error_context!(err::ParseError, phase::ErrorPhase, domain::ErrorDomain, subject::String) = let
 	errsite = ErrorSite(phase, domain, subject)
 	# todo, probably trimming error
 	push!(err.context, errsite)
 end
 
-function render(err::ParseError)
-	io = BufferIO()
-	if err.domain isa ERR_ArgFlag
-		ArgFlag_render_error(io, err)
-	elseif err.domain isa ERR_ArgArgument
-		ArgArgument_render_error(io, err)
-	elseif err.domain isa ERR_ArgOption
-		ArgOption_render_error(io, err)
-	elseif err.domain isa ERR_ArgCommand
-		ArgCommand_render_error(io, err)
-	elseif err.domain isa ERR_ConstrObject
-		ConstrObject_render_error(io, err)
-	elseif err.domain isa ERR_ConstrOr
-		ConstrOr_render_error(io, err)
-	elseif
-		...
+# rendering engine
+
+function render_error(io::IO, err::ParseError)
+	render_error_subject(io, err)
+	render_error_payload(io, err)
+end
+
+function render_error_subject(io::IO, err::ParseError)
+	if !isempty(err.context)
+		print(io, last(err.context).subject)
+		print(io, ": ")
+	end
+end
+
+function render_error_payload(io::IO, err::ParseError)
+	if err.domain == ERR_ArgFlag
+		argflag_render_error(io, FlagErrCode(err.code), err)
+	elseif err.domain == ERR_ArgArgument
+		argargument_render_error(io, ArgumentErrCode(err.code), err)
+	elseif err.domain == ERR_ArgOption
+		argoption_render_error(io, OptionErrCode(err.code), err)
+	elseif err.domain == ERR_ArgCommand
+		argcommand_render_error(io, CommandErrCode(err.code), err)
+	elseif err.domain == ERR_ConstrObject
+		constrobject_render_error(io, ObjectErrCode(err.code), err)
+	elseif err.domain == ERR_ConstrOr
+		constror_render_error(io, OrErrCode(err.code), err)
+	elseif err.domain == ERR_ConstrTuple
+		constrtuple_render_error(io, TupleErrCode(err.code), err)
+	elseif err.domain == ERR_ModWithDefault
+		modwithdefault_render_error(io, WithDefaultErrCode(err.code), err)
+	elseif err.domain == ERR_ModMultiple
+		modmultiple_render_error(io, MultipleErrCode(err.code), err)
+	elseif err.domain == ERR_StringVal
+		stringval_render_error(io, StringErrCode(err.code), err)
+	elseif err.domain == ERR_ChoiceVal
+		choice_render_error(io, ChoiceErrCode(err.code), err)
+	elseif err.domain == ERR_IntegerVal
+		integerval_render_error(io, IntegerErrCode(err.code), err)
+	elseif err.domain == ERR_FloatVal
+		floatval_render_error(io, FloatErrCode(err.code), err)
+	elseif err.domain == ERR_UUIDVal
+		uuidval_render_error(io, UUIDErrCode(err.code), err)
 	else
 		print(io, "Unreachable")
 	end
-
-	return io
 end
+
 

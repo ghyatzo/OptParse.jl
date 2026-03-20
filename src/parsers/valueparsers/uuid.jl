@@ -16,6 +16,10 @@ uuidval_error(code::UUIDErrCode; token="", detail="", subject="") =
         context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_UUIDVal, subject)]
     )
 
+function uuidval_render_error(io::IO, code::UUIDErrCode, err::ParseError)
+    # pass
+end
+
 ((u::UUIDVal)(input::String)::Result{UUID, String}) = let
 
     maybeuuid = try

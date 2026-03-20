@@ -18,6 +18,10 @@ argoption_error(code::OptionErrCode; token = "", detail = "", subject="") =
         context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgOption, subject)]
     )
 
+function argoption_render_error(io::IO, code::OptionErrCode, err::ParseError)
+    # pass
+end
+
 # options with values: -o 123 / --option valu
 struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S

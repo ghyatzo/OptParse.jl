@@ -20,6 +20,10 @@ choice_error(code::ChoiceErrCode; token="", detail="", subject="") =
         context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_ChoiceVal, subject)]
     )
 
+function choice_render_error(io::IO, code::ChoiceErrCode, err::ParseError)
+    # pass
+end
+
 (c::Choice)(input::String)::Result{String, String} = let
     norminput = c.caseInsensitive ? lowercase(input) : input
     index = findfirst(==(norminput), c.values)

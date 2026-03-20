@@ -23,6 +23,10 @@ floatval_error(code::FloatErrCode; token="", detail="", subject="") =
         context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_FloatVal, subject)]
     )
 
+function floatval_render_error(io::IO, code::FloatErrCode, err::ParseError)
+    # pass
+end
+
 
 ((f::FloatVal{T})(input::String)::Result{T, String}) where {T} = let
     val = tryparse(T, input)

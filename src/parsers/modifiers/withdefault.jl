@@ -11,6 +11,10 @@ modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "", subject=
         context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModWithDefault, subject)]
     )
 
+function modwithdefault_render_error(io::IO, code::WithDefaultErrCode, err::ParseError)
+    # pass
+end
+
 struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S
     parser::P

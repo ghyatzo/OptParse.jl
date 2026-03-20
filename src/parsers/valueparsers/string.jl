@@ -14,6 +14,10 @@ stringval_error(code::StringErrCode; token = "", detail ="", subject="") =
         context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_StringVal, subject)]
     )
 
+function stringval_render_error(io::IO, code::StringErrCode, err::ParseError)
+    # pass
+end
+
 (s::StringVal)(input::String)::Result{String, String} = let
     m = match(s.pattern, input)
     isnothing(m) && return typedErr(stringval_error(
