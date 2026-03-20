@@ -1,4 +1,4 @@
-const OptionState{X} = Result{X, String}
+const OptionState{X} = ParseResult{X}
 
 @enum OptionErrCode::UInt8 begin
     OPTION_NoMoreOptions
@@ -41,17 +41,24 @@ struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
                 throw(ArgumentError("Short options and flags must only have 1 character."))
             end
         end
-        new{T, OptionState{T}, 10, Nothing}(typedErr("Missing Option(s): $(names)."), nothing, valparser, [names...], help)
+
+        new{T, OptionState{T}, 10, Nothing}(
+            typedErr(argoption_error(OPTION_Missing; detail="$(names)")),
+            nothing,
+            valparser,
+            [names...],
+            help
+        )
     end
 end
 
 
-function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::ParseResult{OptionState{T}, String} where {T}
+function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::InnerParseResult{OptionState{T}} where {T}
 
     if ℒ_optterm(ctx)
-        return innerparseerr(ctx, "No more options to be parsed.")
+        return innerparseerr(ctx, argoption_error(OPTION_NoMoreOptions))
     elseif ctx_hasnone(ctx)
-        return innerparseerr(ctx, "Expected option got end of input.")
+        return innerparseerr(ctx, argoption_error(OPTION_EndOfInput))
     end
 
     tok = ctx_peek(ctx)
@@ -67,14 +74,14 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::P
 
         # st = @? ctx.state
         if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx)) isa T
-            return innerparseerr(ctx, "$(tok) cannot be used multiple times"; consumed = 1)
+            return innerparseerr(ctx, argoption_error(OPTION_Duplicate; token = tok); consumed = 1)
         end
 
         if ctx_haslessthan(2, ctx) || ctx_peek(ctx, 2) == "--"
-            return innerparseerr(ctx, "Option $(tok) requires a value, but got no value."; consumed = 1)
+            return innerparseerr(ctx, argoption_error(OPTION_MissingValue; token=tok); consumed = 1)
         end
 
-        result = p.valparser(ctx_peek(ctx, 2))::Result{T, String}
+        result = p.valparser(ctx_peek(ctx, 2))::ParseResult{T}
 
         return innerparseok(ctx, 2; nextctx = ctx_with_state(consume(ctx, 2), result))
     end
@@ -90,19 +97,28 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::P
         startswith(tok, prefix) || continue
 
         if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx))
-            return innerparseerr(ctx, "$(prefix[1:(end - 1)]) cannot be used multiple times"; consumed = 1)
+
+            return innerparseerr(ctx, argoption_error(OPTION_Duplicate; token = prefix[1:(end - 1)]); consumed = 1)
         end
 
         value = tok[(length(prefix) + 1):end]
-        result = p.valparser(value)::Result{T, String}
+        result = p.valparser(value)::ParseResult{T}
 
         return innerparseok(ctx, 1; nextctx = ctx_with_state(consume(ctx, 1), result))
 
     end
 
-    return innerparseerr(ctx, "No Matched option for $(tok)")
+    return innerparseerr(ctx, argoption_error(OPTION_NoMatch; token=tok))
 end
 
-function complete(p::ArgOption{T, OptionState{T}}, st::OptionState{T})::Result{T, String} where {T}
-    return !is_error(st) ? st : typedErr("$(p.names[1]): $(unwrap_error(st))") # string of vector calls show which is not trimmable.
+function complete(p::ArgOption{T, OptionState{T}}, st::OptionState{T})::ParseResult{T} where {T}
+    # if the state is an error it means that the valueparser returned an error. we then just need to append
+    # a new context to the error and resurface
+    return !iserror(st) ? st : typedErr(
+        error_with_context(st,
+            CompletePhase,
+            ERR_ArgOption,
+            p.names[1]
+        )
+    )
 end

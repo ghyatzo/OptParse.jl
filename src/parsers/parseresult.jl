@@ -117,29 +117,29 @@ const ℒ_error = @optic _.error
 const ℒ_nextstate = ℒ_state ∘ ℒ_nextctx
 
 
-@inline function typedOk(::Type{T}, value::V)::Result{T, String} where {T, V <: T}
-    return Result{T, String}(ErrorTypes.Ok{T}(ErrorTypes.unsafe, convert(T, value)))
+@inline function typedOk(::Type{T}, value::V)::ParseResult{T, String} where {T, V <: T}
+    return ParseResult{T}(ErrorTypes.Ok{T}(ErrorTypes.unsafe, convert(T, value)))
 end
 
-@inline function typedErr(::Type{T}, msg::String)::Result{T, String} where {T}
-    return Result{T, String}(ErrorTypes.Err{String}(ErrorTypes.unsafe, msg))
+@inline function typedErr(::Type{T}, err::ParseError)::ParseResult{T} where {T}
+    return ParseResult{T}(ErrorTypes.Err{ParseError}(ErrorTypes.unsafe, err))
 end
 
 @inline typedOk(x) = Ok(x)
 @inline typedErr(x) = Err(x)
 
 
-@inline function innerparseok(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n))::ParseResult{S} where {S}
+@inline function innerparseok(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n))::InnerParseResult{S} where {S}
     p = ℒ_pos(ctx)
     consumed = Consumed(ℒ_buffer(ctx), [p:p+n-1])
     return typedOk(InnerParseSuccess{S}(consumed, nextctx))
 end
 
-@inline function innerparseok(next::Context{S}, cons::Consumed)::ParseResult{S} where {S}
+@inline function innerparseok(next::Context{S}, cons::Consumed)::InnerParseResult{S} where {S}
     typedOk(InnerParseSuccess{S}(cons, next))
 end
 
-@inline function innerparseerr(_ctx::Context{S}, e::ParseError; consumed::Int=0)::ParseResult{S} where {S}
+@inline function innerparseerr(_ctx::Context{S}, e::ParseError; consumed::Int=0)::InnerParseResult{S} where {S}
     typedErr(InnerParseFailure(consumed, e))
 end
 
@@ -149,4 +149,11 @@ end
 
 
 const ParseResult{T} = Result{T, ParseError}
+
+error_with_context(err::ParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String) = let
+    perr = unwrap_error(err)
+    errsite = ErrorSite(phase, domain, subject)
+    push!(err.context, errsite)
+    return perr
+end
 
