@@ -18,9 +18,9 @@ end
     iv = integer(Int32, min = 10, max = 20)
     @test (@? iv("13")) == Int32(13)
     err = iv("3")
-    @test is_error(err) && occursin("minimum", unwrap_error(err))
+    @test is_error(err) && occursin("minimum", string(unwrap_error(err)))
     err = iv("222")
-    @test is_error(err) && occursin("maximum", unwrap_error(err))
+    @test is_error(err) && occursin("maximum", string(unwrap_error(err)))
 
     negiv = i64()
     @test (@? negiv("-12")) == -12
@@ -33,13 +33,13 @@ end
     @test (@? f("3.14")) == Float32(3.14)
 
     err = f("200")
-    @test is_error(err) && occursin("maximum", unwrap_error(err))
+    @test is_error(err) && occursin("maximum", string(unwrap_error(err)))
     err = f("0")
-    @test is_error(err) && occursin("minimum", unwrap_error(err))
+    @test is_error(err) && occursin("minimum", string(unwrap_error(err)))
     err = f("inf")
-    @test is_error(err) && occursin("Infinite", unwrap_error(err))
+    @test is_error(err) && occursin("Infinite", string(unwrap_error(err)))
     err = f("nan")
-    @test is_error(err) && occursin("NaNs", unwrap_error(err))
+    @test is_error(err) && occursin("NaNs", string(unwrap_error(err)))
 
     finfnan = flt(allowInfinity = true, allowNan = true)
     @test isinf(@? finfnan("-inf"))
@@ -61,7 +61,7 @@ end
     @test uuid_version(@? u(u4)) == 4
 
     err = u(u7)
-    @test is_error(err) && occursin("version", unwrap_error(err))
+    @test is_error(err) && occursin("version", string(unwrap_error(err)))
 
     @test_opt u(u1)
 end

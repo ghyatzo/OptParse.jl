@@ -17,7 +17,15 @@ constrtuple_error(code::TupleErrCode; token = "", detail = "", subject="") =
     )
 
 function constrtuple_render_error(io::IO, code::TupleErrCode, err::ParseError)
-    # pass
+    if code == TUPLE_NoRemainingParser
+        if isempty(err.token)
+            print(io, "No remaining parsers could match the input")
+        else
+            print(io, "No remaining parsers could match $(err.token)")
+        end
+    else
+        print(io, "unreachable")
+    end
 end
 
 ConstrTuple(parsers::PTup; label::String = "") where {PTup} = let

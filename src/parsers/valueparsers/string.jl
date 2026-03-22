@@ -27,7 +27,7 @@ end
     isnothing(m) && return typedErr(stringval_error(
         STRING_InvalidPattern;
         token=input,
-        detail=s.pattern
+        detail=string(s.pattern)
     ))
     # isnothing(m) && return typedErr("Expected a string matching the pattern `$(s.pattern)`, but got `$input`.")
     return typedOk(input)

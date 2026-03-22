@@ -59,14 +59,14 @@ end
 @testset "should fail when flag is already set" begin
     parser = flag("-v")
     # Represent "already set" using Result-based state:
-    context = Context(buffer=["-v"], state= ParseResult{Bool}(Ok(true)))
+    context = Context(buffer=["-v"], state=OptParse.ParseResult{Bool}(Ok(true)))
 
     result = @unionsplit parse(parser, context)
 
     @test is_error(result)
     unwrap_or_else(result) do fail
         @test ℒ_nconsumed(fail) == 1
-        @test occursin("cannot be used multiple times", fail.error)
+        @test occursin("cannot be used multiple times", string(fail.error))
     end
 end
 
@@ -96,7 +96,7 @@ end
     @test is_error(result)
     unwrap_or_else(result) do fail
         @test ℒ_nconsumed(fail) == 0
-        @test occursin("No more", fail.error)
+        @test occursin("No more", string(fail.error))
     end
 end
 
@@ -118,15 +118,15 @@ end
 @testset "should handle option terminator edge cases correctly" begin
     parser = flag("-v")
 
-    result = argparse(parser, ["--", "-v"])
+    result = tryargparse(parser, ["--", "-v"])
     @test is_error(result)
-    @test occursin("No more options", unwrap_error(result))
+    @test occursin("No more options", string(unwrap_error(result)))
 
-    result = argparse(parser, ["--"])
+    result = tryargparse(parser, ["--"])
     @test is_error(result)
-    @test occursin("Missing", unwrap_error(result))
+    @test occursin("Missing", string(unwrap_error(result)))
 
-    result = argparse(parser, ["-v", "--"])
+    result = tryargparse(parser, ["-v", "--"])
     @test !is_error(result)
     @test (@? result) == true
 end
@@ -140,7 +140,7 @@ end
     @test is_error(result)
     unwrap_or_else(result) do fail
         @test ℒ_nconsumed(fail) == 0
-        @test occursin("Expected a", fail.error)
+        @test occursin("Expected a", string(fail.error))
     end
 end
 

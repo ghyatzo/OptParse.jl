@@ -121,19 +121,19 @@ const ℒ_nextstate = ℒ_state ∘ ℒ_nextctx
 @inline function innerOk(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n))::InnerParseResult{S} where {S}
     p = ℒ_pos(ctx)
     consumed = Consumed(ℒ_buffer(ctx), [p:p+n-1])
-    return InnerParseSuccess{S}(consumed, nextctx)
+    return Ok(InnerParseSuccess{S}(consumed, nextctx))
 end
 
 @inline function innerOk(next::Context{S}, cons::Consumed)::InnerParseResult{S} where {S}
-    return InnerParseSuccess{S}(cons, next)
+    return Ok(InnerParseSuccess{S}(cons, next))
 end
 
 @inline function innerErr(_ctx::Context{S}, e::ParseError; consumed::Int=0)::InnerParseResult{S} where {S}
-    return InnerParseFailure(consumed, e)
+    return Err(InnerParseFailure(consumed, e))
 end
 
 @inline function innerErr(_ctx::Context{S}, perr::InnerParseFailure)::InnerParseResult{S} where {S}
-    return InnerParseFailure(ℒ_consumed(perr), ℒ_error(perr))
+    return Err(InnerParseFailure(ℒ_consumed(perr), ℒ_error(perr)))
 end
 
 

@@ -16,7 +16,19 @@ argflag_error(code::FlagErrCode; token = "", detail = "", subject="") =
     )
 
 function argflag_render_error(io::IO, code::FlagErrCode, err::ParseError)
-    #pass
+    if code == FLAG_NoMoreOptions
+        print(io, "No more options to be parsed")
+    elseif code == FLAG_EndOfInput
+        print(io, "Expected a flag, got end of input")
+    elseif code == FLAG_Duplicate
+        print(io, "$(err.token) cannot be used multiple times")
+    elseif code == FLAG_NoMatch
+        print(io, "No matched flag for $(err.token)")
+    elseif code == FLAG_Missing
+        print(io, "Missing flag(s) $(err.detail)")
+    else
+        print(io, "unreachable")
+    end
 end
 
 # single boolean flags: -q --long
@@ -74,7 +86,7 @@ function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::InnerParse
 end
 
 function complete(p::ArgFlag, st::FlagState)::ParseResult{Bool}
-    return !iserror(st) ? st : typedErr(
+    return !is_error(st) ? st : typedErr(
         error_with_context(st,
             CompletePhase,
             ERR_ArgFlag,

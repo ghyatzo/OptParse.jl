@@ -1,7 +1,7 @@
 const WithDefaultState{X} = Option{X}
 
 @enum WithDefaultErrCode::UInt8 begin
-    WITHDEFAULT_NoError
+    WITHDEFAULT_DummyError
 end
 
 modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "", subject="") =
@@ -12,7 +12,7 @@ modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "", subject=
     )
 
 function modwithdefault_render_error(io::IO, code::WithDefaultErrCode, err::ParseError)
-    # pass
+    print(io, "unreachable")
 end
 
 struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}

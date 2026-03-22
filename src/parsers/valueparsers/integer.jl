@@ -43,7 +43,7 @@ end
     end
 
     (!isnothing(iv.min) && val < iv.min) && return typedErr(integerval_error(INTEGER_BelowMin; token=input, detail=string(iv.min)))
-    (!isnothing(iv.max) && val > iv.max) && return typedErr(integerval_error(INTEGER_AboveMax; token=input, detaul=string(iv.max)))
+    (!isnothing(iv.max) && val > iv.max) && return typedErr(integerval_error(INTEGER_AboveMax; token=input, detail=string(iv.max)))
 
     return typedOk(val)
 end

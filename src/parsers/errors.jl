@@ -7,6 +7,8 @@
 end
 
 @enum ErrorDomain::UInt8 begin
+	ERR_Main
+
 	ERR_ArgFlag
 	ERR_ArgArgument
 	ERR_ArgOption
@@ -52,6 +54,27 @@ mkerror(
 ) = ParseError(phase, domain, code, token, detail, context)
 
 
+
+@enum MainErrCode::UInt8 begin
+    MAIN_NoProgress
+end
+
+main_error(code::MainErrCode; token="", detail="", subject="") =
+    mkerror(ParsePhase, ERR_Main, UInt8(code);
+        token,
+        detail,
+        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_Main, subject)]
+    )
+
+function main_render_error(io::IO, code::MainErrCode, err::ParseError)
+    if code == MAIN_NoProgress
+        print(io, "Expected valid integer, got $(err.token)")
+    else
+        print(io, "unreachable")
+    end
+end
+
+
 # rendering engine
 
 function render_error(io::IO, err::ParseError)
@@ -67,7 +90,9 @@ function render_error_subject(io::IO, err::ParseError)
 end
 
 function render_error_payload(io::IO, err::ParseError)
-	if err.domain == ERR_ArgFlag
+	if err.domain == ERR_Main
+		main_render_error(io, MainErrCode(err.code), err)
+	elseif err.domain == ERR_ArgFlag
 		argflag_render_error(io, FlagErrCode(err.code), err)
 	elseif err.domain == ERR_ArgArgument
 		argargument_render_error(io, ArgumentErrCode(err.code), err)
@@ -98,5 +123,11 @@ function render_error_payload(io::IO, err::ParseError)
 	else
 		print(io, "Unreachable")
 	end
+end
+
+Base.string(perr::ParseError) = let
+	io = IOBuffer()
+	render_error(io, perr)
+	return String(take!(io))
 end
 

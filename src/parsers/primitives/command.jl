@@ -14,7 +14,15 @@ argcommand_error(code::CommandErrCode; token = "", detail = "", subject="") =
     )
 
 function argcommand_render_error(io::IO, code::CommandErrCode, err::ParseError)
-    # pass
+    if code == COMMAND_EndOfInput
+        print(io, "Expected command $(err.detail), but got end of input")
+    elseif code == COMMAND_WrongName
+        print(io, "Expected command $(err.detail), but got $(err.token)")
+    elseif code == COMMAND_NotMatched
+        print(io, "Command $(err.detail) was not matched")
+    else
+        print(io, "unreachable")
+    end
 end
 
 

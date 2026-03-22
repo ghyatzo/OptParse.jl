@@ -49,7 +49,7 @@ end
     # return typedErr("Expected UUID of version [$(join(u.allowedVersions, ','))], but got version $version")
     return typedErr(uuidval_error(
         UUID_WrongVersion;
-        token = version,
+        token = string(version),
         detail = join(u.allowedVersions, ',')
     ))
 end

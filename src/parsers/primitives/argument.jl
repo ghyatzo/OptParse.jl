@@ -15,7 +15,17 @@ argargument_error(code::ArgumentErrCode; token = "", detail = "", subject="") =
     )
 
 function argargument_render_error(io::IO, code::ArgumentErrCode, err::ParseError)
-    # pass
+    if code == ARGUMENT_EndOfInput
+        print(io, "Expected a $(err.detail), but got end of input")
+    elseif code == ARGUMENT_GotOption
+        print(io, "Expected a $(err.detail), but got an option/flag")
+    elseif code == ARGUMENT_Duplicate
+        print(io, "The argument $(err.detail) cannot be used multiple times")
+    elseif code == ARGUMENT_TooFew
+        print(io, "Expected a $(err.detail), but too few arguments")
+    else
+        print(io, "unreachable")
+    end
 end
 
 

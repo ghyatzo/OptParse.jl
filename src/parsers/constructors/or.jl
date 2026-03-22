@@ -14,7 +14,6 @@ const OrState{U} = Option{InnerOrState{U}}
     OR_Conflict
     OR_NoMatch
     OR_Unreachable
-    OR_InnerError
 end
 
 constror_error(code::OrErrCode; token = "", detail = "", subject="") =
@@ -25,7 +24,19 @@ constror_error(code::OrErrCode; token = "", detail = "", subject="") =
     )
 
 function constror_render_error(io::IO, code::OrErrCode, err::ParseError)
-    # pass
+    if code == OR_EndOfInput
+        print(io, "Expected token, got end of input")
+    elseif code == OR_UnexpectedToken
+        print(io, "Unexpected option or subcommand: $(err.token)")
+    elseif code == OR_Conflict
+        print(io, "$(err.detail) and $(err.token) can't be used together")
+    elseif code == OR_NoMatch
+        print(io, "No matching option or command")
+    elseif code == OR_Unreachable
+        print(io, "Unreachable")
+    else
+        print(io, "unreachable")
+    end
 end
 
 Base.@assume_effects :foldable function _or_inner_branch_union(::Type{PTup}) where {PTup <: Tuple}

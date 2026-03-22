@@ -4,8 +4,6 @@ const ObjectState{L, P} = NamedTuple{L, P}
     OBJECT_UnexpectedToken
     OBJECT_EndOfInput
     OBJECT_MaxIter
-    OBJECT_InnerError
-    OBJECT_MissingField
 end
 
 constrobject_error(code::ObjectErrCode; token = "", detail = "", subject="") =
@@ -16,7 +14,15 @@ constrobject_error(code::ObjectErrCode; token = "", detail = "", subject="") =
     )
 
 function constrobject_render_error(io::IO, code::ObjectErrCode, err::ParseError)
-    # pass
+    if code == OBJECT_UnexpectedToken
+        print(io, "Unexpected option or argument: $(err.token)")
+    elseif code == OBJECT_EndOfInput
+        print(io, "Expected option or argument, got end of input")
+    elseif code == OBJECT_MaxIter
+        print(io, "Max iteration reached while parsing object")
+    else
+        print(io, "unreachable")
+    end
 end
 
 struct ConstrObject{T, S, p, P} <: AbstractParser{T, S, p, P}

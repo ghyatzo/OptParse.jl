@@ -13,7 +13,15 @@ modmultiple_error(code::MultipleErrCode; token = "", detail = "", subject="") =
 	)
 
 function modmultiple_render_error(io::IO, code::MultipleErrCode, err::ParseError)
-	# pass
+	if code == MULTIPLE_TooFew
+		min, got = split(err.detail, ","; limit = 2)
+		print(io, "Expected at least $(min) values, but got only $(got)")
+	elseif code == MULTIPLE_TooMany
+		max, got = split(err.detail, ","; limit = 2)
+		print(io, "Expected at most $(max) values, but got $(got)")
+	else
+		print(io, "unreachable")
+	end
 end
 
 struct ModMultiple{T, S, _p, P} <: AbstractParser{T, S, _p, P}

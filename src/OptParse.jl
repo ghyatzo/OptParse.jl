@@ -106,7 +106,7 @@ using UUIDs:
 # - rename multiple to 'many'
 
 
-export argparse,
+export argparse, tryargparse,
     # primitives
     @constant,
     flag,
@@ -194,10 +194,6 @@ end
 #####
 # entry point
 
-#= This will probably become an internal. At the moment we're returning Results objects. We don't really want
-to force the user to deal with them. Need to figure out a way in which to return errors to the user.
-I'm thinking a higher level approach that either returns the desired result or throws or a lower level one
-that simply returns the Result type for the user to deal with... maybe. I don't know yet.=#
 function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}
 
     canonical_argv, _ = normalize_argv(args)
@@ -219,8 +215,10 @@ function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
                     && ctx_length(ctx) == length(previous_buffer)
                     && ctx_remaining(ctx) == previous_buffer
             )
-
-            return typedErr("Unexpected option or argument: $(ctx_peek(ctx)).")
+            return typedErr(mkerror(
+                ParsePhase, ERR_Main, MAIN_NoProgress;
+                token = ctx_peek(ctx)
+            ))
         end
 
         ctx_length(ctx) > 0 || break
@@ -229,6 +227,16 @@ function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
     state = ℒ_state(ctx)
 
     return @unionsplit complete(pp, state)
+end
+
+function argparse(pp::Parser{T}, args::Vector{String})::T where {T}
+    mayberes = tryargparse(pp, args)::ParseResult{T}
+
+    if is_error(mayberes)
+        error(string(unwrap_error(mayberes)))
+    end
+
+    return unwrap(mayberes)
 end
 
 end # module OptParse

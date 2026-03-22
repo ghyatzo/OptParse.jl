@@ -17,7 +17,21 @@ argoption_error(code::OptionErrCode; token = "", detail = "", subject="") =
     )
 
 function argoption_render_error(io::IO, code::OptionErrCode, err::ParseError)
-    # pass
+    if code == OPTION_NoMoreOptions
+        print(io, "No more options to be parsed")
+    elseif code == OPTION_EndOfInput
+        print(io, "Expected an option, got end of input")
+    elseif code == OPTION_Duplicate
+        print(io, "$(err.token) cannot be used multiple times")
+    elseif code == OPTION_MissingValue
+        print(io, "Option $(err.token) requires a value")
+    elseif code == OPTION_NoMatch
+        print(io, "No matched option for $(err.token)")
+    elseif code == OPTION_Missing
+        print(io, "Missing option(s) $(err.detail)")
+    else
+        print(io, "unreachable")
+    end
 end
 
 # options with values: -o 123 / --option valu
@@ -112,7 +126,7 @@ end
 function complete(p::ArgOption{T, OptionState{T}}, st::OptionState{T})::ParseResult{T} where {T}
     # if the state is an error it means that the valueparser returned an error. we then just need to append
     # a new context to the error and resurface
-    return !iserror(st) ? st : typedErr(
+    return !is_error(st) ? st : typedErr(
         error_with_context(st,
             CompletePhase,
             ERR_ArgOption,
