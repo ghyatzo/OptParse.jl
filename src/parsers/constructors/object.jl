@@ -129,8 +129,9 @@ end
 
     return ex = quote
         #= if nothing inside the object can match our token, then it's "unexpected" =#
-        error = ctx_hasmore(ctx) > 0 ? ParseFailure(0, "Unexpected option or argument: `$(ctx_peek(ctx))`") :
-            ParseFailure(0, "Expected option or argument, got end of input.")
+        error = ctx_hasmore(ctx) > 0 ?
+            InnerParseFailure(0, constrobject_error(OBJECT_UnexpectedToken; token = ctx_peek(ctx))) :
+            InnerParseFailure(0, constrobject_error(OBJECT_EndOfInput))
         #= greedy parsing trying to consume as many field as possible =#
         anysuccess = false
         allconsumed = Consumed[consumed_empty(ctx)]
@@ -223,7 +224,14 @@ function complete(p::ConstrObject{T}, st::NamedTuple)::ParseResult{T} where {T}
     cancomplete, _result = _generated_object_complete(p.parsers, st)
 
     if !cancomplete
-        return typedErr(unwrap_error(_result))
+        subject = isempty(p.label) ? "object" : p.label
+        return typedErr(T,
+            error_with_context(_result,
+                CompletePhase,
+                ERR_ConstrObject,
+                subject
+            )
+        )
     end
 
     return typedOk(T, _result)

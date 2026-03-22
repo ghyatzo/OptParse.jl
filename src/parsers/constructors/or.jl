@@ -57,7 +57,8 @@ end
 @generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}) where {PTup <: Tuple, U}
     preamble = quote
         error = ctx_haslessthan(1, ctx) ?
-            ParseFailure(0, "Expected token, got end of input.") : ParseFailure(0, "Unexpected option or subcommand: $(ctx.buffer[1])")
+            InnerParseFailure(0, constror_error(OR_EndOfInput)) :
+            InnerParseFailure(0, constror_error(OR_UnexpectedToken; token = ctx_peek(ctx)))
     end
     N = fieldcount(PTup)
     unrolled_loop = Expr(:block)
@@ -91,7 +92,11 @@ end
 
                 if has_selection && !(selected_state isa OrBranchState{$i, $child_parser_tstate})
                     return innerErr(ctx,
-                        "$(selected_state.success.consumed[1]) and $(parse_ok.consumed[1]) can't be used together.";
+                        constror_error(
+                            OR_Conflict;
+                            token = parse_ok.consumed[1],
+                            detail = string(selected_state.success.consumed[1])
+                        );
                         consumed=ctx_length(ctx) - ctx_length(ℒ_nextctx(parse_ok))
                     )
                 end
@@ -126,7 +131,7 @@ end
 
 function complete(p::ConstrOr{T}, orstate::OrState{U})::ParseResult{T} where {T, U}
     is_error(orstate) &&
-        return typedErr(T, "No matching option or command.")
+        return typedErr(T, constror_error(OR_NoMatch))
 
     selected = unwrapunion(unwrap(orstate))::U
     return _gencomplete(p, selected)
@@ -149,13 +154,19 @@ end
             if selected isa $branch_t
                 child_result = complete(p.parsers[$i], ℒ_nextstate(selected.success))::ParseResult{$out_t}
                 if is_error(child_result)
-                    return typedErr(T, unwrap_error(child_result))
+                    return typedErr(T,
+                        error_with_context(child_result,
+                            CompletePhase,
+                            ERR_ConstrOr,
+                            "or"
+                        )
+                    )
                 end
                 return typedOk(T, unwrap(child_result)::T)
             end
         end)
     end
 
-    push!(ex.args, :(return typedErr(T, "Unreachable")))
+    push!(ex.args, :(return typedErr(T, constror_error(OR_Unreachable))))
     return ex
 end

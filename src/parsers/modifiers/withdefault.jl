@@ -1,7 +1,7 @@
 const WithDefaultState{X} = Option{X}
 
 @enum WithDefaultErrCode::UInt8 begin
-    WITHDEFAULT_InnerError
+    WITHDEFAULT_NoError
 end
 
 modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "", subject="") =
@@ -78,7 +78,13 @@ function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDef
     Given that the user explicitly passed a value, he likely does not want the default value.=#
     result = complete(unwrapunion(p.parser), state)::ParseResult{tval(p.parser)}
     if is_error(result)
-        return typedErr(T, unwrap_error(result))
+        return typedErr(T,
+            error_with_context(result,
+                CompletePhase,
+                ERR_ModWithDefault,
+                "withDefault"
+            )
+        )
     end
 
     # Rewrap as the widened output type of the modifier.

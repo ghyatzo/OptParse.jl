@@ -3,7 +3,6 @@ const MultipleState{X} = Vector{X}
 @enum MultipleErrCode::UInt8 begin
 	MULTIPLE_TooFew
 	MULTIPLE_TooMany
-	MULTIPLE_InnerError
 end
 
 modmultiple_error(code::MultipleErrCode; token = "", detail = "", subject="") =
@@ -83,16 +82,26 @@ end
 function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleState{S})::ParseResult{T} where {T,S, _p, P}
 	result = tval(P)[]
 	for s in state
-		val = @? complete(unwrapunion(p.parser), s)
+		val = complete(unwrapunion(p.parser), s)::ParseResult{tval(p.parser)}
+		if is_error(val)
+			return typedErr(T,
+				error_with_context(val,
+					CompletePhase,
+					ERR_ModMultiple,
+					"multiple"
+				)
+			)
+		end
+		val = unwrap(val)
 		push!(result, val)
 	end
 
 	if length(result) < p.min
-		return typedErr("Expected at least $(p.min) values, but got only $(length(result)).")
+		return typedErr(T, modmultiple_error(MULTIPLE_TooFew; detail = "$(p.min),$(length(result))"))
 	elseif length(result) > p.max
-		return typedErr("Expected at most $(p.max) values, but got $(length(result)).")
+		return typedErr(T, modmultiple_error(MULTIPLE_TooMany; detail = "$(p.max),$(length(result))"))
 	end
 
-	return typedOk(result)
+	return typedOk(T, result)
 
 end

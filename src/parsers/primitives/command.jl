@@ -40,10 +40,10 @@ function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState
             actual = ctx_hasnone(ctx) ? nothing : ctx_peek(ctx)
 
             if actual === nothing
-                return innerErr(ctx, "Expected command `$(p.names[1])`, but got end of input.")
+                return innerErr(ctx, argcommand_error(COMMAND_EndOfInput; detail = p.names[1]))
             end
 
-            return innerErr(ctx, "Expected command `$(p.names[1])`, but got `$actual`.")
+            return innerErr(ctx, argcommand_error(COMMAND_WrongName; token = actual, detail = p.names[1]))
         end
 
         # command matched, consume it and move to the matched state
@@ -77,14 +77,21 @@ function complete(p::ArgCommand{T, CommandState{PState}}, maybemaybestate::Comma
 
     if is_error(maybemaybestate)
         # command never matched
-        return typedErr("Command $(p.names[1]) was not matched")
+        return typedErr(argcommand_error(COMMAND_NotMatched; detail = p.names[1]))
     else
         maybestate = unwrap(maybemaybestate)
-        if is_error(maybestate)
+        result = if is_error(maybestate)
             # command matched but the inner parser never started: pass in the initialState
-            return complete(unwrapunion(p.parser), p.parser.initialState)
+            complete(unwrapunion(p.parser), p.parser.initialState)
         else
-            return complete(unwrapunion(p.parser), unwrap(maybestate))
+            complete(unwrapunion(p.parser), unwrap(maybestate))
         end
+        return !iserror(result) ? result : typedErr(
+            error_with_context(result,
+                CompletePhase,
+                ERR_ArgCommand,
+                p.names[1]
+            )
+        )
     end
 end

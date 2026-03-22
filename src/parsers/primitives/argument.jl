@@ -35,7 +35,7 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
     optpattern = r"^--?[a-z0-9-]+$"i
 
     if ctx_hasnone(ctx)
-        return innerErr(ctx, "Expected an argument, but got end of input.")
+        return innerErr(ctx, argargument_error(ARGUMENT_EndOfInput; detail = metavar(p.valparser)))
     end
 
     i = 0
@@ -51,19 +51,19 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
             i += 1
         elseif !isnothing(match(optpattern, ctx_peek(ctx, 1 + i)))
             #=Otherwise, check that we are not matching an option.=#
-            return innerErr(ctx, "Expected an argument, but got an option/flag."; consumed = i)
+            return innerErr(ctx, argargument_error(ARGUMENT_GotOption; token = ctx_peek(ctx, 1 + i), detail = metavar(p.valparser)); consumed = i)
         end
     end
 
     if ctx_haslessthan(1+i, ctx)
         #=Check again, in case we only had a "--" in the buffer.=#
-        return innerErr(ctx, "Expected an argument, but got end of input."; consumed = i)
+        return innerErr(ctx, argargument_error(ARGUMENT_EndOfInput; detail = metavar(p.valparser)); consumed = i)
     end
 
     if !is_error(ℒ_state(ctx))
         #=The state is a some, so this parser matched already with something.
         Add one to the consumed since we're technically consuming this duplicate=#
-        return innerErr(ctx, "The argument `$(metavar(p.valparser))` cannot be used multiple times."; consumed = 1+i)
+        return innerErr(ctx, argargument_error(ARGUMENT_Duplicate; detail = metavar(p.valparser)); consumed = 1+i)
     end
 
     result = p.valparser(ctx_peek(ctx, 1 + i))::ParseResult{T}
@@ -76,11 +76,19 @@ end
 function complete(p::ArgArgument{T, <:ArgumentState}, maybest::TState)::ParseResult{T} where {T, TState <: ArgumentState}
 
     #=The parser never matched anything.=#
-    is_error(maybest) && return typedErr("Expected a `$(metavar(p.valparser))`, but too few arguments.")
+    is_error(maybest) && return typedErr(
+        argargument_error(ARGUMENT_TooFew; detail = metavar(p.valparser))
+    )
 
     st = unwrap(maybest)
     #=The parser matched but there was a parsing error.=#
-    is_error(st) && return typedErr("`$(metavar(p.valparser))`: $(unwrap_error(st)).")
+    is_error(st) && return typedErr(
+        error_with_context(st,
+            CompletePhase,
+            ERR_ArgArgument,
+            metavar(p.valparser)
+        )
+    )
 
     return st
 end

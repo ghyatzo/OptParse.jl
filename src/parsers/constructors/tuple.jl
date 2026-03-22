@@ -7,7 +7,6 @@ end
 
 @enum TupleErrCode::UInt8 begin
     TUPLE_NoRemainingParser
-    TUPLE_InnerError
 end
 
 constrtuple_error(code::TupleErrCode; token = "", detail = "", subject="") =
@@ -127,7 +126,13 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
         while length(matched_parsers) < length(parsers)
             found_match = false
 
-            error = ParseFailure(0, "No remaining parsers could match the input.")
+            error = InnerParseFailure(
+                0,
+                constrtuple_error(
+                    TUPLE_NoRemainingParser;
+                    token = ctx_hasmore(current_ctx) > 0 ? ctx_peek(current_ctx) : "",
+                )
+            )
 
             #= instead of filtering by the already matched parsers
             # we iterate over all parsers and skip those already matched.
@@ -169,8 +174,18 @@ function complete(p::ConstrTuple{T, TState}, st::TState)::ParseResult{T} where {
     @unroll 10 for parser in p.parsers
         i += 1
         result = complete(unwrapunion(parser), st[i])
-        out = insert(out, IndexLens(i), @? result)
+        if is_error(result)
+            subject = isempty(p.label) ? "tuple" : p.label
+            return typedErr(T,
+                error_with_context(result,
+                    CompletePhase,
+                    ERR_ConstrTuple,
+                    subject
+                )
+            )
+        end
+        out = insert(out, IndexLens(i), unwrap(result))
     end
 
-    return typedOk(out)
+    return typedOk(T, out)
 end
