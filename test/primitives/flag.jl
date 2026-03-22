@@ -59,7 +59,7 @@ end
 @testset "should fail when flag is already set" begin
     parser = flag("-v")
     # Represent "already set" using Result-based state:
-    context = Context(buffer=["-v"], state= Result{Bool, String}(Ok(true)))
+    context = Context(buffer=["-v"], state= ParseResult{Bool}(Ok(true)))
 
     result = @unionsplit parse(parser, context)
 

@@ -51,18 +51,6 @@ mkerror(
 	context::Vector{ErrorSite} = ErrorSite[]
 ) = ParseError(phase, domain, code, token, detail, context)
 
-add_error_context!(err::ParseError, phase::ErrorPhase, domain::ErrorDomain, subject::String) = let
-	errsite = ErrorSite(phase, domain, subject)
-	# todo, probably trimming error
-	push!(err.context, errsite)
-end
-
-error_with_context(err::ParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String) = let
-	perr = unwrap_error(err)
-	errsite = ErrorSite(phase, domain, subject)
-	push!(err.context, errsite)
-	return perr
-end
 
 # rendering engine
 
@@ -111,5 +99,4 @@ function render_error_payload(io::IO, err::ParseError)
 		print(io, "Unreachable")
 	end
 end
-
 

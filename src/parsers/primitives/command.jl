@@ -32,7 +32,7 @@ struct ArgCommand{T, S, _p, P} <: AbstractParser{T, S, _p, P}
 end
 
 
-function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState{PState}})::ParseResult{CommandState{PState}, String} where {T, PState}
+function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState{PState}})::InnerParseResult{CommandState{PState}} where {T, PState}
     if is_error(ℒ_state(ctx))
         # command not yet matched
         # check if it starts with our command name
@@ -40,22 +40,22 @@ function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState
             actual = ctx_hasnone(ctx) ? nothing : ctx_peek(ctx)
 
             if actual === nothing
-                return innerparseerr(ctx, "Expected command `$(p.names[1])`, but got end of input.")
+                return innerErr(ctx, "Expected command `$(p.names[1])`, but got end of input.")
             end
 
-            return innerparseerr(ctx, "Expected command `$(p.names[1])`, but got `$actual`.")
+            return innerErr(ctx, "Expected command `$(p.names[1])`, but got `$actual`.")
         end
 
         # command matched, consume it and move to the matched state
         nextctx = ctx_with_state(consume(ctx, 1), some(none(PState)))
-        return innerparseok(ctx, 1; nextctx)
+        return innerOk(ctx, 1; nextctx)
 
     else
         maybestate = base(unwrap(ℒ_state(ctx)))
         childstate = isnothing(maybestate) ? p.parser.initialState : @something maybestate
         childctx = widen_restate(tstate(p.parser), ctx, childstate)
 
-        result = parse(unwrapunion(p.parser), childctx)::ParseResult{PState, String}
+        result = parse(unwrapunion(p.parser), childctx)::InnerParseResult{PState}
 
         if !is_error(result)
             parse_ok = unwrap(result)
@@ -65,37 +65,15 @@ function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState
                 ℒ_nextctx(parse_ok),
                 some(some(ℒ_nextstate(parse_ok)))
             )
-            return innerparseok(newctx, ℒ_consumed(parse_ok))
+            return innerOk(newctx, ℒ_consumed(parse_ok))
 
         else
-            return innerparseerr(unwrap_error(result))
+            return innerErr(ctx, unwrap_error(result))
         end
     end
 end
 
-# function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{Option{PState}})::ParseResult{CommandState{PState}, String} where {T, PState}
-#     maybestate = base(ctx.state)
-#     childstate = isnothing(maybestate) ? p.parser.initialState : @something maybestate
-#     childctx = @set ctx.state = childstate
-
-#     result = parse(unwrapunion(p.parser), childctx)::ParseResult{PState, String}
-
-#     if !is_error(result)
-#         parse_ok = unwrap(result)
-
-#         nextctx = parse_ok.next
-#         return ParseOk(
-#             parse_ok.consumed,
-#             Context{CommandState{PState}}(nextctx.buffer, some(nextctx.state), nextctx.optionsTerminated)
-#         )
-#     else
-#         parse_err = unwrap_error(result)
-#         return innerparseerr(ctx, parse_err.consumed, parse_err.error)
-#     end
-# end
-
-
-function complete(p::ArgCommand{T, CommandState{PState}}, maybemaybestate::CommandState{PState})::Result{T, String} where {T, PState}
+function complete(p::ArgCommand{T, CommandState{PState}}, maybemaybestate::CommandState{PState})::ParseResult{T} where {T, PState}
 
     if is_error(maybemaybestate)
         # command never matched

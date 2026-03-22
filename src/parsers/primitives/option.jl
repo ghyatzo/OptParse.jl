@@ -3,12 +3,10 @@ const OptionState{X} = ParseResult{X}
 @enum OptionErrCode::UInt8 begin
     OPTION_NoMoreOptions
     OPTION_EndOfInput
-    OPTION_Terminator
     OPTION_Duplicate
     OPTION_MissingValue
     OPTION_NoMatch
     OPTION_Missing
-    OPTION_InvalidValue
 end
 
 argoption_error(code::OptionErrCode; token = "", detail = "", subject="") =
@@ -56,9 +54,9 @@ end
 function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::InnerParseResult{OptionState{T}} where {T}
 
     if ℒ_optterm(ctx)
-        return innerparseerr(ctx, argoption_error(OPTION_NoMoreOptions))
+        return innerErr(ctx, argoption_error(OPTION_NoMoreOptions))
     elseif ctx_hasnone(ctx)
-        return innerparseerr(ctx, argoption_error(OPTION_EndOfInput))
+        return innerErr(ctx, argoption_error(OPTION_EndOfInput))
     end
 
     tok = ctx_peek(ctx)
@@ -66,7 +64,7 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
     # When the input contains `--` is a signal to stop parsing options
     if (tok === "--")
         nextctx = ctx_with_options_terminated(consume(ctx, 1), true)
-        return innerparseok(ctx, 1; nextctx)
+        return innerOk(ctx, 1; nextctx)
     end
 
     # when options are of the form `--option value`
@@ -74,16 +72,16 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
 
         # st = @? ctx.state
         if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx)) isa T
-            return innerparseerr(ctx, argoption_error(OPTION_Duplicate; token = tok); consumed = 1)
+            return innerErr(ctx, argoption_error(OPTION_Duplicate; token = tok); consumed = 1)
         end
 
         if ctx_haslessthan(2, ctx) || ctx_peek(ctx, 2) == "--"
-            return innerparseerr(ctx, argoption_error(OPTION_MissingValue; token=tok); consumed = 1)
+            return innerErr(ctx, argoption_error(OPTION_MissingValue; token=tok); consumed = 1)
         end
 
         result = p.valparser(ctx_peek(ctx, 2))::ParseResult{T}
 
-        return innerparseok(ctx, 2; nextctx = ctx_with_state(consume(ctx, 2), result))
+        return innerOk(ctx, 2; nextctx = ctx_with_state(consume(ctx, 2), result))
     end
 
     # when options are of the form `--option=value`
@@ -98,17 +96,17 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
 
         if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx))
 
-            return innerparseerr(ctx, argoption_error(OPTION_Duplicate; token = prefix[1:(end - 1)]); consumed = 1)
+            return innerErr(ctx, argoption_error(OPTION_Duplicate; token = prefix[1:(end - 1)]); consumed = 1)
         end
 
         value = tok[(length(prefix) + 1):end]
         result = p.valparser(value)::ParseResult{T}
 
-        return innerparseok(ctx, 1; nextctx = ctx_with_state(consume(ctx, 1), result))
+        return innerOk(ctx, 1; nextctx = ctx_with_state(consume(ctx, 1), result))
 
     end
 
-    return innerparseerr(ctx, argoption_error(OPTION_NoMatch; token=tok))
+    return innerErr(ctx, argoption_error(OPTION_NoMatch; token=tok))
 end
 
 function complete(p::ArgOption{T, OptionState{T}}, st::OptionState{T})::ParseResult{T} where {T}

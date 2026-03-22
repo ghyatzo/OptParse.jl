@@ -27,21 +27,21 @@ struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
     end
 end
 
-function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefaultState{S}})::ParseResult{WithDefaultState{S}, String} where {T, S}
+function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefaultState{S}})::InnerParseResult{WithDefaultState{S}} where {T, S}
 
     childstate = is_error(ℒ_state(ctx)) ? p.parser.initialState : unwrap(ℒ_state(ctx))
     childctx = ctx_with_state(ctx, childstate)
 
-    result = parse(unwrapunion(p.parser), childctx)::ParseResult{S, String}
+    result = parse(unwrapunion(p.parser), childctx)::InnerParseResult{S}
 
     if is_error(result)
         parse_err = unwrap_error(result)
         #=the inner parser failed without consuming any input, which means that it wasn't matched.=#
         if parse_err.consumed == 0
-            return innerparseok(ctx, consumed_empty(ctx))
+            return innerOk(ctx, consumed_empty(ctx))
         else
             #=otherwise the parser failed midway, and that we should propagate.=#
-            return innerparseerr(parse_err)
+            return innerErr(ctx, parse_err)
         end
     end
 
@@ -55,11 +55,11 @@ function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefau
         newctx = ctx_restate(ℒ_nextctx(parse_ok), ℒ_state(ctx))
     end
 
-    return innerparseok(newctx, ℒ_consumed(parse_ok))
+    return innerOk(newctx, ℒ_consumed(parse_ok))
 
 end
 
-function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDefaultState{S})::Result{T, String} where {T, S}
+function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDefaultState{S})::ParseResult{T} where {T, S}
 
     # The state can be missing (none), in which case return the default.
     if is_error(maybestate)
@@ -76,7 +76,7 @@ function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDef
     #= Otherwise just ask the inner state to complete itself.
     In case of validation errors from the value parser, we want to return an error instead of the default.
     Given that the user explicitly passed a value, he likely does not want the default value.=#
-    result = complete(unwrapunion(p.parser), state)::Result{tval(p.parser), String}
+    result = complete(unwrapunion(p.parser), state)::ParseResult{tval(p.parser)}
     if is_error(result)
         return typedErr(T, unwrap_error(result))
     end

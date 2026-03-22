@@ -1,11 +1,10 @@
-const ArgumentState{X} = Option{Result{X, String}}
+const ArgumentState{X} = Option{ParseResult{X}}
 
 @enum ArgumentErrCode::UInt8 begin
     ARGUMENT_EndOfInput
     ARGUMENT_GotOption
     ARGUMENT_Duplicate
     ARGUMENT_TooFew
-    ARGUMENT_InvalidValue
 end
 
 argargument_error(code::ArgumentErrCode; token = "", detail = "", subject="") =
@@ -29,14 +28,14 @@ struct ArgArgument{T, S, p, P} <: AbstractParser{T, S, p, P}
 
 
     ArgArgument(valparser::ValueParser{T}; help = "") where {T} =
-        new{T, ArgumentState{T}, 5, Nothing}(none(Result{T, String}), nothing, valparser, help)
+        new{T, ArgumentState{T}, 5, Nothing}(none(ParseResult{T}), nothing, valparser, help)
 end
 
-function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S}})::ParseResult{ArgumentState{S}, String} where {T, S}
+function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S}})::InnerParseResult{ArgumentState{S}} where {T, S}
     optpattern = r"^--?[a-z0-9-]+$"i
 
     if ctx_hasnone(ctx)
-        return innerparseerr(ctx, "Expected an argument, but got end of input.")
+        return innerErr(ctx, "Expected an argument, but got end of input.")
     end
 
     i = 0
@@ -52,29 +51,29 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
             i += 1
         elseif !isnothing(match(optpattern, ctx_peek(ctx, 1 + i)))
             #=Otherwise, check that we are not matching an option.=#
-            return innerparseerr(ctx, "Expected an argument, but got an option/flag."; consumed = i)
+            return innerErr(ctx, "Expected an argument, but got an option/flag."; consumed = i)
         end
     end
 
     if ctx_haslessthan(1+i, ctx)
         #=Check again, in case we only had a "--" in the buffer.=#
-        return innerparseerr(ctx, "Expected an argument, but got end of input."; consumed = i)
+        return innerErr(ctx, "Expected an argument, but got end of input."; consumed = i)
     end
 
     if !is_error(ℒ_state(ctx))
         #=The state is a some, so this parser matched already with something.
         Add one to the consumed since we're technically consuming this duplicate=#
-        return innerparseerr(ctx, "The argument `$(metavar(p.valparser))` cannot be used multiple times."; consumed = 1+i)
+        return innerErr(ctx, "The argument `$(metavar(p.valparser))` cannot be used multiple times."; consumed = 1+i)
     end
 
-    result = p.valparser(ctx_peek(ctx, 1 + i))::Result{T, String}
+    result = p.valparser(ctx_peek(ctx, 1 + i))::ParseResult{T}
 
     nextctx = ctx_with_options_terminated(ctx_with_state(consume(ctx, i+1), some(result)), options_terminated)
-    return innerparseok(ctx, 1+i; nextctx)
+    return innerOk(ctx, 1+i; nextctx)
 
 end
 
-function complete(p::ArgArgument{T, <:ArgumentState}, maybest::TState)::Result{T, String} where {T, TState <: ArgumentState}
+function complete(p::ArgArgument{T, <:ArgumentState}, maybest::TState)::ParseResult{T} where {T, TState <: ArgumentState}
 
     #=The parser never matched anything.=#
     is_error(maybest) && return typedErr("Expected a `$(metavar(p.valparser))`, but too few arguments.")

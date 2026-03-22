@@ -66,7 +66,7 @@ end
     optionalParser = optional(baseParser)
 
     # Simulate a collected successful inner state (as optional.parse would)
-    successfulState = some(Result{Bool, String}(Ok(true)))
+    successfulState = some(ParseResult{Bool}(Ok(true)))
     completeResult = splitcomplete(optionalParser, successfulState)
 
     @test !is_error(completeResult)
@@ -78,7 +78,7 @@ end
     optionalParser = optional(baseParser)
 
     # Simulate a collected failed inner state
-    failedState = some(Result{Int, String}(Err("Port must be >= 1")))
+    failedState = some(ParseResult{Int}(Err("Port must be >= 1")))
     completeResult = splitcomplete(optionalParser, failedState)
 
     @test is_error(completeResult)

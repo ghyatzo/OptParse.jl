@@ -34,7 +34,7 @@ ModMultiple(parser::P; min::Integer = 0, max::Integer = typemax(Int)) where {P <
 	}(tstate(P)[], parser, min, max)
 end
 
-function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}})::ParseResult{MultipleState{S}, String} where {T, S}
+function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}})::InnerParseResult{MultipleState{S}} where {T, S}
 
 	#=If the state is empty, it means that we're adding a new match.=#
 	hasadded = isempty(ℒ_state(ctx))
@@ -42,7 +42,7 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 	#=With a non empty state, pass in the latest state to the parser that maybe needs to keep parsing.=#
 	child_state = isempty(ℒ_state(ctx)) ? p.parser.initialState : ℒ_state(ctx)[end]
 	child_ctx = widen_restate(S, ctx, child_state)
-	result = parse(unwrapunion(p.parser), child_ctx)::ParseResult{S, String}
+	result = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
 
 	if is_error(result)
 		if !hasadded
@@ -51,17 +51,17 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 			Erase its memory and try again from a blank slate. Maybe the pattern repeats.=#
 			child_state = p.parser.initialState
 			child_ctx = widen_restate(S, ctx, child_state)
-			result = parse(unwrapunion(p.parser), child_ctx)::ParseResult{S, String}
+			result = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
 
 			if is_error(result)
 				#=The error is real, return it.=#
-				return innerparseerr(unwrap_error(result))
+				return innerErr(ctx, unwrap_error(result))
 			end
 
 			#=Otherwise, we've encountered a new repetition. Add it to the state.=#
 			hasadded = true
 		else
-			return innerparseerr(unwrap_error(result))
+			return innerErr(ctx, unwrap_error(result))
 		end
 	end
 
@@ -76,11 +76,11 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 	end
 
 	nextctx = widen_restate(MultipleState{S}, ℒ_nextctx(parse_ok), nextst)
-	return innerparseok(nextctx, ℒ_consumed(parse_ok))
+	return innerOk(nextctx, ℒ_consumed(parse_ok))
 
 end
 
-function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleState{S})::Result{T, String} where {T,S, _p, P}
+function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleState{S})::ParseResult{T} where {T,S, _p, P}
 	result = tval(P)[]
 	for s in state
 		val = @? complete(unwrapunion(p.parser), s)

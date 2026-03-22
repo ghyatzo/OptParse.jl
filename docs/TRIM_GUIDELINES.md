@@ -19,7 +19,7 @@ Most failures were not semantic bugs; they were unresolved calls caused by dynam
    - Do not infer branch identity from child state type alone (multiple branches may share the same state type).
 
 4. Construct typed results directly at typed boundaries.
-   - For `typedOk(::Type{T}, ...)` / `typedErr(::Type{T}, ...)`, construct `Result{T,String}` concretely.
+   - For `typedOk(::Type{T}, ...)` / `typedErr(::Type{T}, ...)`, construct `ParseResult{T}` concretely.
    - Avoid extra generic conversion layers in hot trim paths.
 
 5. Keep state type parameters exact (especially `Context{S}` and `OrState`).
@@ -73,7 +73,7 @@ Most failures were not semantic bugs; they were unresolved calls caused by dynam
 
 4. Signature: unresolved call around typed result construction (`typedOk`/`typedErr`)
    - Likely cause: generic `ResultConstructor`/conversion path not closing under trim.
-   - First fix: directly construct concrete `Result{T,String}` at typed boundary.
+   - First fix: directly construct concrete `ParseResult{T}` at typed boundary.
 
 5. Signature: method mismatch/inference confusion for `Context{S}`
    - Likely cause: parametric invariance mismatch between actual and expected `S`.

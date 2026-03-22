@@ -14,10 +14,10 @@ ArgConstant(val::T) where {T} = let
     end
 end
 
-function parse(::ArgConstant{Val{val}, ConstantState{val}}, ctx::Context{ConstantState{val}})::ParseResult{ConstantState{val}, String} where {val}
-    return typedOk(ParseSuccess(consumed_empty(ctx), ctx))
+function parse(::ArgConstant{Val{val}, ConstantState{val}}, ctx::Context{ConstantState{val}})::InnerParseResult{ConstantState{val}} where {val}
+    return innerOk(ctx, consumed_empty(ctx))
 end
 
-function complete(::ArgConstant{Val{val}, ConstantState{val}}, st::ConstantState{val})::Result{Val{val}, String} where {val}
+function complete(::ArgConstant{Val{val}, ConstantState{val}}, st::ConstantState{val})::ParseResult{Val{val}} where {val}
     return typedOk(st)
 end

@@ -93,7 +93,7 @@ end
                 child_state = child_state_lens(current_ctx)
                 child_ctx = widen_restate(tstate(child_parser), current_ctx, child_state)
 
-                result = (@unionsplit parse(child_parser, child_ctx))::ParseResult{tstate(child_parser), String}
+                result = (@unionsplit parse(child_parser, child_ctx))::InnerParseResult{tstate(child_parser)}
 
                 if is_error(result)
                     parse_err = unwrap_error(result)
@@ -156,7 +156,7 @@ end
     end
 end
 
-function parse(p::ConstrObject{NamedTuple{fields, Tup}, S}, ctx::Context)::ParseResult{S, String} where {fields, Tup, S}
+function parse(p::ConstrObject{NamedTuple{fields, Tup}, S}, ctx::Context)::InnerParseResult{S} where {fields, Tup, S}
 
     # TODO: check for duplicates
 
@@ -167,7 +167,7 @@ function parse(p::ConstrObject{NamedTuple{fields, Tup}, S}, ctx::Context)::Parse
 
     # TODO: continue.
     if anysuccess
-        return innerparseok(outctx, mergedcons)
+        return innerOk(outctx, mergedcons)
     end
 
     #= if buffer is empty check if all parsers can complete anyway =#
@@ -175,11 +175,11 @@ function parse(p::ConstrObject{NamedTuple{fields, Tup}, S}, ctx::Context)::Parse
         all_can_complete, _ = _generated_object_complete(p.parsers, ℒ_state(ctx))
 
         if all_can_complete
-            return innerparseok(ctx, consumed_empty(ctx))
+            return innerOk(ctx, consumed_empty(ctx))
         end
     end
 
-    return innerparseerr(error)
+    return innerErr(ctx, error)
 end
 
 @generated function _generated_object_complete(p::NamedTuple{labels, PTup}, state::NamedTuple{labels, STup}) where {labels, PTup, STup}
@@ -198,9 +198,9 @@ end
                 child_state = state[$(QuoteNode(field))]::$S
                 child_parser = p[$(QuoteNode(field))]
 
-                result = (@unionsplit complete(child_parser, child_state))::Result{$Ti, String}
+                result = (@unionsplit complete(child_parser, child_state))::ParseResult{$Ti}
                 if is_error(result)
-                    return false, Result{$T, String}(typedErr(unwrap_error(result)))
+                    return false, ParseResult{$T}(typedErr(unwrap_error(result)))
                 else
                     output = (output..., unwrap(result))
                 end
@@ -218,7 +218,7 @@ end
 end
 
 
-function complete(p::ConstrObject{T}, st::NamedTuple)::Result{T, String} where {T}
+function complete(p::ConstrObject{T}, st::NamedTuple)::ParseResult{T} where {T}
 
     cancomplete, _result = _generated_object_complete(p.parsers, st)
 

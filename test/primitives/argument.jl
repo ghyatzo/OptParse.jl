@@ -2,7 +2,7 @@
     parser = argument(str(; metavar = "FILE"))
 
     @test priority(parser) == 5
-    @test getproperty(unwrapunion(parser), :initialState) === none(Result{String, String})
+    @test getproperty(unwrapunion(parser), :initialState) === none(ParseResult{String})
 end
 
 @testset "should parse a string argument" begin
@@ -76,7 +76,7 @@ end
 
 @testset "should complete successfully with valid state" begin
     parser = argument(str(; metavar = "FILE"))
-    validState = some(Result{String, String}(Ok("test.txt")))
+    validState = some(ParseResult{String}(Ok("test.txt")))
 
     res = complete(unwrapunion(parser), validState)
     @test !is_error(res)
@@ -85,7 +85,7 @@ end
 
 @testset "should fail completion with invalid state" begin
     parser = argument(str(; metavar = "FILE"))
-    invalidState = some(Result{String, String}(Err("Missing argument")))
+    invalidState = some(ParseResult{String}(Err("Missing argument")))
 
     res = complete(unwrapunion(parser), invalidState)
     @test is_error(res)

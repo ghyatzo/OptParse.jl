@@ -63,7 +63,7 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
                 child_state = (IndexLens($(perm[i])) ∘ ℒ_state)(current_ctx)::$child_parser_tstate
                 child_ctx = ctx_with_state(current_ctx, child_state)
 
-                result = parse(unwrapunion(parser), child_ctx)::ParseResult{$child_parser_tstate, String}
+                result = parse(unwrapunion(parser), child_ctx)::InnerParseResult{$child_parser_tstate}
 
                 if !is_error(result) && length(unwrap(result).consumed) > 0
                     #= parser succeded and consumed input - match it =#
@@ -93,7 +93,7 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
                 child_state = (IndexLens($(perm[i])) ∘ ℒ_state)(current_ctx)::$child_parser_tstate
                 child_ctx = ctx_with_state(current_ctx, child_state)
 
-                result = parse(unwrapunion(parser), child_ctx)::ParseResult{tstate(parser), String}
+                result = parse(unwrapunion(parser), child_ctx)::InnerParseResult{tstate(parser)}
 
                 if !is_error(result) && length(unwrap(result).consumed) < 1
                     #=parser succeded without consuming - match it as success=#
@@ -146,24 +146,24 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
 
             if !found_match
                 #=If we still haven't found a match then cry=#
-                return innerparseerr(error)
+                return innerErr(current_ctx, error)
             end
         end
 
         mergedcons = merge(allconsumed)
-        return innerparseok(current_ctx, mergedcons)
+        return innerOk(current_ctx, mergedcons)
     end
 
 end
 
-function parse(p::ConstrTuple{T, S}, ctx::Context{S})::ParseResult{S, String} where {T, S <: Tuple}
+function parse(p::ConstrTuple{T, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: Tuple}
 
     _generated_tup_parse(p.parsers, ctx)
 
 end
 
 
-function complete(p::ConstrTuple{T, TState}, st::TState)::Result{T, String} where {T, TState <: Tuple}
+function complete(p::ConstrTuple{T, TState}, st::TState)::ParseResult{T} where {T, TState <: Tuple}
     out = ()
     i = 0
     @unroll 10 for parser in p.parsers

@@ -209,7 +209,7 @@ end
     multipleParser = multiple(baseParser)
 
 
-    mockStates = Result{Int, String}[Ok(42), Ok(100), Ok(7)]
+    mockStates = ParseResult{Int}[Ok(42), Ok(100), Ok(7)]
     comp = @unionsplit complete(multipleParser, mockStates)
     @test !is_error(comp)
     @test unwrap(comp) == [42, 100, 7]
@@ -219,7 +219,7 @@ end
     baseParser = option("-n", "--number", integer())
     multipleParser = multiple(baseParser)
 
-    mockStates = Result{Int, String}[Ok(42), Err("Invalid number"), Ok(7)]
+    mockStates = ParseResult{Int}[Ok(42), Err("Invalid number"), Ok(7)]
     comp = @unionsplit complete(multipleParser, mockStates)
     @test is_error(comp)
     @test occursin("Invalid number", string(unwrap_error(comp)))
@@ -229,7 +229,7 @@ end
     baseParser = option(("-l", "--locale"), str())
     multipleParser = multiple(baseParser; min = 1)
 
-    comp = @unionsplit complete(multipleParser, Result{String, String}[])
+    comp = @unionsplit complete(multipleParser, ParseResult{String}[])
     @test is_error(comp)
     @test occursin("Expected at least 1 values, but got only 0", string(unwrap_error(comp)))
 end
@@ -238,7 +238,7 @@ end
     baseParser = option(("-l", "--locale"), str())
     multipleParser = multiple(baseParser; max = 2)
 
-    mockStates = Result{String, String}[Ok("en"), Ok("fr"), Ok("de")]
+    mockStates = ParseResult{String}[Ok("en"), Ok("fr"), Ok("de")]
     comp = @unionsplit complete(multipleParser, mockStates)
     @test is_error(comp)
     @test occursin("Expected at most 2 values, but got 3", string(unwrap_error(comp)))

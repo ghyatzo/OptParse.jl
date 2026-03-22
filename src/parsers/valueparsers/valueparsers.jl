@@ -4,7 +4,7 @@
 # 	# ... custom vars
 # end
 
-# function parse end # String -> Result{T, String}
+# function parse end # String -> ParseResult{T}
 # function format end # T -> String
 
 
@@ -28,8 +28,8 @@ end
 Base.getproperty(v::ValueParser, f::Symbol) = @unionsplit Base.getproperty(v, f)
 metavar(v::ValueParser) = v.metavar
 
-# (parse(x::ValueParser{T}, input::String)::Result{T, String}) where {T} = @unionsplit parse(x, input)
-((v::ValueParser{T})(input::String)::Result{T, String}) where {T} = @unionsplit v(input)
+# (parse(x::ValueParser{T}, input::String)::ParseResult{T}) where {T} = @unionsplit parse(x, input)
+((v::ValueParser{T})(input::String)::ParseResult{T}) where {T} = @unionsplit v(input)
 
 
 str(; kw...) = ValueParser{String}(StringVal{String}(; kw...))
