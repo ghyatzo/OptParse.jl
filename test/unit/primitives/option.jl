@@ -13,24 +13,23 @@ end
     parser = option(("-p", "--port"), integer())
     context = Context(buffer=["--port", "8080"], state=parser.initialState)
 
-    res = @unionsplit parse(parser, context)  # :: ParseResult
+    res = splitparse(parser, context)
 
-    @test !is_error(res)  # success
-    ps = unwrap(res)      # :: ParseSuccess
+    @test !is_error(res)
+    ps = unwrap(res)
 
-    # next.state should itself be a successful value (Result/Option)
     @test !is_error(ℒ_nextstate(ps))
     @test unwrap(ℒ_nextstate(ps)) == 8080
 
-    @test ctx_remaining(ps.next) == String[]  # buffer consumed
-    @test as_tuple(ℒ_consumed(ps)) == ("--port", "8080")  # tuple, not Vector
+    @test ctx_remaining(ps.next) == String[]
+    @test as_tuple(ℒ_consumed(ps)) == ("--port", "8080")
 end
 
 @testset "should parse option with equals-separated value" begin
     parser = option("--port", integer())
     context = Context(buffer=["--port=8080"], state=parser.initialState)
 
-    res = @unionsplit parse(parser, context)
+    res = splitparse(parser, context)
 
     @test !is_error(res)
     ps = unwrap(res)
@@ -45,28 +44,17 @@ end
 @testset "should handle option terminator edge cases correctly" begin
     parser = option("--name", str())
 
-    result = argparse(parser, ["--", "--name", "lol"])
-    @test is_error(result)
-    @test occursin("No more options", unwrap_error(result))
-
-    result = argparse(parser, ["--"])
-    @test is_error(result)
-    @test occursin("Missing", unwrap_error(result))
-
-    result = argparse(parser, ["--name", "--"])
-    @test is_error(result)
-    @test occursin("value", unwrap_error(result))
-
-    result = argparse(parser, ["--name", "bob", "--"])
-    @test !is_error(result)
-    @test (@? result) == "bob"
+    @test_parse_error parser ["--", "--name", "lol"] OptParse.ERR_ArgOption OptParse.OPTION_NoMoreOptions
+    @test_parse_error parser ["--"] OptParse.ERR_ArgOption OptParse.OPTION_Missing
+    @test_parse_error parser ["--name", "--"] OptParse.ERR_ArgOption OptParse.OPTION_MissingValue
+    @test parse_ok(parser, ["--name", "bob", "--"]) == "bob"
 end
 
 # @testset "should parse DOS-style option with colon" begin
 #     parser  = option("/P", integer())
 #     context = Context(buffer=["/P:8080"], state=parser.initialState)
 
-#     res = @unionsplit parse(parser, context)
+#     res = splitparse(parser, context)
 
 #     @test !is_error(res)
 #     ps = unwrap(res)
@@ -80,20 +68,22 @@ end
     parser = option("--port", integer())
     context = Context(buffer=["--port"], state=parser.initialState)
 
-    res = @unionsplit parse(parser, context)
+    res = splitparse(parser, context)
 
-    @test is_error(res)  # failure
-    pf = unwrap_error(res)  # :: ParseFailure
+    @test is_error(res)
+    pf = unwrap_error(res)
 
     @test ℒ_nconsumed(pf) == 1
-    @test occursin("requires a value", string(pf.error))
+    @test pf.error.domain == OptParse.ERR_ArgOption
+    @test OptParse.OptionErrCode(pf.error.code) == OptParse.OPTION_MissingValue
+    @test pf.error.token == "--port"
 end
 
 @testset "should parse string values" begin
     parser = option("--name", str(; metavar = "NAME"))
     context = Context(buffer=["--name", "Alice"], state=parser.initialState)
 
-    res = @unionsplit parse(parser, context)
+    res = splitparse(parser, context)
 
     @test !is_error(res)
     ps = unwrap(res)
@@ -106,28 +96,31 @@ end
     parser = option("--port", integer(; min = 1, max = 0xffff))
     context = Context(buffer=["--port", "invalid"], state=parser.initialState)
 
-    res = @unionsplit parse(parser, context)
+    res = splitparse(parser, context)
 
-    # Option itself matched, so overall parse succeeds...
     @test !is_error(res)
     ps = unwrap(res)
 
-    # ...but the inner value parser failed (carry failure in state)
     @test is_error(ℒ_nextstate(ps))
-    @test occursin("Expected valid integer", string(unwrap_error(ℒ_nextstate(ps))))
+    err = unwrap_error(ℒ_nextstate(ps))
+    @test err.domain == OptParse.ERR_IntegerVal
+    @test OptParse.IntegerErrCode(err.code) == OptParse.INTEGER_Invalid
+    @test err.token == "invalid"
 end
 
 @testset "should fail on unmatched option" begin
     parser = option(("-v", "--verbose"), choice(["yes", "no"]))
     context = Context(buffer=["--help"], state=parser.initialState)
 
-    res = @unionsplit parse(parser, context)
+    res = splitparse(parser, context)
 
     @test is_error(res)
     pf = unwrap_error(res)
 
     @test ℒ_nconsumed(pf) == 0
-    @test occursin("No Matched", string(pf.error))
+    @test pf.error.domain == OptParse.ERR_ArgOption
+    @test OptParse.OptionErrCode(pf.error.code) == OptParse.OPTION_NoMatch
+    @test pf.error.token == "--help"
 end
 
 @testset "should be type stable" begin

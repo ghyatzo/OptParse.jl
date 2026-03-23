@@ -1,86 +1,58 @@
-using Test
-using OptParse
-using OptParse:
-    Context,
-    Parser,
-    as_tuple,
-    as_vector,
-    complete,
-    consumed_empty,
-    ctx_remaining,
-    parse,
-    priority,
-    tstate,
-    tval,
-    widen_state,
-    ℒ_buffer,
-    ℒ_consumed,
-    ℒ_nconsumed,
-    ℒ_nextctx,
-    ℒ_nextstate,
-    ℒ_optterm,
-    ℒ_pos,
-    ℒ_state
-
-using ErrorTypes
-using WrappedUnions: @unionsplit, unwrap as unwrapunion
-using JET
-using UUIDs
-
-# define it here for ease of use
-splitparse(p::Parser, ctx::Context) = @unionsplit parse(p, ctx)
-splitcomplete(p::Parser, st) = @unionsplit complete(p, st)
-val(::Val{x}) where {x} = x
+include("helpers.jl")
 
 @testset "Value Parsers" begin
 
-    include("valueparsers.jl")
+    include("unit/valueparsers/string.jl")
+    include("unit/valueparsers/choice.jl")
+    include("unit/valueparsers/integer.jl")
+    include("unit/valueparsers/float.jl")
+    include("unit/valueparsers/uuid.jl")
 
 end
 
 @testset "Primitives" failfast=true begin
 
     @testset "Constant parser" begin
-        include("primitives/constant.jl")
+        include("unit/primitives/constant.jl")
     end
 
     @testset "Flag parser" begin
-        include("primitives/flag.jl")
+        include("unit/primitives/flag.jl")
     end
 
     @testset "Option parser" begin
-        include("primitives/option.jl")
+        include("unit/primitives/option.jl")
     end
 
     @testset "Argument parser" begin
-        include("primitives/argument.jl")
+        include("unit/primitives/argument.jl")
     end
 
     @testset "Command parser" begin
-        include("primitives/command.jl")
+        include("unit/primitives/command.jl")
     end
 end
 
 @testset "Constructors" failfast=true begin
 
     @testset "Objmerge" begin
-        include("constructors/merge.jl")
+        include("unit/constructors/merge.jl")
     end
 
     @testset "Objects" begin
-        include("constructors/object.jl")
+        include("unit/constructors/object.jl")
     end
 
     @testset "Or" begin
-        include("constructors/or.jl")
+        include("unit/constructors/or.jl")
     end
 
     @testset "Tup" begin
-        include("constructors/tup.jl")
+        include("unit/constructors/tup.jl")
     end
 
     @testset "Concat" begin
-        include("constructors/concat.jl")
+        include("unit/constructors/concat.jl")
     end
 
 end
@@ -88,15 +60,15 @@ end
 @testset "Modifiers" failfast=true begin
 
     # @testset "Optional parser" begin
-    #     include("modifiers/optional.jl")
+    #     include("unit/modifiers/optional.jl")
     # end
 
     @testset "withDefault Modifier" begin
-        include("modifiers/withDefault.jl")
+        include("unit/modifiers/withDefault.jl")
     end
 
     @testset "Multiple Modifier" begin
-        include("modifiers/multiple.jl")
+        include("unit/modifiers/multiple.jl")
     end
 
 end
@@ -104,14 +76,14 @@ end
 @testset "Integration Tests" failfast=true begin
 
     @testset "Argparse" begin
-        include("argparse.jl")
+        include("integration/argparse.jl")
     end
 
     @testset "Argv Normalization" begin
-        include("normalize_argv.jl")
+        include("unit/core/normalize_argv.jl")
     end
 end
 
 @testset "Trimming" begin
-    include("trimming.jl")
+    include("trim/trimming.jl")
 end

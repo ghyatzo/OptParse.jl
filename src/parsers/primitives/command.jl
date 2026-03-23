@@ -94,7 +94,7 @@ function complete(p::ArgCommand{T, CommandState{PState}}, maybemaybestate::Comma
         else
             complete(unwrapunion(p.parser), unwrap(maybestate))
         end
-        return !iserror(result) ? result : typedErr(
+        return !is_error(result) ? result : typedErr(
             error_with_context(result,
                 CompletePhase,
                 ERR_ArgCommand,
