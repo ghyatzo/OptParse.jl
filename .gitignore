@@ -30,4 +30,4 @@ JuliaLocalPreferences.toml
 manifest*
 
 
-test/trimmability/build
+test/trim/trimmability/build

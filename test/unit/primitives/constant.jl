@@ -9,12 +9,11 @@ end
     parser = @constant(:hello)
     context = Context(buffer=["--option", "value"], state=Val(:hello))
 
-    result = @unionsplit parse(parser, context)
-    @test is_ok_and(result) do succ
-        @test ℒ_consumed(succ) == consumed_empty(context)
-        @test ℒ_nextctx(succ) == context
-        !is_error(result)
-    end
+    result = splitparse(parser, context)
+    @test !is_error(result)
+    succ = unwrap(result)
+    @test ℒ_consumed(succ) == consumed_empty(context)
+    @test ℒ_nextctx(succ) == context
 end
 
 # @test "should fail when passed strings" begin
@@ -23,12 +22,10 @@ end
 
 @testset "should complete successfully with a constant value" begin
     parser = @constant(69)
-    result = @unionsplit complete(parser, Val(69))
+    result = splitcomplete(parser, Val(69))
 
-    @test is_ok_and(result) do succ
-        @test val(succ) == 69
-        !is_error(result)
-    end
+    @test !is_error(result)
+    @test val(unwrap(result)) == 69
 end
 @testset "should work with different value types" begin
     stringconst = @constant(:hello)
