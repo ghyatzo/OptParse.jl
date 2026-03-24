@@ -30,7 +30,7 @@ function @main(args::Vector{String})::Cint
 
 	parser = or(simple, greet, multiarg, goodbye, opt)
 
-	obj = @? argparse(parser, args)
+	obj = argparse(parser, args)
 
 	doaction(obj)
 

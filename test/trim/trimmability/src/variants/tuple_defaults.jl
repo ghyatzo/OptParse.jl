@@ -8,7 +8,7 @@ const parser = tup(
 )
 
 function @main(args::Vector{String})::Cint
-    _ = @? argparse(parser, args)
+    _ = argparse(parser, args)
     # println(Core.stdout, join(args, ','))
     return 0
 end
