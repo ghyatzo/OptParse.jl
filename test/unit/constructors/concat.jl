@@ -9,10 +9,7 @@
         ),
     )
 
-    result = argparse(parser, ["-y", "20", "-x", "10", "input.txt"])
-    @test !is_error(result)
-
-    val = unwrap(result)
+    val = parse_ok(parser, ["-y", "20", "-x", "10", "input.txt"])
     @test val == (10, 20, "input.txt")
 end
 
@@ -23,10 +20,7 @@ end
         label = "connection",
     )
 
-    result = argparse(parser, ["--host", "localhost", "--port", "8080"])
-    @test !is_error(result)
-
-    val = unwrap(result)
+    val = parse_ok(parser, ["--host", "localhost", "--port", "8080"])
     @test val == ("localhost", 8080)
 end
 
@@ -37,9 +31,6 @@ end
         tup(flag("-v")),
     )
 
-    result = argparse(parser, ["-u", "user", "-p", "pass", "-v"])
-    @test !is_error(result)
-
-    val = unwrap(result)
+    val = parse_ok(parser, ["-u", "user", "-p", "pass", "-v"])
     @test val == ("user", "pass", true)
 end

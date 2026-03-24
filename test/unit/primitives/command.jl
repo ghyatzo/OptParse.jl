@@ -99,11 +99,13 @@ end
     )
 
     # Test with optional option
+    # Test with optional option
     val1 = parse_ok(editParser, ["edit", "-e", "vim", "item123"])
     @test val1.type == Val(:edit)
     @test val1.editor == "vim"
     @test val1.id == "item123"
 
+    # Test without optional option
     val2 = parse_ok(editParser, ["edit", "item456"])
     @test val2.type == Val(:edit)
     @test val2.editor === nothing
@@ -135,11 +137,13 @@ end
     )
 
     # Test show command
+    # Test show command
     showVal = parse_ok(parser, ["show", "--progress", "item123"])
     @test showVal.type == Val(:show)
     @test showVal.progress == true
     @test showVal.id == "item123"
 
+    # Test edit command
     editVal = parse_ok(parser, ["edit", "-e", "vim", "item456"])
     @test editVal.type == Val(:edit)
     @test editVal.editor == "vim"

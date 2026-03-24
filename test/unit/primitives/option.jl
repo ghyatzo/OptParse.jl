@@ -18,10 +18,13 @@ end
     @test !is_error(res)
     ps = unwrap(res)
 
+    # next.state should itself be a successful value (Result/Option)
     @test !is_error(ℒ_nextstate(ps))
     @test unwrap(ℒ_nextstate(ps)) == 8080
 
+    # buffer consumed
     @test ctx_remaining(ps.next) == String[]
+    # tuple, not Vector
     @test as_tuple(ℒ_consumed(ps)) == ("--port", "8080")
 end
 
@@ -98,9 +101,11 @@ end
 
     res = splitparse(parser, context)
 
+    # Option itself matched, so overall parse succeeds...
     @test !is_error(res)
     ps = unwrap(res)
 
+    # ...but the inner value parser failed (carry failure in state)
     @test is_error(ℒ_nextstate(ps))
     err = unwrap_error(ℒ_nextstate(ps))
     @test err.domain == OptParse.ERR_IntegerVal

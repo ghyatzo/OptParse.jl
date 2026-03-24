@@ -8,15 +8,11 @@
         )),
     )
 
-    @test hasproperty(parser, :initialState)
     names = propertynames(parser.initialState)
     @test :verbose in names
     @test :port in names
 
-    result = argparse(parser, ["-v", "--port", "8080"])
-    @test !is_error(result)
-
-    val = unwrap(result)
+    val = parse_ok(parser, ["-v", "--port", "8080"])
     @test val.verbose == true
     @test val.port == 8080
 end
@@ -32,10 +28,7 @@ end
         )),
     )
 
-    result = argparse(parser, ["--host", "localhost", "--port", "8080"])
-    @test !is_error(result)
-
-    val = unwrap(result)
+    val = parse_ok(parser, ["--host", "localhost", "--port", "8080"])
     @test val.host == "localhost"
     @test val.port == 8080
 end

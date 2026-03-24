@@ -16,10 +16,7 @@ end
         flag("-v", "--verbose"),
     )
 
-    res = argparse(parser, ["-n", "Alice", "-v"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(parser, ["-n", "Alice", "-v"])
     @test val == ("Alice", true)
 end
 
@@ -29,20 +26,14 @@ end
         flag("-v", "--verbose"),
     )
 
-    res = argparse(parser, ["-n", "Bob", "-v"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(parser, ["-n", "Bob", "-v"])
     @test val == ("Bob", true)
 end
 
 @testset "should handle empty tuple" begin
     parser = tup()  # empty tuple of parsers
 
-    res = argparse(parser, String[])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(parser, String[])
     @test length(val) == 0
 end
 
@@ -53,14 +44,10 @@ end
         flag("-v", "--verbose"),
     )
 
-    res1 = argparse(parser, ["-n", "Alice", "-a", "30", "-v"])
-    @test !is_error(res1)
-    val1 = unwrap(res1)
+    val1 = parse_ok(parser, ["-n", "Alice", "-a", "30", "-v"])
     @test val1 == ("Alice", 30, true)
 
-    res2 = argparse(parser, ["-n", "Bob", "-v"])
-    @test !is_error(res2)
-    val2 = unwrap(res2)
+    val2 = parse_ok(parser, ["-n", "Bob", "-v"])
     @test val2 == ("Bob", nothing, true)
 end
 
@@ -71,10 +58,7 @@ end
         option(("-o", "--output"), str()),
     )
 
-    res = argparse(parser, ["input.txt", "-v", "-o", "output.txt"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(parser, ["input.txt", "-v", "-o", "output.txt"])
     @test val == ("input.txt", true, "output.txt")
 end
 
@@ -85,10 +69,7 @@ end
         flag("-v", "--verbose"),
     )
 
-    res = argparse(parser, ["file1.txt", "file2.txt", "-v"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(parser, ["file1.txt", "file2.txt", "-v"])
     @test val == ("file1.txt", "file2.txt", true)
 end
 
@@ -99,10 +80,7 @@ end
         argument(str()),
     )
 
-    res = argparse(parser, ["input.txt", "-t", "json", "output.txt"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(parser, ["input.txt", "-t", "json", "output.txt"])
     @test val == ("input.txt", "json", "output.txt")
 end
 
@@ -113,8 +91,7 @@ end
     )
 
     # No arguments provided, should fail on first argument parser
-    res = argparse(parser, ["-v"])
-    @test is_error(res)
+    @test is_error(tryargparse(parser, ["-v"]))
 end
 
 @testset "should work with complex argument and option combinations" begin
@@ -127,9 +104,6 @@ end
         argument(str(; metavar = "OUTPUT")),
     )
 
-    res = argparse(parser, ["convert", "input.md", "-f", "json", "-v", "output.json"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(parser, ["convert", "input.md", "-f", "json", "-v", "output.json"])
     @test val == ("convert", "input.md", "json", true, "output.json")
 end

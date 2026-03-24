@@ -54,7 +54,6 @@ mkerror(
 ) = ParseError(phase, domain, code, token, detail, context)
 
 
-
 @enum MainErrCode::UInt8 begin
     MAIN_NoProgress
 end
@@ -68,7 +67,7 @@ main_error(code::MainErrCode; token="", detail="", subject="") =
 
 function main_render_error(io::IO, code::MainErrCode, err::ParseError)
     if code == MAIN_NoProgress
-        print(io, "Expected valid integer, got $(err.token)")
+        print(io, "Failed to match token $(err.token)")
     else
         print(io, "unreachable")
     end

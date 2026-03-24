@@ -216,7 +216,7 @@ function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
                     && ctx_remaining(ctx) == previous_buffer
             )
             return typedErr(mkerror(
-                ParsePhase, ERR_Main, MAIN_NoProgress;
+                ParsePhase, ERR_Main, UInt8(MAIN_NoProgress);
                 token = ctx_peek(ctx)
             ))
         end

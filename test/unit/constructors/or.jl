@@ -13,8 +13,7 @@ end
     parser2 = flag("-b")
     orParser = or(parser1, parser2)
 
-    res = argparse(orParser, ["-a"])
-    @test is_ok_and(==(true), res)
+    @test parse_ok(orParser, ["-a"]) == true
 end
 
 @testset "should succeed with second parser when first fails" begin
@@ -22,8 +21,7 @@ end
     parser2 = flag("-b")
     orParser = or(parser1, parser2)
 
-    res = argparse(orParser, ["-b"])
-    @test is_ok_and(==(true), res)
+    @test parse_ok(orParser, ["-b"]) == true
 end
 
 @testset "should fail when no parser matches" begin
@@ -31,10 +29,9 @@ end
     parser2 = flag("-b")
     orParser = or(parser1, parser2)
 
-    res = argparse(orParser, ["-c"])
-    @test is_error(res)
-    err = unwrap_error(res)
-    @test occursin("Unexpected option or subcommand", string(err))
+    err = parse_fail(orParser, ["-c"])
+    @test err.domain == OptParse.ERR_ConstrOr
+    @test OptParse.OrErrCode(err.code) == OptParse.OR_UnexpectedToken
 end
 
 @testset "should detect mutually exclusive options" begin
@@ -42,10 +39,9 @@ end
     parser2 = flag("-b")
     orParser = or(parser1, parser2)
 
-    res = argparse(orParser, ["-a", "-b"])
-    @test is_error(res)
-    err = unwrap_error(res)
-    @test occursin("can't be used together", string(err))
+    err = parse_fail(orParser, ["-a", "-b"])
+    @test err.domain == OptParse.ERR_ConstrOr
+    @test OptParse.OrErrCode(err.code) == OptParse.OR_Conflict
 end
 
 @testset "should work with more than two parsers" begin
@@ -54,14 +50,11 @@ end
     parser3 = flag("-c")
     orParser = or(parser1, parser2, parser3)
 
-    resultA = argparse(orParser, ["-a"])
-    @test is_ok_and(==(true), resultA)
+    @test parse_ok(orParser, ["-a"]) == true
 
-    resultB = argparse(orParser, ["-b"])
-    @test is_ok_and(==(true), resultB)
+    @test parse_ok(orParser, ["-b"]) == true
 
-    resultC = argparse(orParser, ["-c"])
-    @test is_ok_and(==(true), resultC)
+    @test parse_ok(orParser, ["-c"]) == true
 end
 
 @testset "should allow duplicate option names in different branches" begin
@@ -71,8 +64,8 @@ end
         flag("-v", "--version"),
     )
 
-    res = argparse(parser, ["-v"])
-    @test is_ok_and(==(true), res)  # Should succeed - first parser wins
+    # Should succeed - first parser wins
+    @test parse_ok(parser, ["-v"]) == true
 end
 
 @testset "should allow same options in nested or branches" begin
@@ -82,11 +75,8 @@ end
         object((verify = flag("-v"),)),
     )
 
-    res = argparse(parser, ["-v"])
-    @test is_ok_and(res) do val
-        # Should succeed - first matching branch wins
-        val == (; verbose = true)
-    end
+    # Should succeed - first matching branch wins
+    @test parse_ok(parser, ["-v"]) == (; verbose = true)
 end
 
 # @testset "should be type stable" begin

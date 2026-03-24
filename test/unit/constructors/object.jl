@@ -9,7 +9,6 @@
     @test priority(parser) >= 10
 
     # initialState should contain fields :verbose and :port
-    @test hasproperty(parser, :initialState)
     names = propertynames(parser.initialState)
     @test :verbose in names
     @test :port in names
@@ -25,17 +24,15 @@ end
 
     argv = ["-v", "-p", "8080"]
     ctx = Context(buffer=argv, state=parser.initialState)
-    res = @unionsplit parse(parser, ctx)
+    res = splitparse(parser, ctx)
 
     @test !is_error(res)
-    if !is_error(res)
-        ps = unwrap(res)
-        st = ps.next.state
-        @test haskey(Dict(propertynames(st) .=> getfield.(Ref(st), propertynames(st))), :verbose)
-        @test haskey(Dict(propertynames(st) .=> getfield.(Ref(st), propertynames(st))), :port)
-        @test (@? getfield(st, :verbose)) == true
-        @test (@? getfield(st, :port)) == 8080
-    end
+    ps = unwrap(res)
+    st = ps.next.state
+    @test haskey(Dict(propertynames(st) .=> getfield.(Ref(st), propertynames(st))), :verbose)
+    @test haskey(Dict(propertynames(st) .=> getfield.(Ref(st), propertynames(st))), :port)
+    @test (@? getfield(st, :verbose)) == true
+    @test (@? getfield(st, :port)) == 8080
 end
 
 @testset "should work with labeled objects" begin
@@ -45,7 +42,6 @@ end
         )
     )
 
-    @test hasproperty(parser, :initialState)
     names = propertynames(parser.initialState)
     @test :flag in names
 end
@@ -57,9 +53,8 @@ end
         )
     )
 
-    res = argparse(parser, ["-p", "0"])
-
-    @test is_error(res)
+    err = parse_fail(parser, ["-p", "0"])
+    @test err.domain == OptParse.ERR_IntegerVal
 end
 
 @testset "should fail when no option matches" begin
@@ -71,15 +66,15 @@ end
 
     buffer = ["--help"]
     state = parser.initialState
-    ctx = Context(;buffer, state)  # optionsTerminated defaults to false
-    res = @unionsplit parse(parser, ctx)
+    # optionsTerminated defaults to false
+    ctx = Context(;buffer, state)
+    res = splitparse(parser, ctx)
 
     @test is_error(res)
-    if is_error(res)
-        pf = unwrap_error(res)
-        @test pf.consumed == 0
-        @test occursin("Unexpected option or argument", string(pf.error))
-    end
+    pf = unwrap_error(res)
+    @test pf.consumed == 0
+    @test pf.error.domain == OptParse.ERR_ConstrObject
+    @test OptParse.ObjectErrCode(pf.error.code) == OptParse.OBJECT_UnexpectedToken
 end
 
 @testset "should handle empty arguments gracefully when required options are present" begin
@@ -92,13 +87,12 @@ end
 
     argv = String[]
     ctx = Context(buffer=argv, state=parser.initialState)
-    res = @unionsplit parse(parser, ctx)
+    res = splitparse(parser, ctx)
 
     @test is_error(res)
-    if is_error(res)
-        pf = unwrap_error(res)
-        @test occursin("end of input", string(pf.error))
-    end
+    pf = unwrap_error(res)
+    @test pf.error.domain == OptParse.ERR_ConstrObject
+    @test OptParse.ObjectErrCode(pf.error.code) == OptParse.OBJECT_EndOfInput
 end
 
 @testset "handles complex objects" begin
@@ -115,12 +109,12 @@ end
 
     ctx = Context(buffer=["--verbose", "--host", "me", "--test", "--", "--test"], state=obj.initialState)
 
-    result = @unionsplit parse(obj, ctx)
+    result = splitparse(obj, ctx)
     @test !is_error(result)
     succ = unwrap(result)
 
     st = succ.next.state
-    comp = @unionsplit complete(obj, st)
+    comp = splitcomplete(obj, st)
 
     @test !is_error(comp)
     succ = unwrap(comp)
@@ -141,16 +135,14 @@ end
         )
     )
 
-    result = argparse(obj, ["--host", "host", "--", "ARG"])
-    @test !is_error(result)
+    @test parse_ok(obj, ["--host", "host", "--", "ARG"]) == (option = "host", flag = nothing, arg = "ARG")
 
-    result = argparse(obj, ["ARG", "--host", "host", "--", "-v"])
-    @test is_error(result)
+    err = parse_fail(obj, ["ARG", "--host", "host", "--", "-v"])
     # the "-v" is correctly interpreted not as an option but as an argument.
-    @test occursin("Unexpected", unwrap_error(result))
+    # in this case the object will fail to match any of its inner parsers, raising a NoProgress error
+    @test err.domain == OptParse.ERR_Main
 
-    result = argparse(obj, ["--host", "host", "ARG", "--"])
-    @test !is_error(result)
+    @test parse_ok(obj, ["--host", "host", "ARG", "--"]) == (option = "host", flag = nothing, arg = "ARG")
 
 end
 
@@ -180,7 +172,7 @@ end
 
     @test_opt parse(unwrapunion(obj), ctx)
 
-    res = @unionsplit parse(obj, ctx)
+    res = splitparse(obj, ctx)
     succ = unwrap(res)
 
     @test_opt complete(unwrapunion(obj), succ.next.state)

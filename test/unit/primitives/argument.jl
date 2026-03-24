@@ -102,10 +102,14 @@ end
     fileParser = argument(str(; pattern = r"\.(txt|md)$"))
     portParser = argument(integer(; min = 1024, max = 0xffff))
 
+    # valid file
     @test parse_ok(fileParser, ["readme.txt"]) == "readme.txt"
+    # invalid file
     @test parse_fail(fileParser, ["script.js"]).domain == OptParse.ERR_StringVal
 
+    # valid port
     @test parse_ok(portParser, ["8080"]) == 8080
+    # invalid port
     @test parse_fail(portParser, ["80"]).domain == OptParse.ERR_IntegerVal
 end
 
