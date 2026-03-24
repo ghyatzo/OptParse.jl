@@ -66,7 +66,7 @@ end
     optionalParser = optional(baseParser)
 
     # Simulate a collected successful inner state (as optional.parse would)
-    successfulState = some(ParseResult{Bool}(Ok(true)))
+    successfulState = some(OptParse.ParseResult{Bool}(Ok(true)))
     completeResult = splitcomplete(optionalParser, successfulState)
 
     @test !is_error(completeResult)
@@ -78,7 +78,7 @@ end
     optionalParser = optional(baseParser)
 
     # Simulate a collected failed inner state
-    failedState = some(ParseResult{Int}(Err("Port must be >= 1")))
+    failedState = some(OptParse.ParseResult{Int}(Err("Port must be >= 1")))
     completeResult = splitcomplete(optionalParser, failedState)
 
     @test is_error(completeResult)
@@ -195,24 +195,17 @@ end
 @testset "should return undefined when parsing empty input" begin
     optionalflag = optional(flag("-v", "--verbose"))
 
-    result = argparse(optionalflag, String[])
-
-    @test !is_error(result)
-    @test (@? result) == nothing
+    @test parse_ok(optionalflag, String[]) == nothing
 
     optionalopt = optional(option("-n", str()))
-    result = argparse(optionalopt, String[])
-
-    @test !is_error(result)
-    @test (@? result) == nothing
+    @test parse_ok(optionalopt, String[]) == nothing
 end
 
 @testset "should propagate errors when inner parser partially consumes input" begin
     optionalopt = optional(option("-n", str()))
 
-    result = argparse(optionalopt, ["-n"])
-    @test is_error(result)
-    @test occursin("requires a value", unwrap_error(result))
+    err = parse_fail(optionalopt, ["-n"])
+    @test occursin("requires a value", string(err))
 end
 
 @testset "should be type stable" begin

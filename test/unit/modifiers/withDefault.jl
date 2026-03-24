@@ -16,14 +16,10 @@ end
 
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
-    if !is_error(parseResult)
-        next_state = ℒ_nextstate(unwrap(parseResult))
-        completeResult = splitcomplete(defaultParser, next_state)
-        @test !is_error(completeResult)
-        if !is_error(completeResult)
-            @test unwrap(completeResult) === true
-        end
-    end
+    next_state = ℒ_nextstate(unwrap(parseResult))
+    completeResult = splitcomplete(defaultParser, next_state)
+    @test !is_error(completeResult)
+    @test unwrap(completeResult) === true
 end
 
 @testset "should return default value when parser doesn't match" begin
@@ -33,9 +29,7 @@ end
 
     completeResult = splitcomplete(defaultParser, none(tstate(baseParser)))
     @test !is_error(completeResult)
-    if !is_error(completeResult)
-        @test unwrap(completeResult) === defaultValue
-    end
+    @test unwrap(completeResult) === defaultValue
 end
 
 # @testset "should work with function-based default values" begin
@@ -73,17 +67,13 @@ end
 
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
-    if !is_error(parseResult)
-        ps = unwrap(parseResult)
-        @test ctx_remaining(ℒ_nextctx(ps)) == String[]
-        @test as_tuple(ℒ_consumed(ps)) == ("-n", "Alice")
+    ps = unwrap(parseResult)
+    @test ctx_remaining(ℒ_nextctx(ps)) == String[]
+    @test as_tuple(ℒ_consumed(ps)) == ("-n", "Alice")
 
-        completeResult = splitcomplete(defaultParser, ℒ_state(ps.next))
-        @test !is_error(completeResult)
-        if !is_error(completeResult)
-            @test unwrap(completeResult) == "Alice"
-        end
-    end
+    completeResult = splitcomplete(defaultParser, ℒ_state(ps.next))
+    @test !is_error(completeResult)
+    @test unwrap(completeResult) == "Alice"
 end
 
 @testset "should return success with empty consumed when inner parser fails without consuming." begin
@@ -99,11 +89,9 @@ end
     # when inner parser fails without consuming input, optional returns success
 
     @test !is_error(parseResult)
-    if !is_error(parseResult)
-        pf = unwrap(parseResult)
-        @test length(ℒ_consumed(pf)) == 0
-        @test ctx_remaining(pf.next) == ["--help"]
-    end
+    pf = unwrap(parseResult)
+    @test length(ℒ_consumed(pf)) == 0
+    @test ctx_remaining(pf.next) == ["--help"]
 end
 
 @testset "should work in object combinations - main use case" begin
@@ -150,14 +138,10 @@ end
 
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
-    if !is_error(parseResult)
-        next_state = ℒ_nextstate(unwrap(parseResult))
-        completeResult = splitcomplete(defaultParser, next_state)
-        @test !is_error(completeResult)
-        if !is_error(completeResult)
-            @test unwrap(completeResult) == Val(:hello)
-        end
-    end
+    next_state = ℒ_nextstate(unwrap(parseResult))
+    completeResult = splitcomplete(defaultParser, next_state)
+    @test !is_error(completeResult)
+    @test unwrap(completeResult) == Val(:hello)
 end
 
 @testset "should work with different value types" begin
@@ -169,40 +153,32 @@ end
     # Test string default
     stringResult = splitcomplete(stringParser, none(tstate(stringParser.parser)))
     @test !is_error(stringResult)
-    if !is_error(stringResult)
-        @test unwrap(stringResult) == "default-string"
-    end
+    @test unwrap(stringResult) == "default-string"
 
     # Test number default
     numberResult = splitcomplete(numberParser, none(tstate(numberParser.parser)))
     @test !is_error(numberResult)
-    if !is_error(numberResult)
-        @test unwrap(numberResult) == 42
-    end
+    @test unwrap(numberResult) == 42
 
     # Test boolean default
     booleanResult = splitcomplete(booleanParser, none(tstate(booleanParser.parser)))
     @test !is_error(booleanResult)
-    if !is_error(booleanResult)
-        @test unwrap(booleanResult) == true
-    end
+    @test unwrap(booleanResult) == true
 
     # Test array default (returns constant value, not default when parser succeeds)
     # When manually feeding a completion state, mirror it with Vector{Result}
     arrayResult = splitcomplete(arrayParser, some(Val((1, 2, 3))))
     @test !is_error(arrayResult)
-    if !is_error(arrayResult)
-        @test unwrap(arrayResult) == Val((1, 2, 3))
-    end
+    @test unwrap(arrayResult) == Val((1, 2, 3))
 end
 
 @testset "should return error when the inner state fails to validate the matched input." begin
     baseParser = option(("--port", "-p"), integer(; min = 100))
     defaultParser = withDefault(baseParser, 8080)
 
-    completeResult = argparse(defaultParser, ["-p", "10"])
-    @test is_error(completeResult)
-    @test occursin("is below", unwrap_error(completeResult))
+    err = parse_fail(defaultParser, ["-p", "10"])
+    @test err.domain == OptParse.ERR_IntegerVal
+    @test OptParse.IntegerErrCode(err.code) == OptParse.INTEGER_BelowMin
 end
 
 @testset "should handle state transitions correctly" begin
@@ -218,14 +194,10 @@ end
     parseResult = splitparse(defaultParser, ctx)
 
     @test !is_error(parseResult)
-    if !is_error(parseResult)
-        ps = unwrap(parseResult)
-        st = ℒ_nextstate(ps)
-        @test !is_error(st)
-        if !is_error(st)
-            @test unwrap(unwrap(st)) == "test"
-        end
-    end
+    ps = unwrap(parseResult)
+    st = ℒ_nextstate(ps)
+    @test !is_error(st)
+    @test unwrap(unwrap(st)) == "test"
 end
 
 @testset "should work with argument parsers in object context" begin
@@ -236,22 +208,14 @@ end
         )
     )
 
-    res1 = argparse(parser, ["-v", "custom.txt"])
-    @test !is_error(res1)
-    if !is_error(res1)
-        st = unwrap(res1)
-        @test getproperty(st, :verbose) == true
-        @test getproperty(st, :file) == "custom.txt"
-    end
+    st = parse_ok(parser, ["-v", "custom.txt"])
+    @test getproperty(st, :verbose) == true
+    @test getproperty(st, :file) == "custom.txt"
 
 
-    res2 = argparse(parser, ["-v"])
-    @test !is_error(res2)
-    if !is_error(res2)
-        st = unwrap(res2)
-        @test getproperty(st, :verbose) == true
-        @test getproperty(st, :file) == "input.txt"
-    end
+    st = parse_ok(parser, ["-v"])
+    @test getproperty(st, :verbose) == true
+    @test getproperty(st, :file) == "input.txt"
 end
 
 @testset "should work in complex combinations with validation" begin
@@ -263,63 +227,46 @@ end
         )
     )
 
-    validResult = argparse(parser, ["-c", "start", "-p", "3000", "-d"])
-    @test !is_error(validResult)
-    if !is_error(validResult)
-        st = unwrap(validResult)
-        @test getproperty(st, :command) == "start"
-        @test getproperty(st, :port) == 3000
-        @test getproperty(st, :debug) == true
-    end
+    st = parse_ok(parser, ["-c", "start", "-p", "3000", "-d"])
+    @test getproperty(st, :command) == "start"
+    @test getproperty(st, :port) == 3000
+    @test getproperty(st, :debug) == true
 
-    defaultResult = argparse(parser, ["-c", "start"])
-    @test !is_error(defaultResult)
-    if !is_error(defaultResult)
-        st = unwrap(defaultResult)
-        @test getproperty(st, :command) == "start"
-        @test getproperty(st, :port) == 8080
-        @test getproperty(st, :debug) == false
-    end
+    st = parse_ok(parser, ["-c", "start"])
+    @test getproperty(st, :command) == "start"
+    @test getproperty(st, :port) == 8080
+    @test getproperty(st, :debug) == false
 end
 
 
 @testset "should return default value when parsing empty input" begin
     default = withDefault(option("-n", "--name", str()), "Bob")
 
-    result = argparse(default, String[])
-
-    @test !is_error(result)
-    @test (@? result) == "Bob"
+    @test parse_ok(default, String[]) == "Bob"
 
     defflag = withDefault(flag("-v"), false)
-    result = argparse(defflag, String[])
-
-    @test !is_error(result)
-    @test (@? result) == false
+    @test parse_ok(defflag, String[]) == false
 end
 
 @testset "should propagate errors when inner parser partially consumes input" begin
     optionalopt = withDefault(option("-n", str()), "Bob")
 
-    result = argparse(optionalopt, ["-n"])
-    @test is_error(result)
-    @test occursin("requires a value", unwrap_error(result))
+    err = parse_fail(optionalopt, ["-n"])
+    @test err.domain == OptParse.ERR_ArgOption
+    @test OptParse.OptionErrCode(err.code) == OptParse.OPTION_MissingValue
 end
 
 @testset "should correctly handle -- edge cases" begin
     def = withDefault(option("-n", "--name", str()), "bob")
 
-    result = argparse(def, ["--", "-n", "alice"])
-    @test is_error(result)
-    @test occursin("Unexpected", unwrap_error(result))
+    err = parse_fail(def, ["--", "-n", "alice"])
+    @test err.domain == OptParse.ERR_Main
 
-    result = argparse(def, ["-n", "--"])
-    @test is_error(result)
-    @test occursin("value", unwrap_error(result))
+    err = parse_fail(def, ["-n", "--"])
+    @test err.domain == OptParse.ERR_ArgOption
+    @test OptParse.OptionErrCode(err.code) == OptParse.OPTION_MissingValue
 
-    result = argparse(def, ["--"])
-    @test !is_error(result)
-    @test (@? result) == "bob"
+    @test parse_ok(def, ["--"]) == "bob"
 
     # should also correctly propagate the side effects properly optionsTerminated state.
     ctx = Context(buffer=["--", "arg"], state=def.initialState)

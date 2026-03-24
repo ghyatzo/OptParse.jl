@@ -10,10 +10,7 @@ end
     baseParser = option(("-l", "--locale"), str())
     multipleParser = multiple(baseParser)
 
-    res = argparse(multipleParser, ["-l", "en", "-l", "fr", "-l", "de"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(multipleParser, ["-l", "en", "-l", "fr", "-l", "de"])
     @test val == ["en", "fr", "de"]
 end
 
@@ -25,10 +22,7 @@ end
         )
     )
 
-    res = argparse(parser, ["-v"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(parser, ["-v"])
     @test val.locales == []
     @test val.verbose == true
 end
@@ -37,10 +31,7 @@ end
     baseParser = argument(str())
     multipleParser = multiple(baseParser)
 
-    res = argparse(multipleParser, ["file1.txt", "file2.txt", "file3.txt"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(multipleParser, ["file1.txt", "file2.txt", "file3.txt"])
     @test val == ["file1.txt", "file2.txt", "file3.txt"]
 end
 
@@ -48,14 +39,11 @@ end
     baseParser = option(("-l", "--locale"), str())
     multipleParser = multiple(baseParser; min = 2)
 
-    resTooFew = argparse(multipleParser, ["-l", "en"])
-    @test is_error(resTooFew)
-    err1 = unwrap_error(resTooFew)
-    @test occursin("Expected at least 2 values, but got only 1", string(err1))
+    err1 = parse_fail(multipleParser, ["-l", "en"])
+    @test err1.domain == OptParse.ERR_ModMultiple
+    @test OptParse.MultipleErrCode(err1.code) == OptParse.MULTIPLE_TooFew
 
-    resEnough = argparse(multipleParser, ["-l", "en", "-l", "fr"])
-    @test !is_error(resEnough)
-    val = unwrap(resEnough)
+    val = parse_ok(multipleParser, ["-l", "en", "-l", "fr"])
     @test val == ["en", "fr"]
 end
 
@@ -63,14 +51,11 @@ end
     baseParser = argument(str())
     multipleParser = multiple(baseParser; max = 2)
 
-    resTooMany = argparse(multipleParser, ["file1.txt", "file2.txt", "file3.txt"])
-    @test is_error(resTooMany)
-    err = unwrap_error(resTooMany)
-    @test occursin("Expected at most 2 values, but got 3", err)
+    err = parse_fail(multipleParser, ["file1.txt", "file2.txt", "file3.txt"])
+    @test err.domain == OptParse.ERR_ModMultiple
+    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooMany
 
-    resOkay = argparse(multipleParser, ["file1.txt", "file2.txt"])
-    @test !is_error(resOkay)
-    val = unwrap(resOkay)
+    val = parse_ok(multipleParser, ["file1.txt", "file2.txt"])
     @test val == ["file1.txt", "file2.txt"]
 end
 
@@ -79,17 +64,15 @@ end
     multipleParser = multiple(baseParser; min = 1, max = 3)
 
     # When used standalone, multiple() fails if it can't parse at least one occurrence
-    resTooFew = argparse(multipleParser, String[])
-    @test is_error(resTooFew)
-    @test occursin("Expected an argument, but got end of input", unwrap_error(resTooFew))
+    err = parse_fail(multipleParser, String[])
+    @test err.domain == OptParse.ERR_ArgArgument
+    @test OptParse.ArgumentErrCode(err.code) == OptParse.ARGUMENT_EndOfInput
 
-    resTooMany = argparse(multipleParser, ["a", "b", "c", "d"])
-    @test is_error(resTooMany)
-    @test occursin("Expected at most 3 values, but got 4", unwrap_error(resTooMany))
+    err = parse_fail(multipleParser, ["a", "b", "c", "d"])
+    @test err.domain == OptParse.ERR_ModMultiple
+    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooMany
 
-    resJustRight = argparse(multipleParser, ["a", "b"])
-    @test !is_error(resJustRight)
-    val = unwrap(resJustRight)
+    val = parse_ok(multipleParser, ["a", "b"])
     @test val == ["a", "b"]
 end
 
@@ -102,9 +85,8 @@ end
     )
 
     # When min=0, should allow empty array in object context
-    resEmpty = argparse(parser, ["-h"])
-    @test !is_error(resEmpty)
-    valEmpty = unwrap(resEmpty)
+    resEmpty = parse_ok(parser, ["-h"])
+    valEmpty = resEmpty
     @test valEmpty.options == []
     @test valEmpty.help == true
 
@@ -115,9 +97,7 @@ end
     end
     push!(manyArgs, "-h")
 
-    resMany = argparse(parser, manyArgs)
-    @test !is_error(resMany)
-    valMany = unwrap(resMany)
+    valMany = parse_ok(parser, manyArgs)
     @test length(valMany.options) == 10
     @test valMany.options[1] == "value0"
     @test valMany.options[10] == "value9"
@@ -133,10 +113,7 @@ end
         )
     )
 
-    res = argparse(parser, ["-l", "en", "-l", "fr", "-v", "file1.txt", "file2.txt"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(parser, ["-l", "en", "-l", "fr", "-v", "file1.txt", "file2.txt"])
     @test val.locales == ["en", "fr"]
     @test val.verbose == true
     @test val.files == ["file1.txt", "file2.txt"]
@@ -146,9 +123,10 @@ end
     baseParser = option(("-p", "--port"), integer(; min = 1, max = 0xffff))
     multipleParser = multiple(baseParser)
 
-    res = argparse(multipleParser, ["-p", "8080", "-p", "invalid"])
-    @test is_error(res)  # The failure should come from the invalid integer parsing
-    @test occursin("Expected valid integer", string(unwrap_error(res)))
+    err = parse_fail(multipleParser, ["-p", "8080", "-p", "invalid"])
+    # The failure should come from the invalid integer parsing
+    @test err.domain == OptParse.ERR_IntegerVal
+    @test OptParse.IntegerErrCode(err.code) == OptParse.INTEGER_Invalid
 end
 
 @testset "should handle mixed successful and failed parsing attempts in object context" begin
@@ -159,10 +137,7 @@ end
         )
     )
 
-    res = argparse(parser, ["-n", "42", "-n", "100", "--other", "value"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(parser, ["-n", "42", "-n", "100", "--other", "value"])
     @test val.numbers == [42, 100]
     @test val.other == "value"
 end
@@ -171,10 +146,7 @@ end
     baseParser = flag("-v", "--verbose")
     multipleParser = multiple(baseParser)
 
-    res = argparse(multipleParser, ["-v", "-v", "-v"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(multipleParser, ["-v", "-v", "-v"])
     @test val == [true, true, true]
 end
 
@@ -185,7 +157,7 @@ end
     state = multipleParser.initialState
     ctx1 = Context(buffer=["-l", "en", "-l", "fr"], state=state)
 
-    parseRes1 = @unionsplit  parse(multipleParser, ctx1)
+    parseRes1 = splitparse(multipleParser, ctx1)
     @test !is_error(parseRes1)
     succ1 = unwrap(parseRes1)
 
@@ -196,7 +168,7 @@ end
     nextState1 = ℒ_nextstate(succ1)
     ctx2 = Context(buffer=["-l", "fr"], state=nextState1)
 
-    parseRes2 = @unionsplit  parse(multipleParser, ctx2)
+    parseRes2 = splitparse(multipleParser, ctx2)
     @test !is_error(parseRes2)
     succ2 = unwrap(parseRes2)
 
@@ -209,8 +181,8 @@ end
     multipleParser = multiple(baseParser)
 
 
-    mockStates = ParseResult{Int}[Ok(42), Ok(100), Ok(7)]
-    comp = @unionsplit complete(multipleParser, mockStates)
+    mockStates = OptParse.ParseResult{Int}[Ok(42), Ok(100), Ok(7)]
+    comp = splitcomplete(multipleParser, mockStates)
     @test !is_error(comp)
     @test unwrap(comp) == [42, 100, 7]
 end
@@ -219,29 +191,34 @@ end
     baseParser = option("-n", "--number", integer())
     multipleParser = multiple(baseParser)
 
-    mockStates = ParseResult{Int}[Ok(42), Err("Invalid number"), Ok(7)]
-    comp = @unionsplit complete(multipleParser, mockStates)
+    mockStates = OptParse.ParseResult{Int}[Ok(42), Err(OptParse.integerval_error(OptParse.INTEGER_Invalid)), Ok(7)]
+    comp = splitcomplete(multipleParser, mockStates)
     @test is_error(comp)
-    @test occursin("Invalid number", string(unwrap_error(comp)))
+    err = unwrap_error(comp)
+    @test err.domain == OptParse.ERR_IntegerVal
 end
 
 @testset "should handle empty state array with min constraint" begin
     baseParser = option(("-l", "--locale"), str())
     multipleParser = multiple(baseParser; min = 1)
 
-    comp = @unionsplit complete(multipleParser, ParseResult{String}[])
+    comp = splitcomplete(multipleParser, OptParse.ParseResult{String}[])
     @test is_error(comp)
-    @test occursin("Expected at least 1 values, but got only 0", string(unwrap_error(comp)))
+    err = unwrap_error(comp)
+    @test err.domain == OptParse.ERR_ModMultiple
+    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooFew
 end
 
 @testset "should handle max constraint at completion" begin
     baseParser = option(("-l", "--locale"), str())
     multipleParser = multiple(baseParser; max = 2)
 
-    mockStates = ParseResult{String}[Ok("en"), Ok("fr"), Ok("de")]
-    comp = @unionsplit complete(multipleParser, mockStates)
+    mockStates = OptParse.ParseResult{String}[Ok("en"), Ok("fr"), Ok("de")]
+    comp = splitcomplete(multipleParser, mockStates)
     @test is_error(comp)
-    @test occursin("Expected at most 2 values, but got 3", string(unwrap_error(comp)))
+    err = unwrap_error(comp)
+    @test err.domain == OptParse.ERR_ModMultiple
+    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooMany
 end
 
 @testset "should work with constant parsers" begin
@@ -249,10 +226,7 @@ end
     multipleParser = multiple(baseParser; min = 1, max = 3)
 
     # Since constant parser does not consume input, implementation should avoid infinite loops
-    res = argparse(multipleParser, String[])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(multipleParser, String[])
     @test val == [Val(:fixed)]
 end
 
@@ -265,9 +239,7 @@ end
             id = argument(str()),
         )
     )
-    res1 = argparse(parser1, ["-n", "John", "-l", "en-US", "-l", "fr-FR", "user123"])
-    @test !is_error(res1)
-    val1 = unwrap(res1)
+    val1 = parse_ok(parser1, ["-n", "John", "-l", "en-US", "-l", "fr-FR", "user123"])
     @test val1.name == "John"
     @test val1.locales == ["en-US", "fr-FR"]
     @test val1.id == "user123"
@@ -279,16 +251,14 @@ end
             ids = multiple(argument(str()); min = 1, max = 3),
         )
     )
-    res2 = argparse(parser2, ["-t", "My Title", "id1", "id2"])
-    @test !is_error(res2)
-    val2 = unwrap(res2)
+    val2 = parse_ok(parser2, ["-t", "My Title", "id1", "id2"])
     @test val2.title == "My Title"
     @test val2.ids == ["id1", "id2"]
 
     # Constraint violation
-    res3 = argparse(parser2, ["-t", "Title", "id1", "id2", "id3", "id4"])
-    @test is_error(res3)
-    @test occursin("Expected at most 3 values, but got 4", string(unwrap_error(res3)))
+    err = parse_fail(parser2, ["-t", "Title", "id1", "id2", "id3", "id4"])
+    @test err.domain == OptParse.ERR_ModMultiple
+    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooMany
 end
 
 @testset "should handle options terminator correctly" begin
@@ -299,10 +269,7 @@ end
         )
     )
 
-    res = argparse(parser, ["-l", "en", "--", "-l", "fr"])
-    @test !is_error(res)
-
-    val = unwrap(res)
+    val = parse_ok(parser, ["-l", "en", "--", "-l", "fr"])
     @test val.locales == ["en"]
     @test val.args == ["-l", "fr"]
 end
@@ -315,7 +282,7 @@ end
     @test multipleParser.initialState == tval(baseParser)[]
 
     ctx1 = Context(buffer=["arg1"], state=multipleParser.initialState)
-    parseRes1 = @unionsplit  parse(multipleParser, ctx1)
+    parseRes1 = splitparse(multipleParser, ctx1)
     @test !is_error(parseRes1)
     succ1 = unwrap(parseRes1)
     @test length(ℒ_state(succ1.next)) == 1
@@ -335,17 +302,15 @@ end
     baseParser = option(("-p", "--port"), integer(; min = 1024, max = 0xffff))
     multipleParser = multiple(baseParser; min = 1, max = 5)
 
-    validRes = argparse(multipleParser, ["-p", "8080", "-p", "9000", "-p", "3000"])
-    @test !is_error(validRes)
-    validVals = unwrap(validRes)
+    validVals = parse_ok(multipleParser, ["-p", "8080", "-p", "9000", "-p", "3000"])
     @test validVals == [8080, 9000, 3000]
 
-    invalidRes = argparse(multipleParser, ["-p", "8080", "-p", "100"])
-    @test is_error(invalidRes)  # Should fail due to port 100 being below minimum
+    invalidErr = parse_fail(multipleParser, ["-p", "8080", "-p", "100"])
+    @test invalidErr.domain == OptParse.ERR_IntegerVal  # Should fail due to port 100 being below minimum
 
-    tooManyRes = argparse(multipleParser, ["-p", "8080", "-p", "9000", "-p", "3000", "-p", "4000", "-p", "5000", "-p", "6000"])
-    @test is_error(tooManyRes)
-    @test occursin("Expected at most 5 values, but got 6", string(unwrap_error(tooManyRes)))
+    tooManyErr = parse_fail(multipleParser, ["-p", "8080", "-p", "9000", "-p", "3000", "-p", "4000", "-p", "5000", "-p", "6000"])
+    @test tooManyErr.domain == OptParse.ERR_ModMultiple
+    @test OptParse.MultipleErrCode(tooManyErr.code) == OptParse.MULTIPLE_TooMany
 end
 
 @testset "should maintain type safety with different value types" begin
@@ -354,25 +319,19 @@ end
     booleanMultiple = multiple(flag("-b"))
 
     # Strings
-    stringRes = argparse(stringMultiple, ["-s", "hello", "-s", "world"])
-    @test !is_error(stringRes)
-    sVals = unwrap(stringRes)
+    sVals = parse_ok(stringMultiple, ["-s", "hello", "-s", "world"])
     @test length(sVals) == 2
     @test sVals[1] isa String
     @test sVals == ["hello", "world"]
 
     # Integers
-    integerRes = argparse(integerMultiple, ["-i", "42", "-i", "100"])
-    @test !is_error(integerRes)
-    iVals = unwrap(integerRes)
+    iVals = parse_ok(integerMultiple, ["-i", "42", "-i", "100"])
     @test length(iVals) == 2
     @test iVals[1] isa Int
     @test iVals == [42, 100]
 
     # Booleans
-    booleanRes = argparse(booleanMultiple, ["-bb"])
-    @test !is_error(booleanRes)
-    bVals = unwrap(booleanRes)
+    bVals = parse_ok(booleanMultiple, ["-bb"])
     @test length(bVals) == 2
     @test bVals[1] isa Bool
     @test bVals == [true, true]
