@@ -11,3 +11,8 @@ makedocs(
     ],
     modules = [OptParse]
 )
+
+deploydocs(
+    repo = "github.com/ghyatzo/OptParse.jl.git",
+    devbranch = "main",
+)
