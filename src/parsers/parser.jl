@@ -430,16 +430,15 @@ julia> result = argparse(parser, ["-h", "--version"]);
 julia> (result.help, result.version, result.quiet)
 (true, true, false)
 
-julia> # Multiple verbosity levels using multiple
-       verbosity = multiple(switch("-v"));
+julia> verbosity = multiple(switch("-v")); # Multiple verbosity levels using multiple
 
 julia> result = argparse(verbosity, ["-v", "-v", "-v"]);
 
 julia> result
 3-element Vector{Bool}:
- true
- true
- true
+ 1
+ 1
+ 1
 ```
 
 # Implementation Note
@@ -490,7 +489,7 @@ julia> parser = or(addCmd, removeCmd);
 julia> result = argparse(parser, ["add", "username", "alice"]);
 
 julia> result.action
-:add
+Val{:add}()
 
 julia> result.key
 "username"
@@ -499,15 +498,15 @@ julia> result.value
 "alice"
 
 julia> # Providing metadata
-       parser = object((
-           version = @constant("1.0.0"),
+       parser2 = object((
+           version = @constant(Symbol("1.0.0")),
            name = argument(str())
        ));
 
-julia> result = argparse(parser, ["myapp"]);
+julia> result = argparse(parser2, ["myapp"]);
 
 julia> result.version
-"1.0.0"
+Val{Symbol("1.0.0")}()
 
 julia> result.name
 "myapp"
@@ -669,7 +668,7 @@ julia> pkgParser = or(addCmd, removeCmd);
 julia> result = argparse(pkgParser, ["add", "OptParse", "DataFrames"]);
 
 julia> result.action
-:add
+Val{:add}()
 
 julia> result.packages
 2-element Vector{String}:
@@ -679,7 +678,7 @@ julia> result.packages
 julia> result = argparse(pkgParser, ["remove", "OldPkg"]);
 
 julia> result.action
-:remove
+Val{:remove}()
 
 julia> result.packages
 1-element Vector{String}:
@@ -744,25 +743,23 @@ julia> result.port
 julia> result.verbose
 true
 
-julia> # With label for better error messages
-       parser = object(:config, (
+julia> parser = object("config", (
            host = option("--host", str()),
            port = option("--port", integer())
-       ));
+       )); # With label for better help messages
 
 julia> result = argparse(parser, ["--host", "localhost", "--port", "3000"]);
 
 julia> result.host
 "localhost"
 
-julia> # Nested objects
-       parser = object((
+julia> parser = object((
            server = object((
                host = option("--host", str()),
                port = option("--port", integer())
            )),
            timeout = option("--timeout", integer())
-       ));
+       ));  # Nested objects
 
 julia> result = argparse(parser, ["--host", "localhost", "--port", "8080", "--timeout", "30"]);
 
@@ -901,7 +898,7 @@ julia> parser = or(addCmd, removeCmd);
 julia> result = argparse(parser, ["add", "Package1", "Package2"]);
 
 julia> result.action
-:add
+Val{:add}()
 
 julia> result.packages
 2-element Vector{String}:
@@ -911,7 +908,7 @@ julia> result.packages
 julia> result = argparse(parser, ["remove", "OldPackage"]);
 
 julia> result.action
-:remove
+Val{:remove}()
 
 julia> # Alternative formats
        helpFormat = or(
@@ -939,7 +936,7 @@ julia> # Different configuration modes
 julia> result = argparse(config, ["-f", "config.toml"]);
 
 julia> result.mode
-:file
+Val{:file}()
 
 julia> result.file
 "config.toml"
