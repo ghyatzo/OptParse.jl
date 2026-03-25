@@ -190,29 +190,10 @@ argument_error(code::ArgumentErrCode; token="", detail="", subject="") =
       sites = isempty(subject) ? ErrorSite[] : [ErrorSite(ParsePhase, D_Argument, subject)],
   )
 
-option_error(code::OptionErrCode; token="", detail="", subject="") =
-  mkerror(ParsePhase, D_Option, UInt8(code);
-      token,
-      detail,
-      sites = isempty(subject) ? ErrorSite[] : [ErrorSite(ParsePhase, D_Option, subject)],
-  )
-
-object_error(code::ObjectErrCode; token="", detail="", subject="") =
-  mkerror(CompletePhase, D_Object, UInt8(code);
-      token,
-      detail,
-      sites = isempty(subject) ? ErrorSite[] : [ErrorSite(CompletePhase, D_Object, subject)],
-  )
-
-multiple_error(code::MultipleErrCode; token="", detail="", subject="") =
-  mkerror(CompletePhase, D_Multiple, UInt8(code);
-      token,
-      detail,
-      sites = isempty(subject) ? ErrorSite[] : [ErrorSite(CompletePhase, D_Multiple, subject)],
-  )
-
 integer_error(code::IntegerValCode; token="", detail="") =
   mkerror(ValuePhase, D_IntegerVal, UInt8(code); token, detail)
+
+etcetc
 
 ## Example Usage In Parsers
 

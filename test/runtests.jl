@@ -87,3 +87,7 @@ end
 @testset "Trimming" begin
     include("trim/trimming.jl")
 end
+
+@testset "Aqua" begin
+    include("aqua.jl")
+end

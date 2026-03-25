@@ -1,50 +1,19 @@
 module OptParse
 
-using Accessors:
-    IndexLens,
-    insert,
-    PropertyLens,
-    set,
-    @set,
-    @optic
+using Accessors: @optic, IndexLens, PropertyLens, insert, set
 
-using WrappedUnions:
-    @unionsplit,
-    unwrap as unwrapunion, #=conflicts with the unwrap from ErrorTypes.jl=#
-    WrappedUnions,
-    @wrapped
+using WrappedUnions: @unionsplit, @wrapped,
+    #=conflicts with the unwrap from ErrorTypes.jl=#
+    unwrap as unwrapunion
 
-using ErrorTypes:
-    @?,
-    base,
-    Err,
-    is_error,
-    is_ok_and,
-    none,
-    Ok,
-    Option,
-    Result,
-    some,
-    unwrap,
-    unwrap_error,
-    @unwrap_or,
-    ErrorTypes
+using ErrorTypes: @?, Err, ErrorTypes, Ok, Option, Result, base, is_error,
+    none, some, unwrap, unwrap_error
 
 using UUIDs:
     UUID,
     uuid_version
 
 # based on: https://optique.dev/concepts
-
-# primitive parsers: building blocks of command line interfaces
-#	OK constant()
-#	OK option() # Add support for -Lval style options
-#	OK flag()
-#   OK argument()
-#	OK command() # add command aliases to commands "status" "st"
-#   ? PassThrough()
-#	- parsers priority: command > argument > option > flag > constant
-
 
 # value parsers: specialized components that convert raw string into desired outputs
 #	OK string(pattern) OK
@@ -94,57 +63,48 @@ using UUIDs:
 # - Usage Mechanism
 # - Automatic Help and pretty printing.
 # - Suggestions Mechanism
-# - Better Errors
 # - Shell completions
-# - implement actual runners (d)
 
 # API Changes TODO/IDEAS
-# NO offer directly options with a valueparser built in: stropt, intopt fltopt... etc
 # - shorten names: object -> obj, argument -> arg, command -> cmd
 # OK make switch the default behaviour and call it flag.
 # NO rename flag to `gate`
 # - rename multiple to 'many'
 
 
-export argparse, tryargparse,
-    # primitives
+export
+    @?,
     @constant,
-    flag,
-    switch,
-    option,
+    argparse,
     argument,
-    command,
-
-    # valueparsers
-    str,
     choice,
-    integer,
-    i8,
-    i16,
-    i32,
-    i64,
-    u8,
-    u16,
-    u32,
-    u64,
+    command,
+    concat,
+    flag,
     flt,
     flt32,
     flt64,
-    uuid,
-
-    # constructors
-    object,
-    or,
-    tup,
-    objmerge,
-    concat,
-
-    # modifier
-    optional,
-    withDefault,
+    i16,
+    i32,
+    i64,
+    i8,
+    integer,
     multiple,
-
-    @?
+    object,
+    objmerge,
+    option,
+    optional,
+    or,
+    str,
+    switch,
+    tryargparse,
+    tup,
+    u16,
+    u32,
+    u64,
+    u8,
+    uuid,
+    withDefault
 
 include("utils.jl")
 include("parsers/parser.jl")
@@ -191,9 +151,15 @@ function normalize_argv(argv::Vector{String})
     return expanded, origin
 end
 
-#####
-# entry point
 
+"""
+    tryargparse(parser, argv)
+
+Lower-level parsing entrypoint.
+
+Returns a result object containing either the parsed value or a structured parse failure.
+Unlike [`argparse`](@ref), this function does not throw on parse failures.
+"""
 function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}
 
     canonical_argv, _ = normalize_argv(args)
@@ -227,6 +193,13 @@ function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
     return @unionsplit complete(pp, state)
 end
 
+"""
+    argparse(parser, argv)
+
+Parse `argv` with `parser` and return the parsed value.
+
+Throws [`ParseException`](@ref) on failure.
+"""
 function argparse(pp::Parser{T}, args::Vector{String})::T where {T}
     mayberes = tryargparse(pp, args)::ParseResult{T}
 

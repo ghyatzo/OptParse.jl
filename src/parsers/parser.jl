@@ -114,7 +114,7 @@ withDefault(default) = (p::Parser) -> withDefault(p, default)
 Modifier that makes a parser optional, returning `nothing` if the parser fails to match.
 
 Transforms a parser returning type `T` into a parser returning `Union{Nothing, T}`.
-This is equivalent to `withDefault(p, nothing)`.
+This is equivalent to `withDefault(p, nothing)` and is mainly provided as a convenience wrapper.
 
 # Arguments
 - `p::Parser`: The parser to make optional
@@ -285,7 +285,7 @@ julia> result
 3000
 
 julia> # With constraints
-       level = option("-l", "--level", choice("debug", "info", "warn"));
+       level = option("-l", "--level", choice(["debug", "info", "warn"]));
 
 julia> result = argparse(level, ["-l", "debug"]);
 
@@ -804,7 +804,7 @@ large parser definitions into logical groups.
 
 # Arguments
 - `label::String = ""`: Optional label for the merged object (used in help text)
-- `objs...`: Multiple named tuples representing object parsers to merge
+- `objs...`: Multiple object parsers to merge
 
 
 # Returns
@@ -815,15 +815,15 @@ A parser that combines all fields from the input objects into a single result.
 julia> using OptParse
 
 julia> # Reusable parser components
-       commonOpts = (
+       commonOpts = object((
            verbose = switch("-v", "--verbose"),
            quiet = switch("-q", "--quiet")
-       );
+       ));
 
-julia> networkOpts = (
+julia> networkOpts = object((
            host = option("--host", str()),
            port = option("--port", integer())
-       );
+       ));
 
 julia> # Merge into single parser
        parser = objmerge(commonOpts, networkOpts);

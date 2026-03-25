@@ -141,11 +141,13 @@ end
 const ParseResult{T} = Result{T, ParseError}
 
 @inline function typedOk(::Type{T}, value::V)::ParseResult{T} where {T, V <: T}
-    return ParseResult{T}(ErrorTypes.Ok{T}(ErrorTypes.unsafe, convert(T, value)))
+    # return ParseResult{T}(ErrorTypes.Ok{T}(ErrorTypes.unsafe, convert(T, value)))
+    return Ok{T}(convert(T, value))
 end
 
 @inline function typedErr(::Type{T}, err::ParseError)::ParseResult{T} where {T}
-    return ParseResult{T}(ErrorTypes.Err{ParseError}(ErrorTypes.unsafe, err))
+    # return ParseResult{T}(ErrorTypes.Err{ParseError}(ErrorTypes.unsafe, err))
+    return Err(err)
 end
 
 @inline typedOk(x) = Ok(x)

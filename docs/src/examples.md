@@ -28,14 +28,14 @@ result = argparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
 ```julia
 # Type-safe parsing with constraints
 port = option("-p", integer(min=1000, max=65535))
-level = option("-l", choice("debug", "info", "warn", "error"))
+level = option("-l", choice(["debug", "info", "warn", "error"]))
 config = option("-c", str(pattern=r".*\.toml$"))
 ```
 
 ### Optional and Default Values
 
 ```julia
-# Optional values
+# Optional values (`optional(p)` is equivalent to `withDefault(p, nothing)`)
 email = optional(option("-e", "--email", str()))
 
 # With defaults

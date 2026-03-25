@@ -23,7 +23,7 @@ create new behaviours. Parsing is done in two passes:
 - in the first, the input is checked against each branch of the tree until a match is found. Each node updates its state
 to reflect if it succeded or not. This is the `parse` step.
 - if the input match any of the branches we consider the step successful, otherwise we return the error of why it failed to match.
-- the second pass is the `complete` step. The tree is collapsed, eventual validation error handled and a final object (or error) returned.
+- the second pass is the `complete` step. The tree is collapsed, eventual validation error handled and a final object returned.
 
 ## Installation
 
@@ -52,6 +52,11 @@ result = argparse(parser, ["--name", "myserver", "-p", "8080", "-v"])
 @assert result.verbose == true
 ```
 
+For the public entrypoints:
+
+- `argparse(parser, argv)` returns the parsed value or throws `OptParse.ParseException`
+- `tryargparse(parser, argv)` is the lower-level entrypoint and returns a result object instead of throwing
+
 ## Core Concepts
 
 OptParse provides four types of building blocks that compose together to create powerful CLI parsers:
@@ -61,8 +66,8 @@ OptParse provides four types of building blocks that compose together to create 
 The fundamental parsers that match command-line tokens:
 
 - [`option`](@ref) - Matches key-value pairs: `--port 8080` or `-p 8080`
-- [`flag`](@ref) - Boolean switches: `--verbose` or `-v`
-- [`switch`](@ref) - Optional flags that default to `false`
+- [`flag`](@ref) - Mandatory boolean flags: `--verbose` or `-v`
+- [`switch`](@ref) - Optional boolean flags that default to `false`
 - [`argument`](@ref) - Positional arguments: `source destination`
 - [`command`](@ref) - Subcommands: `git add file.txt`
 - [`@constant`](@ref) - Always returns a constant value
@@ -81,7 +86,7 @@ Type-safe parsers that convert strings to values:
 
 Enhance parsers with additional behavior:
 
-- [`optional`](@ref) - Makes a parser optional (returns `nothing` if absent)
+- [`optional`](@ref) - Convenience wrapper for `withDefault(p, nothing)`
 - [`withDefault`](@ref) - Provides a fallback value
 - [`multiple`](@ref) - Allows repeated matches, returns a vector
 
@@ -150,7 +155,7 @@ parser = object((
     port = option("-p", integer())
 ))
 
-# Return type: @NamedTuple{name::String, port::Int64)}
+# Return type: @NamedTuple{name::String, port::Int64}
 
 parser = or(
     object((mode = @constant(:a), value = integer())),
@@ -165,19 +170,31 @@ and compile-time guarantees about the structure of your parsed results.
 
 ## Error Handling
 
-When parsing fails, OptParse provides clear error messages indicating what went wrong:
+OptParse exposes two entrypoints:
 
 ```julia
 parser = option("-p", integer(min=1000))
 
-# Invalid value
-argparse(parser, ["-p", "abc"])  # Error: Expected integer
+# Throwing API
+value = argparse(parser, ["-p", "3000"])
 
-# Out of range
-argparse(parser, ["-p", "500"])  # Error: Value must be >= 1000
+# Lower-level API
+result = tryargparse(parser, ["-p", "3000"])
+```
 
-# Missing required option
-argparse(parser, [])  # Error: Required option -p not found
+`argparse` returns the parsed value on success and throws `OptParse.ParseException` on failure.
+`tryargparse` returns a result object instead of throwing, which is useful if you want to inspect failures programmatically.
+
+Rendered error messages are produced centrally from structured internal diagnostics. The exact wording may evolve, but failures are surfaced with parser-specific context, for example invalid values, missing required inputs, or unexpected arguments.
+
+```julia
+parser = option("-p", integer(min=1000))
+
+try
+    argparse(parser, ["-p", "abc"])
+catch err
+    @assert err isa OptParse.ParseException
+end
 ```
 
 
@@ -188,7 +205,7 @@ Contributions are welcome! Please feel free to submit issues or pull requests on
 
 ## Acknowledgments
 
-OptParse's design is heavily inspired by:
+OptParse's design is inspired by:
 - [Optique](https://optique.dev/) - Typescript CLI parsing library with similar composable design
 - [optparse-applicative](https://github.com/pcapriotti/optparse-applicative) - Haskell command-line parser that pioneered this approach
 

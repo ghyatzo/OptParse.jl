@@ -156,7 +156,7 @@ end
         end
 
         if iter == maxiter
-            println(Core.stderr, "[DEBUG] Max iteration reached!")
+            error = InnerParseFailure(0, constrobject_error(OBJECT_MaxIter))
         end
 
         return current_ctx, error, allconsumed, anysuccess

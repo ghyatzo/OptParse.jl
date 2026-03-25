@@ -21,7 +21,7 @@ create new behaviours. Parsing is done in two passes:
 - in the first, the input is checked against each branch of the tree until a match is found. Each node updates its state
 to reflect if it succeded or not. This is the `parse` step.
 - if the input match any of the branches we consider the step successful, otherwise we return the error of why it failed to match.
-- the second pass is the `complete` step. The tree is collapsed, eventual validation error handled and a final object (or error) returned.
+- the second pass is the `complete` step. The tree is collapsed, eventual validation error handled and a final object returned.
 
 ## Missing Features:
 
@@ -32,7 +32,7 @@ ensure type stability with arbitrary functions.
 - [ ] `longest-match` combinator (maybe, still debating utility)
 - [ ] `group` combinator: light simple parser useful only for enclosing multiple parsers together in the same category. mainly useful for help messages.
 - [ ] automatic suggestions / shell completions
-- [ ] better error handling: proper exceptions with richer metadata instead of plain strings.
+- [ ] polish and stabilize the public error-reporting interface
 
 ## Quick Start
 
@@ -59,6 +59,11 @@ The style implemented in this library is the following:
 - short form names only accept single letters: `-n` is fine, `-run` will be treated as bundled `-r -u -n`.
 - short form options must separate the flag from the value: `-n name`. No gcc style `-L/usr/include`.
 - long form is represented with two dashes `--long`
+
+For the public entrypoints:
+
+- `argparse(parser, argv)` returns the parsed value or throws `OptParse.ParseException`
+- `tryargparse(parser, argv)` is the lower-level entrypoint and returns a result object instead of throwing
 
 ## Core Concepts
 
@@ -101,7 +106,7 @@ Type-safe parsers that convert strings to values:
 ```julia
 # Type-safe parsing with constraints
 port = option("-p", integer(min=1000, max=65535))
-level = option("-l", choice("debug", "info", "warn", "error"))
+level = option("-l", choice(["debug", "info", "warn", "error"]))
 config = option("-c", str(pattern=r".*\.toml$"))
 ```
 
@@ -109,7 +114,7 @@ config = option("-c", str(pattern=r".*\.toml$"))
 
 Enhance parsers with additional behavior:
 
-- **`optional`** - Makes a parser optional (returns `nothing` if absent)
+- **`optional`** - Convenience wrapper for `withDefault(p, nothing)`
 - **`withDefault`** - Provides a fallback value
 - **`multiple`** - Allows repeated matches, returns a vector
 
@@ -226,19 +231,31 @@ parser = or(
 
 ## Error Handling
 
-When parsing fails, OptParse provides clear error messages indicating what went wrong:
+OptParse exposes two entrypoints:
 
 ```julia
 parser = option("-p", integer(min=1000))
 
-# Invalid value
-argparse(parser, ["-p", "abc"])  # Error: Expected integer
+# Throwing API
+value = argparse(parser, ["-p", "3000"])
 
-# Out of range
-argparse(parser, ["-p", "500"])  # Error: Value must be >= 1000
+# Lower-level API
+result = tryargparse(parser, ["-p", "3000"])
+```
 
-# Missing required option
-argparse(parser, [])  # Error: Required option -p not found
+`argparse` returns the parsed value on success and throws `OptParse.ParseException` on failure.
+`tryargparse` returns a result object instead of throwing, which is useful if you want to inspect failures programmatically.
+
+Rendered error messages are produced centrally from structured internal diagnostics. The exact wording may evolve, but failures are surfaced with parser-specific context, for example invalid values, missing required inputs, or unexpected arguments.
+
+```julia
+parser = option("-p", integer(min=1000))
+
+try
+    argparse(parser, ["-p", "abc"])
+catch err
+    @assert err isa OptParse.ParseException
+end
 ```
 
 ## Installation

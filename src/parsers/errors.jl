@@ -133,6 +133,11 @@ Base.string(perr::ParseError) = let
 	return String(take!(io))
 end
 
+"""
+    ParseException
+
+Exception thrown by [`argparse`](@ref) when parsing fails.
+"""
 struct ParseException <: Exception
 	err::ParseError
 end
