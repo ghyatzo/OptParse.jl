@@ -12,7 +12,11 @@ modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "", subject=
     )
 
 function modwithdefault_render_error(io::IO, code::WithDefaultErrCode, err::ParseError)
-    print(io, "unreachable")
+    if code == WITHDEFAULT_DummyError
+        print(io, "withDefault internal error")
+    else
+        print(io, "unreachable")
+    end
 end
 
 struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}

@@ -17,9 +17,9 @@ function constrobject_render_error(io::IO, code::ObjectErrCode, err::ParseError)
     if code == OBJECT_UnexpectedToken
         print(io, "Unexpected option or argument: $(err.token)")
     elseif code == OBJECT_EndOfInput
-        print(io, "Expected option or argument, got end of input")
+        print(io, "Expected an option or argument, got end of input")
     elseif code == OBJECT_MaxIter
-        print(io, "Max iteration reached while parsing object")
+        print(io, "Internal error: object parser reached its iteration limit")
     else
         print(io, "unreachable")
     end

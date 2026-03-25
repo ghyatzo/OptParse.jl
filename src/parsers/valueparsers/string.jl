@@ -16,7 +16,7 @@ stringval_error(code::StringErrCode; token = "", detail ="", subject="") =
 
 function stringval_render_error(io::IO, code::StringErrCode, err::ParseError)
     if code == STRING_InvalidPattern
-        print(io, "Expected a string matching the pattern $(err.detail), but got $(err.token)")
+        print(io, "Expected a string matching the pattern $(err.detail), got $(err.token)")
     else
         print(io, "unreachable")
     end

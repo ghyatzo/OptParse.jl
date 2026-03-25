@@ -215,10 +215,8 @@ function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
                     && ctx_length(ctx) == length(previous_buffer)
                     && ctx_remaining(ctx) == previous_buffer
             )
-            return typedErr(mkerror(
-                ParsePhase, ERR_Main, UInt8(MAIN_NoProgress);
-                token = ctx_peek(ctx)
-            ))
+            # Top-level progress guard: a parser must not report success while leaving argv unchanged.
+            return typedErr(main_error(MAIN_NoProgress; token = ctx_peek(ctx)))
         end
 
         ctx_length(ctx) > 0 || break

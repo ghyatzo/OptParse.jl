@@ -22,7 +22,7 @@ choice_error(code::ChoiceErrCode; token="", detail="", subject="") =
 
 function choice_render_error(io::IO, code::ChoiceErrCode, err::ParseError)
     if code == CHOICE_Invalid
-        print(io, "Expected one of $(err.detail), but got $(err.token)")
+        print(io, "Expected one of [$(err.detail)], got $(err.token)")
     else
         print(io, "unreachable")
     end

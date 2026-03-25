@@ -22,7 +22,7 @@ integerval_error(code::IntegerErrCode; token="", detail="", subject="") =
 
 function integerval_render_error(io::IO, code::IntegerErrCode, err::ParseError)
     if code == INTEGER_Invalid
-        print(io, "Expected valid integer, got $(err.token)")
+        print(io, "Expected a valid integer, got $(err.token)")
     elseif code == INTEGER_BelowMin
         print(io, "Value $(err.token) is below the minimum allowed: $(err.detail)")
     elseif code == INTEGER_AboveMax

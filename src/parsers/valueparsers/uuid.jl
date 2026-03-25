@@ -20,7 +20,7 @@ function uuidval_render_error(io::IO, code::UUIDErrCode, err::ParseError)
     if code == UUID_Invalid
         print(io, "Malformed UUID string: $(err.token)")
     elseif code == UUID_WrongVersion
-        print(io, "Expected UUID of version [$(err.detail)], but got version $(err.token)")
+        print(io, "Expected a UUID of version [$(err.detail)], got version $(err.token)")
     else
         print(io, "unreachable")
     end

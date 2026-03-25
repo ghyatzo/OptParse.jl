@@ -1,5 +1,4 @@
 
-
 @enum ErrorPhase::UInt8 begin
 	ParsePhase
 	ValuePhase
@@ -67,7 +66,11 @@ main_error(code::MainErrCode; token="", detail="", subject="") =
 
 function main_render_error(io::IO, code::MainErrCode, err::ParseError)
     if code == MAIN_NoProgress
-        print(io, "Failed to match token $(err.token)")
+        if isempty(err.token)
+            print(io, "Parser made no progress")
+        else
+            print(io, "Unexpected option or argument: $(err.token)")
+        end
     else
         print(io, "unreachable")
     end
@@ -129,4 +132,3 @@ Base.string(perr::ParseError) = let
 	render_error(io, perr)
 	return String(take!(io))
 end
-

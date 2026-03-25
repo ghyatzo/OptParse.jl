@@ -25,7 +25,7 @@ constror_error(code::OrErrCode; token = "", detail = "", subject="") =
 
 function constror_render_error(io::IO, code::OrErrCode, err::ParseError)
     if code == OR_EndOfInput
-        print(io, "Expected token, got end of input")
+        print(io, "Expected an option or command, got end of input")
     elseif code == OR_UnexpectedToken
         print(io, "Unexpected option or subcommand: $(err.token)")
     elseif code == OR_Conflict
@@ -33,7 +33,7 @@ function constror_render_error(io::IO, code::OrErrCode, err::ParseError)
     elseif code == OR_NoMatch
         print(io, "No matching option or command")
     elseif code == OR_Unreachable
-        print(io, "Unreachable")
+        print(io, "Internal error: reached an unreachable or-branch state")
     else
         print(io, "unreachable")
     end

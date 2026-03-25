@@ -17,15 +17,15 @@ argflag_error(code::FlagErrCode; token = "", detail = "", subject="") =
 
 function argflag_render_error(io::IO, code::FlagErrCode, err::ParseError)
     if code == FLAG_NoMoreOptions
-        print(io, "No more options to be parsed")
+        print(io, "No more options can be parsed")
     elseif code == FLAG_EndOfInput
         print(io, "Expected a flag, got end of input")
     elseif code == FLAG_Duplicate
-        print(io, "$(err.token) cannot be used multiple times")
+        print(io, "Flag $(err.token) cannot be used multiple times")
     elseif code == FLAG_NoMatch
-        print(io, "No matched flag for $(err.token)")
+        print(io, "Unexpected flag: $(err.token)")
     elseif code == FLAG_Missing
-        print(io, "Missing flag(s) $(err.detail)")
+        print(io, "Missing required flag(s): $(err.detail)")
     else
         print(io, "unreachable")
     end

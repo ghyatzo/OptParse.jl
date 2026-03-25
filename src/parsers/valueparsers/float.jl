@@ -25,7 +25,7 @@ floatval_error(code::FloatErrCode; token="", detail="", subject="") =
 
 function floatval_render_error(io::IO, code::FloatErrCode, err::ParseError)
     if code == FLOAT_Invalid
-        print(io, "Expected valid float, got $(err.token)")
+        print(io, "Expected a valid float, got $(err.token)")
     elseif code == FLOAT_BelowMin
         print(io, "Value $(err.token) is below the minimum allowed: $(err.detail)")
     elseif code == FLOAT_AboveMax

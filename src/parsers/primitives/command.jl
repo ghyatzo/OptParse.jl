@@ -15,9 +15,9 @@ argcommand_error(code::CommandErrCode; token = "", detail = "", subject="") =
 
 function argcommand_render_error(io::IO, code::CommandErrCode, err::ParseError)
     if code == COMMAND_EndOfInput
-        print(io, "Expected command $(err.detail), but got end of input")
+        print(io, "Expected command $(err.detail), got end of input")
     elseif code == COMMAND_WrongName
-        print(io, "Expected command $(err.detail), but got $(err.token)")
+        print(io, "Expected command $(err.detail), got $(err.token)")
     elseif code == COMMAND_NotMatched
         print(io, "Command $(err.detail) was not matched")
     else

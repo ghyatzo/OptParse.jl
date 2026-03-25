@@ -18,17 +18,17 @@ argoption_error(code::OptionErrCode; token = "", detail = "", subject="") =
 
 function argoption_render_error(io::IO, code::OptionErrCode, err::ParseError)
     if code == OPTION_NoMoreOptions
-        print(io, "No more options to be parsed")
+        print(io, "No more options can be parsed")
     elseif code == OPTION_EndOfInput
         print(io, "Expected an option, got end of input")
     elseif code == OPTION_Duplicate
-        print(io, "$(err.token) cannot be used multiple times")
+        print(io, "Option $(err.token) cannot be used multiple times")
     elseif code == OPTION_MissingValue
         print(io, "Option $(err.token) requires a value")
     elseif code == OPTION_NoMatch
-        print(io, "No matched option for $(err.token)")
+        print(io, "Unexpected option: $(err.token)")
     elseif code == OPTION_Missing
-        print(io, "Missing option(s) $(err.detail)")
+        print(io, "Missing required option(s): $(err.detail)")
     else
         print(io, "unreachable")
     end

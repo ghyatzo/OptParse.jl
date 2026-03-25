@@ -19,9 +19,9 @@ constrtuple_error(code::TupleErrCode; token = "", detail = "", subject="") =
 function constrtuple_render_error(io::IO, code::TupleErrCode, err::ParseError)
     if code == TUPLE_NoRemainingParser
         if isempty(err.token)
-            print(io, "No remaining parsers could match the input")
+            print(io, "No remaining tuple element could match the input")
         else
-            print(io, "No remaining parsers could match $(err.token)")
+            print(io, "No remaining tuple element could match $(err.token)")
         end
     else
         print(io, "unreachable")
