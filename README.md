@@ -7,7 +7,8 @@ A Type Stable Composable CLI Parser for Julia, inspired by [optparse-applicative
 [![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://ghyatzo.github.io/OptParse.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-> [!WARNING] **Work In Progress**: OptParse is in active development. The API is experimental and subject to frequent change.
+> [!WARNING]
+> **Work In Progress**: OptParse is in active development. The API is experimental and subject to frequent change.
 > Type stability is tested and promising, but needs more real-world validation.
 
 ## Philosophy
