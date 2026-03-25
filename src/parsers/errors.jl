@@ -132,3 +132,9 @@ Base.string(perr::ParseError) = let
 	render_error(io, perr)
 	return String(take!(io))
 end
+
+struct ParseException <: Exception
+	err::ParseError
+end
+
+Base.showerror(io::IO, e::ParseException) = render_error(io, e.err)

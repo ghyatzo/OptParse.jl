@@ -231,7 +231,7 @@ function argparse(pp::Parser{T}, args::Vector{String})::T where {T}
     mayberes = tryargparse(pp, args)::ParseResult{T}
 
     if is_error(mayberes)
-        error(string(unwrap_error(mayberes)))
+        throw(ParseException(unwrap_error(mayberes)))
     end
 
     return unwrap(mayberes)
