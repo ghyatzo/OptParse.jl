@@ -1,7 +1,9 @@
 @kwdef struct StringVal{T}
-    metavar::String = "STRING"
+    metavar::String = ""
     pattern::Regex = r".*"
 end
+
+default_metavar(::StringVal) = "STRING"
 
 @enum StringErrCode::UInt8 begin
     STRING_InvalidPattern

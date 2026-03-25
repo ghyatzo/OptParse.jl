@@ -1,11 +1,12 @@
 @kwdef struct IntegerVal{T}
-    metavar::String = "INTEGER"
+    metavar::String = ""
     #
     type::Type = T
     min::Union{Int, Nothing} = nothing
     max::Union{Int, Nothing} = nothing
 end
 
+default_metavar(::IntegerVal) = "INTEGER"
 
 @enum IntegerErrCode::UInt8 begin
     INTEGER_Invalid

@@ -1,8 +1,10 @@
 @kwdef struct UUIDVal{T}
-    metavar::String = "UUID"
+    metavar::String = ""
     #
     allowedVersions::Vector{Int} = Int[]
 end
+
+default_metavar(::UUIDVal) = "UUID"
 
 @enum UUIDErrCode::UInt8 begin
     UUID_Invalid

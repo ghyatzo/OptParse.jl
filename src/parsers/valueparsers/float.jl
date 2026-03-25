@@ -1,5 +1,5 @@
 @kwdef struct FloatVal{T}
-    metavar::String = "FLOAT"
+    metavar::String = ""
     #
     type::Type = T
     min::Union{T, Nothing} = nothing
@@ -7,6 +7,8 @@
     allowInfinity::Bool = false
     allowNan::Bool = false
 end
+
+default_metavar(::FloatVal) = "FLOAT"
 
 @enum FloatErrCode::UInt8 begin
     FLOAT_Invalid

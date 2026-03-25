@@ -52,7 +52,7 @@ function complete(p::Parser{T, S}, st::S)::ParseResult{T} where {T, S}
     complete(unwrapunion(p), st)
 end
 
-
+include("show.jl")
 
 # modifiers
 

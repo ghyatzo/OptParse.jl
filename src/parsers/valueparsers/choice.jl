@@ -1,5 +1,5 @@
 @kwdef struct Choice{T}
-    metavar::String = "CHOICE"
+    metavar::String = ""
     caseInsensitive::Bool = true
     values::Vector{String}
 
@@ -8,6 +8,8 @@
         new{String}(metavar, caseInsensitive, normvals)
     end
 end
+
+default_metavar(::Choice) = "CHOICE"
 
 @enum ChoiceErrCode::UInt8 begin
     CHOICE_Invalid

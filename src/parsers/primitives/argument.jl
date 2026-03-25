@@ -49,7 +49,10 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
     optpattern = r"^--?[a-z0-9-]+$"i
 
     if ctx_hasnone(ctx)
-        return innerErr(ctx, argargument_error(ARGUMENT_EndOfInput; detail = metavar(p.valparser)))
+        return innerErr(ctx, argargument_error(
+            ARGUMENT_EndOfInput;
+            detail = trymetavar(p.valparser)
+        ))
     end
 
     i = 0
@@ -65,19 +68,29 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
             i += 1
         elseif !isnothing(match(optpattern, ctx_peek(ctx, 1 + i)))
             #=Otherwise, check that we are not matching an option.=#
-            return innerErr(ctx, argargument_error(ARGUMENT_GotOption; token = ctx_peek(ctx, 1 + i), detail = metavar(p.valparser)); consumed = i)
+            return innerErr(ctx, argargument_error(
+                ARGUMENT_GotOption;
+                token = ctx_peek(ctx, 1 + i),
+                detail = trymetavar(p.valparser));
+            consumed = i)
         end
     end
 
     if ctx_haslessthan(1+i, ctx)
         #=Check again, in case we only had a "--" in the buffer.=#
-        return innerErr(ctx, argargument_error(ARGUMENT_EndOfInput; detail = metavar(p.valparser)); consumed = i)
+        return innerErr(ctx, argargument_error(
+            ARGUMENT_EndOfInput;
+            detail = trymetavar(p.valparser));
+        consumed = i)
     end
 
     if !is_error(ℒ_state(ctx))
         #=The state is a some, so this parser matched already with something.
         Add one to the consumed since we're technically consuming this duplicate=#
-        return innerErr(ctx, argargument_error(ARGUMENT_Duplicate; detail = metavar(p.valparser)); consumed = 1+i)
+        return innerErr(ctx, argargument_error(
+            ARGUMENT_Duplicate;
+            detail = trymetavar(p.valparser));
+        consumed = 1+i)
     end
 
     result = p.valparser(ctx_peek(ctx, 1 + i))::ParseResult{T}
@@ -91,7 +104,7 @@ function complete(p::ArgArgument{T, <:ArgumentState}, maybest::TState)::ParseRes
 
     #=The parser never matched anything.=#
     is_error(maybest) && return typedErr(
-        argargument_error(ARGUMENT_TooFew; detail = metavar(p.valparser))
+        argargument_error(ARGUMENT_TooFew; detail = trymetavar(p.valparser))
     )
 
     st = unwrap(maybest)
@@ -100,7 +113,7 @@ function complete(p::ArgArgument{T, <:ArgumentState}, maybest::TState)::ParseRes
         error_with_context(st,
             CompletePhase,
             ERR_ArgArgument,
-            metavar(p.valparser)
+            trymetavar(p.valparser)
         )
     )
 

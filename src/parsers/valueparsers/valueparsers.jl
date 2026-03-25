@@ -28,6 +28,8 @@ end
 Base.getproperty(v::ValueParser, f::Symbol) = @unionsplit Base.getproperty(v, f)
 metavar(v::ValueParser) = v.metavar
 
+trymetavar(v::ValueParser) = isempty(metavar(v)) ? default_metavar(unwrapunion(v)) : metavar(v)
+
 # (parse(x::ValueParser{T}, input::String)::ParseResult{T}) where {T} = @unionsplit parse(x, input)
 ((v::ValueParser{T})(input::String)::ParseResult{T}) where {T} = @unionsplit v(input)
 
