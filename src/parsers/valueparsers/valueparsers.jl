@@ -35,7 +35,10 @@ trymetavar(v::ValueParser) = isempty(metavar(v)) ? default_metavar(unwrapunion(v
 
 
 str(; kw...) = ValueParser{String}(StringVal{String}(; kw...))
-choice(values::Vector{T}; kw...) where {T} = ValueParser{T}(Choice(; values, kw...))
+
+choice(values::AbstractVector{<:AbstractString}; kw...) = ValueParser{String}(Choice(String.(values); kw...))
+choice(::Type{AnEnum}; kw...) where {AnEnum <: Enum} = ValueParser{AnEnum}(Choice(AnEnum; kw...))
+
 integer(::Type{T}; kw...) where {T <: Integer} = ValueParser{T}(IntegerVal{T}(; type = T, kw...))
 integer(; kw...) = ValueParser{Int}(IntegerVal{Int}(; kw...))
 i8(; kw...) = integer(Int8, ; kw...)

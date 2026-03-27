@@ -30,6 +30,13 @@ result = argparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
 port = option("-p", integer(min=1000, max=65535))
 level = option("-l", choice(["debug", "info", "warn", "error"]))
 config = option("-c", str(pattern=r".*\.toml$"))
+
+@enum Mode begin
+    Debug
+    Release
+end
+
+mode = option("--mode", choice(Mode))
 ```
 
 ### Optional and Default Values

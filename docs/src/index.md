@@ -79,7 +79,7 @@ Type-safe parsers that convert strings to values:
 - `str()` - String values with optional pattern validation
 - `integer()` / `i8()`, `u32()`, etc. - Integer types with min/max bounds
 - `flt()` / `flt32()`, `flt64()` - Floating point numbers
-- `choice()` - Enumerated values
+- `choice()` - Enumerated values from a string list or `@enum` type
 - `uuid()` - UUID validation
 
 ### Modifiers

@@ -1,11 +1,20 @@
-@kwdef struct Choice{T}
-    metavar::String = ""
-    caseInsensitive::Bool = true
+struct Choice{T}
+    metavar::String
+    caseInsensitive::Bool
     values::Vector{String}
+    outputs::Vector{T}
 
-    Choice(metavar, caseInsensitive, values::Vector{String}) = let
-        normvals = caseInsensitive ? map(lowercase, values) : values
-        new{String}(metavar, caseInsensitive, normvals)
+    Choice(values::Vector{String}; metavar = "", caseInsensitive = true) = let
+        normvals = caseInsensitive ? map(uppercase, values) : values
+        new{String}(metavar, caseInsensitive, normvals, normvals)
+    end
+
+    Choice(enumtype::Type{<:Enum}; metavar = "", caseInsensitive = true ) = let
+        enumtypes = instances(enumtype)
+        values = collect(string.(enumtypes))
+        outputs = collect(enumtypes)
+        normvals = caseInsensitive ? map(uppercase, values) : values
+        new{enumtype}(metavar, caseInsensitive, normvals, outputs)
     end
 end
 
@@ -30,8 +39,8 @@ function choice_render_error(io::IO, code::ChoiceErrCode, err::ParseError)
     end
 end
 
-(c::Choice)(input::String)::ParseResult{String} = let
-    norminput = c.caseInsensitive ? lowercase(input) : input
+((c::Choice{T})(input::String)::ParseResult{T}) where {T} = let
+    norminput = c.caseInsensitive ? uppercase(input) : input
     index = findfirst(==(norminput), c.values)
 
     isnothing(index) && return typedErr(choice_error(
@@ -39,6 +48,7 @@ end
         token = input,
         detail = join(c.values, ',')
     ))
-    # isnothing(index) && return typedErr("Expected one of $(join(c.values, ',')), but got $input")
-    return typedOk(c.values[index])
+
+    return typedOk(c.outputs[index])
+
 end

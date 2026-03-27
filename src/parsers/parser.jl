@@ -290,7 +290,17 @@ julia> # With constraints
 julia> result = argparse(level, ["-l", "debug"]);
 
 julia> result
-"debug"
+"DEBUG"
+
+julia> @enum Mode begin
+           Debug
+           Release
+       end
+
+julia> mode = option("--mode", choice(Mode));
+
+julia> argparse(mode, ["--mode", "release"])
+Release::Mode = 1
 ```
 
 # Notes

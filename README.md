@@ -103,7 +103,7 @@ Type-safe parsers that convert strings to values:
 - **`str()`** - String values with optional pattern validation
 - **`integer()`** / **`i8()`**, **`u32()`**, etc. - Integer types with min/max bounds
 - **`flt()`** / **`flt32()`**, **`flt64()`** - Floating point numbers
-- **`choice()`** - Enumerated values
+- **`choice()`** - Enumerated values from a string list or `@enum` type
 - **`uuid()`** - UUID validation
 
 ```julia
@@ -111,6 +111,13 @@ Type-safe parsers that convert strings to values:
 port = option("-p", integer(min=1000, max=65535))
 level = option("-l", choice(["debug", "info", "warn", "error"]))
 config = option("-c", str(pattern=r".*\.toml$"))
+
+@enum Mode begin
+    Debug
+    Release
+end
+
+mode = option("--mode", choice(Mode))
 ```
 
 ### Modifiers
