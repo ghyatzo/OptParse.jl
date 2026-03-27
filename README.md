@@ -287,9 +287,9 @@ julia> ?object
 julia> ?or
 ```
 
-For more detailed documentation, see [Optique's excellent documentation website](https://optique.dev/),
-which heavily influenced this package API. There are some minor differences but the core concepts are the same since both are inspired by
-the great [optparse-applicative](https://github.com/pcapriotti/optparse-applicative).
+For more detailed documentation, see the [Documentation](https://ghyatzo.github.io/OptParse.jl).
+
+Additionally, the [Optique's excellent documentation website](https://optique.dev/) or docs from the great [optparse-applicative](https://github.com/pcapriotti/optparse-applicative), might be of interest for more in depth analysis or phylosophy. There are some differences but the core concepts are the same since both have been an inspiration on the design of this library.
 
 ## Contributing
 
