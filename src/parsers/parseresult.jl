@@ -98,6 +98,7 @@ end
 struct InnerParseSuccess{S}
     consumed::Consumed
     next::Context{S}
+    counts_as_match::Bool
 end
 
 struct InnerParseFailure
@@ -118,14 +119,14 @@ const ℒ_error = @optic _.error
 const ℒ_nextstate = ℒ_state ∘ ℒ_nextctx
 
 
-@inline function innerOk(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n))::InnerParseResult{S} where {S}
+@inline function innerOk(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n), counts_as_match=true)::InnerParseResult{S} where {S}
     p = ℒ_pos(ctx)
     consumed = Consumed(ℒ_buffer(ctx), [p:p+n-1])
-    return Ok(InnerParseSuccess{S}(consumed, nextctx))
+    return Ok(InnerParseSuccess{S}(consumed, nextctx, counts_as_match))
 end
 
-@inline function innerOk(next::Context{S}, cons::Consumed)::InnerParseResult{S} where {S}
-    return Ok(InnerParseSuccess{S}(cons, next))
+@inline function innerOk(next::Context{S}, cons::Consumed, counts_as_match=true)::InnerParseResult{S} where {S}
+    return Ok(InnerParseSuccess{S}(cons, next, counts_as_match))
 end
 
 @inline function innerErr(_ctx::Context{S}, e::ParseError; consumed::Int=0)::InnerParseResult{S} where {S}

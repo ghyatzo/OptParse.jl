@@ -2,6 +2,8 @@ module trimmability
 
 using OptParse
 
+export @main
+
 const greet = command(
 	"greet",
 	object((;
@@ -30,7 +32,8 @@ function @main(args::Vector{String})::Cint
 
 	parser = or(simple, greet, multiarg, goodbye, opt)
 
-	obj = argparse(parser, args)
+	obj = cliargparse(parser, args)
+	isnothing(obj) && return 1
 
 	doaction(obj)
 

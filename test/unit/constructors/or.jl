@@ -79,18 +79,41 @@ end
     @test parse_ok(parser, ["-v"]) == (; verbose = true)
 end
 
-# @testset "should be type stable" begin
-#     @test_opt or(
-#         object((verbose = flag("-v"),)),
-#         object((version = flag("-v"),)),
-#         object((verify = flag("-v"),)),
-#     )
+@testset "Should handle control only matches correctly" begin
+    parser = or(
+        flag("-a"),
+        argument(str()),
+    )
 
-#     parser = or(
-#         object((verbose = flag("-v"),)),
-#         object((version = flag("-v"),)),
-#         object((verify = flag("-v"),)),
-#     )
+    # A control-only success on `--` must not prevent later branches from
+    # matching semantically.
+    @test parse_ok(parser, ["--", "hello"]) == "hello"
+    @test parse_ok(parser, ["--", "-a"]) == "-a"
 
-#     @test_opt argparse(parser, ["-v"])
-# end
+    ctrlonly = or(
+        flag("-a"),
+        option("-b", str()),
+    )
+
+    # Bare `--` should not select a branch or create a conflict. Once option
+    # parsing is terminated, the `or` should simply complete with no match.
+    err = parse_fail(ctrlonly, ["--"])
+    @test err.domain == OptParse.ERR_ConstrOr
+    @test OptParse.OrErrCode(err.code) == OptParse.OR_NoMatch
+end
+
+@testset "should be type stable" begin
+    @test_opt or(
+        object((verbose = flag("-v"),)),
+        object((version = flag("-v"),)),
+        object((verify = flag("-v"),)),
+    )
+
+    parser = or(
+        object((verbose = flag("-v"),)),
+        object((version = flag("-v"),)),
+        object((verify = flag("-v"),)),
+    )
+
+    @test_opt argparse(parser, ["-v"])
+end

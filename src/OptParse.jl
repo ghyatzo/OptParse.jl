@@ -78,6 +78,7 @@ export
     argparse,
     argument,
     choice,
+    cliargparse,
     command,
     concat,
     flag,
@@ -204,7 +205,23 @@ function argparse(pp::Parser{T}, args::Vector{String})::T where {T}
     mayberes = tryargparse(pp, args)::ParseResult{T}
 
     if is_error(mayberes)
+        errmsg = sprint(showerror, ParseException(unwrap_error(mayberes)))
+        @info errmsg
         throw(ParseException(unwrap_error(mayberes)))
+    end
+
+    return unwrap(mayberes)
+end
+
+
+function cliargparse(pp::Parser{T}, args::Vector{String})::Union{T, Nothing} where {T}
+    mayberes = tryargparse(pp, args)::ParseResult{T}
+
+    if is_error(mayberes)
+        errmsg = sprint(showerror, ParseException(unwrap_error(mayberes)))
+        print(Core.stderr, "Error: ")
+        println(Core.stderr, errmsg)
+        return nothing
     end
 
     return unwrap(mayberes)

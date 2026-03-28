@@ -78,7 +78,7 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
     # When the input contains `--` is a signal to stop parsing options
     if (tok === "--")
         nextctx = ctx_with_options_terminated(consume(ctx, 1), true)
-        return innerOk(ctx, 1; nextctx)
+        return innerOk(ctx, 1; nextctx, counts_as_match=false)
     end
 
     # when options are of the form `--option value`

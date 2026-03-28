@@ -65,11 +65,36 @@ ConstrOr(parsers::PTup) where {PTup <: Tuple} = let
     }(none(InnerOrState{innerstate_U}), parsers)
 end
 
+# General loop logic
+# for branch in branches
+#     result = parse(branch, ctx)
+
+#     if semantic success
+#         return result_as_selected_branch
+
+#     elseif control-only success
+#         remember it if better than current fallback
+
+#     else
+#         maybe update best_error
+#     end
+# end
+
+# if have_control_fallback
+#     return control_fallback
+# else
+#     return best_error
+# end
+
 @generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}) where {PTup <: Tuple, U}
     preamble = quote
         error = ctx_haslessthan(1, ctx) ?
             InnerParseFailure(0, constror_error(OR_EndOfInput)) :
             InnerParseFailure(0, constror_error(OR_UnexpectedToken; token = ctx_peek(ctx)))
+        #=A control-only success (for example consuming `--`) should not select an
+        `or` branch immediately. We keep it around as a fallback in case no
+        semantic branch match is found.=#
+        control_result = nothing
     end
     N = fieldcount(PTup)
     unrolled_loop = Expr(:block)
@@ -97,24 +122,48 @@ end
             if !is_error(result) && length(unwrap(result).consumed) > 0
                 parse_ok = unwrap(result)
 
-                #=If we successfully match something, but the current state is telling us that we've already matched
-                # something else,
-                # and those two things aren't the same thing, then error. 'Or' only matches one parser.=#
+                if !parse_ok.counts_as_match
+                    #=The child parser succeeded, but not in a way that should count
+                    as a semantic match for this `or`. Keep the propagated context
+                    and continue looking for a real branch match.=#
 
-                if has_selection && !(selected_state isa OrBranchState{$i, $child_parser_tstate})
-                    return innerErr(ctx,
-                        constror_error(
-                            OR_Conflict;
-                            token = parse_ok.consumed[1],
-                            detail = string(selected_state.success.consumed[1])
-                        );
-                        consumed=ctx_length(ctx) - ctx_length(ℒ_nextctx(parse_ok))
-                    )
+                    if has_selection && (selected_state isa OrBranchState{$i, $child_parser_tstate})
+                        #=We are already inside this same branch. Preserve that
+                        selection while surfacing the control-side-effect.=#
+                        new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
+                        newctx = widen_restate(OrState{$U}, ℒ_nextctx(parse_ok), new_innerstate)
+                        control_result = innerOk(newctx, ℒ_consumed(parse_ok), false)
+                    elseif !has_selection
+                        #=No branch has been selected yet. Propagate the updated
+                        context, but leave the `or` state unselected so later
+                        branches still get a chance to match semantically.=#
+                        control_result = innerOk(
+                            ctx_with_state(ℒ_nextctx(parse_ok), ℒ_state(ctx)),
+                            ℒ_consumed(parse_ok),
+                            false
+                        )
+                    end
+                else
+
+                    #=If we successfully match something, but the current state is telling us that we've already matched
+                    # something else,
+                    # and those two things aren't the same thing, then error. 'Or' only matches one parser.=#
+
+                    if has_selection && !(selected_state isa OrBranchState{$i, $child_parser_tstate})
+                        return innerErr(ctx,
+                            constror_error(
+                                OR_Conflict;
+                                token = parse_ok.consumed[1],
+                                detail = string(selected_state.success.consumed[1])
+                            );
+                            consumed=ctx_length(ctx) - ctx_length(ℒ_nextctx(parse_ok))
+                        )
+                    end
+
+                    new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
+                    newctx = widen_restate(OrState{$U}, ℒ_nextctx(parse_ok), new_innerstate)
+                    return innerOk(newctx, ℒ_consumed(parse_ok))
                 end
-
-                new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
-                newctx = widen_restate(OrState{$U}, ℒ_nextctx(parse_ok), new_innerstate)
-                return innerOk(newctx, ℒ_consumed(parse_ok))
             elseif is_error(result)
                 if ℒ_consumed(error) < ℒ_consumed(unwrap_error(result))
                     error = unwrap_error(result)
@@ -124,7 +173,12 @@ end
 
     end
 
-    epilogue = :(return innerErr(ctx, error))
+    epilogue = quote
+        #=If nothing matched semantically, but a child parser propagated a
+        control-only success, return that instead of the raw parse error.=#
+        !isnothing(control_result) && return control_result
+        return innerErr(ctx, error)
+    end
 
     return quote
         $preamble

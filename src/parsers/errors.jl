@@ -142,4 +142,6 @@ struct ParseException <: Exception
 	err::ParseError
 end
 
-Base.showerror(io::IO, e::ParseException) = render_error(io, e.err)
+Base.showerror(io::IO, e::ParseException) = let
+	render_error(io, e.err)
+end

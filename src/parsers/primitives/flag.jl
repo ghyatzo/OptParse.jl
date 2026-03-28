@@ -69,7 +69,7 @@ function parse(p::ArgFlag{Bool, FlagState}, ctx::Context{FlagState})::InnerParse
     #= When the input contains `--` stop parsing options =#
     if (tok === "--")
         nextctx = ctx_with_options_terminated(consume(ctx, 1), true)
-        return innerOk(ctx, 1; nextctx)
+        return innerOk(ctx, 1; nextctx, counts_as_match=false)
     end
 
     if tok in p.names
