@@ -23,6 +23,18 @@ parser = object((
 result = argparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
 ```
 
+### Options Terminator
+
+```julia
+# After `--`, everything is treated as positional input
+parser = or(
+    command("test", object((opt = option("-v", integer()),))),
+    argument(str())
+)
+
+result = argparse(parser, ["--", "test"])  # "test"
+```
+
 ### Type Constraints
 
 ```julia

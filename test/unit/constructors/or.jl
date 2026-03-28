@@ -102,6 +102,16 @@ end
     @test OptParse.OrErrCode(err.code) == OptParse.OR_NoMatch
 end
 
+@testset "should treat everything after -- as positional input rather than command syntax" begin
+    parser = or(
+        command("test", object((opt = option("-v", integer()),))),
+        argument(str()),
+    )
+
+    @test parse_ok(parser, ["--", "test"]) == "test"
+    @test parse_ok(parser, ["--", "-v"]) == "-v"
+end
+
 @testset "should be type stable" begin
     @test_opt or(
         object((verbose = flag("-v"),)),

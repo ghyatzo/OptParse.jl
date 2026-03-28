@@ -52,6 +52,13 @@ result = argparse(parser, ["--name", "myserver", "-p", "8080", "-v"])
 @assert result.verbose == true
 ```
 
+Current parsing conventions:
+
+- short option names are single-letter only
+- short options must separate the flag from the value: `-n value`
+- long options use the `--long` form
+- `--` means: from that point on, stop recognizing flags, options, and commands. Everything after it is treated as positional input
+
 For the public entrypoints:
 
 - `argparse(parser, argv)` returns the parsed value or throws `OptParse.ParseException`
@@ -98,6 +105,8 @@ Compose parsers into complex structures:
 - [`or`](@ref) - Mutually exclusive alternatives (for subcommands)
 - [`tup`](@ref) - Ordered tuple (preserves parser order)
 - [`objmerge`](@ref) / [`concat`](@ref) - Merge multiple parser groups
+
+`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `argument(...)` or `multiple(argument(...))` last.
 
 ### Complete Application Example
 

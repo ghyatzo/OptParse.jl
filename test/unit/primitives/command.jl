@@ -325,6 +325,20 @@ end
     @test val.args == ["--not-an-option", "arg1"]
 end
 
+@testset "should keep treating input after -- as positional once a command is selected" begin
+    parser = command(
+        "test",
+        object((
+            type = @constant(:test),
+            args = multiple(argument(str())),
+        )),
+    )
+
+    val = parse_ok(parser, ["test", "--", "-v", "hello"])
+    @test val.type == Val(:test)
+    @test val.args == ["-v", "hello"]
+end
+
 @testset "should handle commands with numeric names" begin
     parser = or(
         command("v1", @constant(:version1)),

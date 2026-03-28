@@ -617,6 +617,7 @@ julia> result.input
 - Arguments must be present unless wrapped with `optional` or `withDefault`
 - The `metavar` in the value parser is used for help text generation
 - Arguments are parsed in order but can be interspersed with options
+- After `--`, remaining tokens are treated as positional input
 """
 function argument end
 
@@ -700,6 +701,7 @@ julia> result.packages
 - Commands consume their name token from the input
 - Often combined with `or` to provide multiple subcommands
 - Can be nested to create hierarchical command structures
+- After `--`, commands are no longer recognized; remaining tokens are treated as positional input
 """
 function command end
 
@@ -882,6 +884,10 @@ The `or` combinator tries each parser in sequence and succeeds with the first on
 that matches. All parsers are mutually exclusive - only one can succeed. This is
 the primary way to implement subcommands or alternative parsing branches.
 
+`or(...)` is order-dependent: branches are tried in the order they are listed,
+and the first semantic match wins. Put broader positional parsers like
+`argument(...)` or `multiple(argument(...))` last.
+
 # Arguments
 - `parsers...`: Variable number of parsers to try in order
 
@@ -953,7 +959,7 @@ julia> result.file
 ```
 
 # Notes
-- Parsers are tried in order; first match wins
+- Parsers are tried in order; first semantic match wins
 - If no parser matches, the overall parse fails
 - Use with `@constant` to tag which branch was taken
 - Type of result is `Union` of all parser return types (type-stable)

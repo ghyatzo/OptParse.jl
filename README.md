@@ -62,6 +62,7 @@ The style implemented in this library is the following:
 - short form names only accept single letters: `-n` is fine, `-run` will be treated as bundled `-r -u -n`.
 - short form options must separate the flag from the value: `-n name`. No gcc style `-L/usr/include`.
 - long form is represented with two dashes `--long`
+- `--` means: from that point on, stop recognizing flags, options, and commands. Everything after it is treated as positional input.
 
 For the public entrypoints:
 
@@ -150,6 +151,8 @@ Compose parsers into complex structures:
 - **`or`** - Mutually exclusive alternatives (for subcommands)
 - **`tup`** - Ordered tuple (preserves parser order)
 - **`objmerge`** / **`concat`** - Merge multiple parser groups
+
+`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `argument(...)` or `multiple(argument(...))` last.
 
 ```julia
 # Object composition
