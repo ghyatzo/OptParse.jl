@@ -58,15 +58,17 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 			Erase its memory and try again from a blank slate. Maybe the pattern repeats.=#
 			child_state = p.parser.initialState
 			child_ctx = widen_restate(S, ctx, child_state)
-			result = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
+			retry = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
 
-			if is_error(result)
+			if is_error(retry)
 				#=The error is real, return it.=#
-				return innerErr(ctx, unwrap_error(result))
+				return innerErr(ctx, unwrap_error(retry))
 			end
 
-			#=Otherwise, we've encountered a new repetition. Add it to the state.=#
-			hasadded = true
+			#=Otherwise, we've encountered a new repetition. Add it to the state.
+			but only if it is semantically valid.=#
+
+			hasadded = unwrap(retry).counts_as_match
 		else
 			return innerErr(ctx, unwrap_error(result))
 		end

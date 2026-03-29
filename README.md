@@ -1,6 +1,6 @@
 # OptParse
 
-A Type Stable Composable CLI Parser for Julia, inspired by [optparse-applicative](https://github.com/pcapriotti/optparse-applicative) and [Optique](https://optique.dev/) (typescript version).
+A Type Stable Composable CLI Parser for Julia, inspired by [optparse-applicative](https://github.com/pcapriotti/optparse-applicative) and [Optique](https://optique.dev/).
 
 [![Build Status](https://github.com/ghyatzo/OptParse.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/ghyatzo/OptParse.jl/actions/workflows/ci.yml)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
@@ -32,7 +32,7 @@ to reflect if it succeded or not. This is the `parse` step.
 - [ ] more value parsers (like, dates, paths, uri...)
 - [ ] `map` modifier, unfortunately until julia has something like `TypedCallabe`s it's impossible to
 ensure type stability with arbitrary functions.
-- [ ] `longest-match` combinator (maybe, still debating utility)
+- [ ] `longest-match` combinator
 - [ ] `group` combinator: light simple parser useful only for enclosing multiple parsers together in the same category. mainly useful for help messages.
 - [ ] automatic suggestions / shell completions
 - [x] polish and stabilize the public error-reporting interface

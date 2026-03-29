@@ -107,3 +107,26 @@ end
     val = parse_ok(parser, ["convert", "input.md", "-f", "json", "-v", "output.json"])
     @test val == ("convert", "input.md", "json", true, "output.json")
 end
+
+@testset "should not let control-only consuming matches satisfy tuple elements" begin
+    parser = tup(
+        flag("-a"),
+        argument(str()),
+    )
+
+    # `--` is consumed by the flag parser only to propagate option termination.
+    # It must not count as satisfying the first tuple slot.
+    err = parse_fail(parser, ["--", "hello"])
+    @test err.domain == OptParse.ERR_ConstrTuple
+    @test OptParse.TupleErrCode(err.code) == OptParse.TUPLE_NoRemainingParser
+end
+
+@testset "should propagate control-only consumption to later tuple elements" begin
+    parser = tup(
+        optional(flag("-a")),
+        argument(str()),
+    )
+
+    val = parse_ok(parser, ["--", "hello"])
+    @test val == (nothing, "hello")
+end

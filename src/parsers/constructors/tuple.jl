@@ -73,19 +73,28 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
                 result = parse(unwrapunion(parser), child_ctx)::InnerParseResult{$child_parser_tstate}
 
                 if !is_error(result) && length(unwrap(result).consumed) > 0
-                    #= parser succeded and consumed input - match it =#
                     parse_ok = unwrap(result)
 
-                    newstate = set(ℒ_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
-                    current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), newstate)
+                    if parse_ok.counts_as_match
+                        #= parser succeded and consumed input - match it =#
+                        newstate = set(ℒ_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
+                        current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), newstate)
 
-                    push!(allconsumed, ℒ_consumed(parse_ok))
-                    push!(matched_parsers, $i)
-                    found_match = true
-                    #= take the first (highest priority) match that consumes input =#
-                    @goto endloop_consumers #= it simulates a "break" by using @goto.
-                    # tecnically the @unroll macro also already uses a "loopend" label, but It seems that
-                    # these goto macros are expanded before the @unroll and therefore is not there yet. =#
+                        push!(allconsumed, ℒ_consumed(parse_ok))
+
+                        push!(matched_parsers, $i)
+                        found_match = true
+                        #= take the first (highest priority) match that consumes input =#
+                        @goto endloop_consumers #= it simulates a "break" by using @goto.
+                        # tecnically the @unroll macro also already uses a "loopend" label, but It seems that
+                        # these goto macros are expanded before the @unroll and therefore is not there yet. =#
+                    else
+                        #= the inner parser succeded and consumed but by consuming control tokens, not semantic ones
+                        # so we update the context with the new information and keep going. =#
+                        current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), ℒ_state(current_ctx))
+                        push!(allconsumed, ℒ_consumed(parse_ok))
+                    end
+
                 elseif is_error(result) && error.consumed < unwrap_error(result).consumed
                     error = unwrap_error(result)
                 end
