@@ -8,6 +8,6 @@ const parser = object((;
 ))
 
 function @main(args::Vector{String})::Cint
-    _ = cliargparse(parser, args)
+    _ = argparse(parser, args)
     return 0
 end

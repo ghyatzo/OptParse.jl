@@ -57,7 +57,6 @@ using UUIDs:
 #	OK(TEST?) concat(), appends tuple parsers
 #	- longest-match(), tries all parses and selects the one with the longest match.
 #	- group(), documentation only combinator, adds a group label to parsers inside. Ensure to make it work also for groups of options!
-#   ? conditional(), check 0.7.1
 
 
 # - Usage Mechanism
@@ -70,7 +69,7 @@ using UUIDs:
 # OK make switch the default behaviour and call it flag.
 # NO rename flag to `gate`
 # - rename multiple to 'many'
-
+# OK instead of objmerge and concat, use a single merge function? even possible?
 
 export
     @?,
@@ -78,7 +77,6 @@ export
     argparse,
     argument,
     choice,
-    cliargparse,
     command,
     concat,
     flag,
@@ -201,30 +199,32 @@ Parse `argv` with `parser` and return the parsed value.
 
 Throws [`ParseException`](@ref) on failure.
 """
-function argparse(pp::Parser{T}, args::Vector{String})::T where {T}
-    mayberes = tryargparse(pp, args)::ParseResult{T}
+@static if Base.generating_output(false)
 
-    if is_error(mayberes)
-        errmsg = sprint(showerror, ParseException(unwrap_error(mayberes)))
-        @info errmsg
-        throw(ParseException(unwrap_error(mayberes)))
+    function argparse(pp::Parser{T}, args::Vector{String})::Union{T, Nothing} where {T}
+        mayberes = tryargparse(pp, args)::ParseResult{T}
+
+        if is_error(mayberes)
+            errmsg = sprint(showerror, ParseException(unwrap_error(mayberes)))
+            print(Core.stderr, "Error: ")
+            println(Core.stderr, errmsg)
+            return nothing
+        end
+
+        return unwrap(mayberes)
     end
+else
+    function argparse(pp::Parser{T}, args::Vector{String})::T where {T}
+        mayberes = tryargparse(pp, args)::ParseResult{T}
 
-    return unwrap(mayberes)
+        if is_error(mayberes)
+            throw(ParseException(unwrap_error(mayberes)))
+        end
+
+        return unwrap(mayberes)
+    end
 end
 
 
-function cliargparse(pp::Parser{T}, args::Vector{String})::Union{T, Nothing} where {T}
-    mayberes = tryargparse(pp, args)::ParseResult{T}
-
-    if is_error(mayberes)
-        errmsg = sprint(showerror, ParseException(unwrap_error(mayberes)))
-        print(Core.stderr, "Error: ")
-        println(Core.stderr, errmsg)
-        return nothing
-    end
-
-    return unwrap(mayberes)
-end
 
 end # module OptParse

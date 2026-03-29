@@ -159,6 +159,10 @@ error_with_context(perr::ParseError, phase::ErrorPhase, domain::ErrorDomain, sub
     push!(perr.context, errsite)
     return perr
 end
+
 error_with_context(err::ParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String) =
     error_with_context(unwrap_error(err), phase, domain, subject)
+
+error_with_context(err::InnerParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String)=
+    error_with_context(ℒ_error(unwrap_error(err)), phase, domain, subject)
 

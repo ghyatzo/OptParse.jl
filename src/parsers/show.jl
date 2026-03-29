@@ -87,9 +87,10 @@ show_compact(io::IO, p::ArgOption) = let
 	show_compact(io, p.valparser)
 	print(io, ")")
 end
+val(::Val{x}) where {x} = x
 show_compact(io::IO, p::ArgConstant) = let
 	print(io, "@constant(")
-	print(io, unwrapval(p.initialState))
+	print(io, val(p.initialState))
 	print(io, ")")
 end
 show_compact(io::IO, p::ArgArgument) = let
