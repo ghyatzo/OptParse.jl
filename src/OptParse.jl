@@ -195,9 +195,17 @@ end
 """
     argparse(parser, argv)
 
-Parse `argv` with `parser` and return the parsed value.
+High-level parsing entrypoint.
 
-Throws [`ParseException`](@ref) on failure.
+This function currently has a build-time split:
+
+- in normal Julia runtime usage, it returns the parsed value and throws
+  [`ParseException`](@ref) on failure
+- when compiled while `Base.generating_output()` is true, it renders the error
+  to `stderr` and returns `nothing` on failure instead of throwing
+
+If you need stable non-throwing behavior across environments, use
+[`tryargparse`](@ref) instead.
 """
 @static if Base.generating_output(false)
 

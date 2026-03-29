@@ -66,8 +66,15 @@ The style implemented in this library is the following:
 
 For the public entrypoints:
 
-- `argparse(parser, argv)` returns the parsed value or throws `OptParse.ParseException`
+- `argparse(parser, argv)` is the high-level convenience entrypoint
 - `tryargparse(parser, argv)` is the lower-level entrypoint and returns a result object instead of throwing
+
+`argparse` currently has a build-time split:
+
+- in normal Julia runtime usage, it returns the parsed value or throws `OptParse.ParseException`
+- when compiled while `Base.generating_output()` is true (for example in the current trimming workflow), it renders the error to `stderr` and returns `nothing` on failure instead of throwing
+
+If you need stable non-throwing behavior across environments, use `tryargparse`.
 
 ## Core Concepts
 
