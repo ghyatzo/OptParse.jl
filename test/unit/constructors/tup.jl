@@ -115,10 +115,14 @@ end
     )
 
     # `--` is consumed by the flag parser only to propagate option termination.
-    # It must not count as satisfying the first tuple slot.
+    # It must not count as satisfying the first tuple slot, so the tuple can
+    # still parse the later positional argument. Completion should then fail
+    # because the required flag was never matched semantically.
     err = parse_fail(parser, ["--", "hello"])
-    @test err.domain == OptParse.ERR_ConstrTuple
-    @test OptParse.TupleErrCode(err.code) == OptParse.TUPLE_NoRemainingParser
+    @test err.domain == OptParse.ERR_ArgFlag
+    @test OptParse.FlagErrCode(err.code) == OptParse.FLAG_Missing
+    @test !isempty(err.context)
+    @test last(err.context).domain == OptParse.ERR_ConstrTuple
 end
 
 @testset "should propagate control-only consumption to later tuple elements" begin

@@ -43,49 +43,109 @@ end
 
 function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}})::InnerParseResult{MultipleState{S}} where {T, S}
 
-	#=If the state is empty, it means that we're adding a new match.=#
-	hasadded = isempty(ℒ_state(ctx))
+	#=Conceptual map:
 
-	#=With a non empty state, pass in the latest state to the parser that maybe needs to keep parsing.=#
-	child_state = isempty(ℒ_state(ctx)) ? p.parser.initialState : ℒ_state(ctx)[end]
-	child_ctx = widen_restate(S, ctx, child_state)
+	`multiple` stores the child parse state for each matched repetition in `state`.
+
+	On each parse step it tries, in order:
+
+	1. continue the currently active repetition, if one exists
+	2. if that does not produce a semantic match, try to start a fresh repetition
+
+	With `counts_as_match`, a child parse can now succeed in two different ways:
+
+	- semantic match:
+	  the child really matched one repetition item
+	- control-only success:
+	  the child consumed input only to propagate parser-global context
+	  (currently this mainly means consuming `--`)
+
+	Control-only successes must propagate the updated context, but they must *not*
+	create a repetition, satisfy one, or overwrite an existing repetition state.
+
+	`current_ctx` carries those propagated context changes across the attempts.
+	`allconsumed` keeps every consumed chunk so the returned `Consumed` reflects
+	the whole parse step, not only the final child attempt.
+	=#
+	current_ctx = ctx
+	allconsumed = Consumed[]
+	has_active = !isempty(ℒ_state(ctx))
+
+	#=First attempt:
+	continue the active repetition if one exists;
+	otherwise try to start the first repetition.=#
+	child_state = has_active ? ℒ_state(ctx)[end] : p.parser.initialState
+	child_ctx = widen_restate(S, current_ctx, child_state)
 	result = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
 
-	if is_error(result)
-		if !hasadded
-			#=There has been an error from the internal parser.
-			It can mean that it has finished consuming its pattern.
-			Erase its memory and try again from a blank slate. Maybe the pattern repeats.=#
-			child_state = p.parser.initialState
-			child_ctx = widen_restate(S, ctx, child_state)
-			retry = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
+	if !is_error(result)
+		parse_ok = unwrap(result)
+		push!(allconsumed, ℒ_consumed(parse_ok))
 
-			if is_error(retry)
-				#=The error is real, return it.=#
-				return innerErr(ctx, unwrap_error(retry))
+		if parse_ok.counts_as_match
+			#=The child matched semantically.
+			This either updates the active repetition or creates the first one.=#
+			nextst = [s for s in ℒ_state(ctx)]
+			if has_active
+				nextst[end] = ℒ_nextstate(parse_ok)
+			else
+				push!(nextst, ℒ_nextstate(parse_ok))
 			end
 
-			#=Otherwise, we've encountered a new repetition. Add it to the state.
-			but only if it is semantically valid.=#
-
-			hasadded = unwrap(retry).counts_as_match
+			nextctx = widen_restate(MultipleState{S}, ℒ_nextctx(parse_ok), nextst)
+			return innerOk(nextctx, merge(allconsumed))
 		else
-			return innerErr(ctx, unwrap_error(result))
+			#=The child only propagated control state.
+			Carry the updated parsing context forward, but do not alter the
+			repetition structure yet.=#
+			current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), ℒ_state(current_ctx))
+		end
+	elseif !has_active
+		#=If there is no active repetition yet, a real failure on the first attempt
+		is final: there is no existing repetition to close and no second chance
+		to reinterpret the same token as the start of a new repetition.=#
+		return innerErr(ctx, unwrap_error(result))
+	end
+
+	#=Second attempt:
+	if there was already an active repetition, the first attempt may have failed
+	only because that repetition has finished. Reset the child to a blank slate
+	and see whether the same input starts a new repetition instead.=#
+	if has_active
+		child_ctx = widen_restate(S, current_ctx, p.parser.initialState)
+		retry = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
+
+		if is_error(retry)
+			#=No new repetition started either.
+			If we consumed input only to propagate control state, bubble that
+			progress outward; otherwise the failure is real.=#
+			if !isempty(allconsumed)
+				return innerOk(current_ctx, merge(allconsumed), false)
+			end
+			return innerErr(ctx, unwrap_error(retry))
+		end
+
+		parse_ok = unwrap(retry)
+		push!(allconsumed, ℒ_consumed(parse_ok))
+
+		if parse_ok.counts_as_match
+			#=A fresh repetition matched semantically. Append it to the state.=#
+			nextst = [s for s in ℒ_state(current_ctx)]
+			push!(nextst, ℒ_nextstate(parse_ok))
+
+			nextctx = widen_restate(MultipleState{S}, ℒ_nextctx(parse_ok), nextst)
+			return innerOk(nextctx, merge(allconsumed))
+		else
+			#=A fresh parse attempt also only propagated control state.
+			Update context, but do not append a repetition.=#
+			current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), ℒ_state(current_ctx))
+			return innerOk(current_ctx, merge(allconsumed), false)
 		end
 	end
 
-	parse_ok = unwrap(result)
-	#=If the parent parser encounters a new repetition, add it at the end of the state.
-	Otherwise, update the last state with the latest result from the child parser.=#
-	nextst = [s for s in ℒ_state(ctx)]
-	if hasadded
-		push!(nextst, ℒ_nextstate(parse_ok))
-	else
-		nextst[end] = ℒ_nextstate(parse_ok)
-	end
-
-	nextctx = widen_restate(MultipleState{S}, ℒ_nextctx(parse_ok), nextst)
-	return innerOk(nextctx, ℒ_consumed(parse_ok))
+	#=No semantic repetition matched, but control state did propagate.
+	Bubble that progress outward so outer parsers see the updated context.=#
+	return innerOk(current_ctx, merge(allconsumed), false)
 
 end
 

@@ -35,6 +35,23 @@ end
     @test val == ["file1.txt", "file2.txt", "file3.txt"]
 end
 
+@testset "should not count control-only consuming matches as repetitions" begin
+    parser = multiple(flag("-a"); min = 1)
+
+    # `--` is consumed only to propagate option termination.
+    # It must not count as satisfying the minimum repetition count.
+    err = parse_fail(parser, ["--"])
+    @test err.domain == OptParse.ERR_ModMultiple
+    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooFew
+end
+
+@testset "should keep parsing positional repetitions after --" begin
+    parser = multiple(argument(str()); min = 1)
+
+    val = parse_ok(parser, ["--", "hello", "world"])
+    @test val == ["hello", "world"]
+end
+
 @testset "should enforce minimum constraint" begin
     baseParser = option(("-l", "--locale"), str())
     multipleParser = multiple(baseParser; min = 2)
