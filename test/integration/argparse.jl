@@ -96,8 +96,8 @@ end
     parser = or(group1, group2)
 
     err = parse_fail(parser, ["--allow", "--foo"])
-    @test err.domain == OptParse.ERR_ConstrOr
-    @test OptParse.OrErrCode(err.code) == OptParse.OR_Conflict
+    @test err.domain == OptParse.ERR_ConstrObject
+    @test OptParse.ObjectErrCode(err.code) == OptParse.OBJECT_UnexpectedToken
 end
 
 @testset "should handle mixed option styles" begin

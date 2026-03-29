@@ -40,8 +40,8 @@ end
     orParser = or(parser1, parser2)
 
     err = parse_fail(orParser, ["-a", "-b"])
-    @test err.domain == OptParse.ERR_ConstrOr
-    @test OptParse.OrErrCode(err.code) == OptParse.OR_Conflict
+    @test err.domain == OptParse.ERR_ArgFlag
+    @test OptParse.FlagErrCode(err.code) == OptParse.FLAG_NoMatch
 end
 
 @testset "should work with more than two parsers" begin
@@ -110,6 +110,21 @@ end
 
     @test parse_ok(parser, ["--", "test"]) == "test"
     @test parse_ok(parser, ["--", "-v"]) == "-v"
+end
+
+@testset "should keep parsing the already selected branch after command match" begin
+    parser = or(
+        command("bye", object((
+            name = option("-n", str()),
+            port = option("-p", integer()),
+        ))),
+        multiple(argument(str())),
+    )
+
+    # Once `bye` has selected the command branch, later tokens must stay inside
+    # that branch. They must not reactivate the positional fallback branch.
+    err = parse_fail(parser, ["bye", "--", "-n"])
+    @test err.domain == OptParse.ERR_ConstrObject
 end
 
 @testset "should be type stable" begin
