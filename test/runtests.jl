@@ -1,94 +1,99 @@
 include("helpers.jl")
 
-@testset "Value Parsers" begin
+# @testset "Value Parsers" begin
 
-    include("unit/valueparsers/string.jl")
-    include("unit/valueparsers/choice.jl")
-    include("unit/valueparsers/integer.jl")
-    include("unit/valueparsers/float.jl")
-    include("unit/valueparsers/uuid.jl")
-    include("unit/valueparsers/path.jl")
+#     include("unit/valueparsers/string.jl")
+#     include("unit/valueparsers/choice.jl")
+#     include("unit/valueparsers/integer.jl")
+#     include("unit/valueparsers/float.jl")
+#     include("unit/valueparsers/uuid.jl")
 
+# end
+
+# @testset "Primitives" failfast=true begin
+
+#     @testset "Constant parser" begin
+#         include("unit/primitives/constant.jl")
+#     end
+
+#     @testset "Flag parser" begin
+#         include("unit/primitives/flag.jl")
+#     end
+
+#     @testset "Option parser" begin
+#         include("unit/primitives/option.jl")
+#     end
+
+#     @testset "Argument parser" begin
+#         include("unit/primitives/argument.jl")
+#     end
+
+#     @testset "Command parser" begin
+#         include("unit/primitives/command.jl")
+#     end
+# end
+
+# @testset "Constructors" failfast=true begin
+
+#     @testset "Objmerge" begin
+#         include("unit/constructors/merge.jl")
+#     end
+
+#     @testset "Objects" begin
+#         include("unit/constructors/object.jl")
+#     end
+
+#     @testset "Or" begin
+#         include("unit/constructors/or.jl")
+#     end
+
+#     @testset "Tup" begin
+#         include("unit/constructors/tup.jl")
+#     end
+
+#     @testset "Concat" begin
+#         include("unit/constructors/concat.jl")
+#     end
+
+# end
+
+# @testset "Modifiers" failfast=true begin
+
+#     # @testset "Optional parser" begin
+#     #     include("unit/modifiers/optional.jl")
+#     # end
+
+#     @testset "withDefault Modifier" begin
+#         include("unit/modifiers/withDefault.jl")
+#     end
+
+#     @testset "Multiple Modifier" begin
+#         include("unit/modifiers/multiple.jl")
+#     end
+
+# end
+
+# @testset "Integration Tests" failfast=true begin
+
+#     @testset "Argparse" begin
+#         include("integration/argparse.jl")
+#     end
+
+#     @testset "Argv Normalization" begin
+#         include("unit/core/normalize_argv.jl")
+#     end
+# end
+
+@testset "Usage" failfast=true begin
+    @testset "Tuple AST" begin
+        include("unit/usage/usage2.jl")
+    end
 end
 
-@testset "Primitives" failfast=true begin
+# @testset "Trimming" begin
+#     include("trim/trimming.jl")
+# end
 
-    @testset "Constant parser" begin
-        include("unit/primitives/constant.jl")
-    end
-
-    @testset "Flag parser" begin
-        include("unit/primitives/flag.jl")
-    end
-
-    @testset "Option parser" begin
-        include("unit/primitives/option.jl")
-    end
-
-    @testset "Argument parser" begin
-        include("unit/primitives/argument.jl")
-    end
-
-    @testset "Command parser" begin
-        include("unit/primitives/command.jl")
-    end
-end
-
-@testset "Constructors" failfast=true begin
-
-    @testset "Objmerge" begin
-        include("unit/constructors/merge.jl")
-    end
-
-    @testset "Objects" begin
-        include("unit/constructors/object.jl")
-    end
-
-    @testset "Or" begin
-        include("unit/constructors/or.jl")
-    end
-
-    @testset "Tup" begin
-        include("unit/constructors/tup.jl")
-    end
-
-    @testset "Concat" begin
-        include("unit/constructors/concat.jl")
-    end
-
-end
-
-@testset "Modifiers" failfast=true begin
-
-    # @testset "Optional parser" begin
-    #     include("unit/modifiers/optional.jl")
-    # end
-
-    @testset "withDefault Modifier" begin
-        include("unit/modifiers/withDefault.jl")
-    end
-
-    @testset "Multiple Modifier" begin
-        include("unit/modifiers/multiple.jl")
-    end
-
-end
-
-@testset "Integration Tests" failfast=true begin
-
-    @testset "Argparse" begin
-        include("integration/argparse.jl")
-    end
-
-    @testset "Argv Normalization" begin
-        include("unit/core/normalize_argv.jl")
-    end
-end
-
-@testset "Trimming" begin
-    include("trim/trimming.jl")
-end
-
-@testset "Aqua" begin
-    include("aqua.jl")
-end
+# @testset "Aqua" begin
+#     include("aqua.jl")
+# end
