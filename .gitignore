@@ -30,5 +30,4 @@ JuliaLocalPreferences.toml
 manifest*
 HANDOFF.md
 
-
 test/trim/trimmability/build
