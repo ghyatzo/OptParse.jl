@@ -67,6 +67,69 @@ end
     @test render_usage(usage; progname = "prog") == "prog serve [OPTIONS] (<HOST> | <SOCKET>)"
 end
 
+@testset "should collapse command alternatives into a command synopsis" begin
+    usage = UsageAlternative(
+        UsageCommand(("add",), UsageArgument("PKG")),
+        UsageCommand(("rm",), UsageArgument("PKG")),
+        UsageCommand(("up",), UsageOptional(UsageArgument("PKG"))),
+    )
+
+    @test render_usage(usage; progname = "pkg") == "pkg <COMMAND> [ARGS...]"
+    @test render_usage(usage; progname = "pkg", style = :expanded) == "pkg <COMMAND> [ARGS...]"
+end
+
+@testset "should stack larger heterogeneous alternatives and elide after two lines" begin
+    usage = UsageAlternative(
+        UsageArgument("HOST"),
+        UsageArgument("SOCKET"),
+        UsageArgument("URL"),
+    )
+
+    expected = "prog <HOST>\nprog <SOCKET>\nprog ..."
+    @test render_usage(usage; progname = "prog") == expected
+    @test render_usage(usage; progname = "prog", style = :expanded) == expected
+end
+
+@testset "should repeat the already-rendered prefix when stacking nested alternatives" begin
+    usage = UsageCommand(
+        ("serve",),
+        UsageObject(
+            UsageOptional(UsageFlag(("-v", "--verbose"))),
+            UsageAlternative(
+                UsageArgument("HOST"),
+                UsageArgument("SOCKET"),
+                UsageArgument("URL"),
+            ),
+        ),
+    )
+
+    expected = "prog serve [OPTIONS] <HOST>\nprog serve [OPTIONS] <SOCKET>\nprog serve [OPTIONS] ..."
+    @test render_usage(usage; progname = "prog") == expected
+end
+
+@testset "should pass the branch render style through stacked alternatives" begin
+    usage = UsageAlternative(
+        UsageObject(
+            UsageOptional(UsageFlag(("-v", "--verbose"))),
+            UsageArgument("HOST"),
+        ),
+        UsageObject(
+            UsageOptional(UsageFlag(("-v", "--verbose"))),
+            UsageArgument("SOCKET"),
+        ),
+        UsageObject(
+            UsageOptional(UsageFlag(("-v", "--verbose"))),
+            UsageArgument("URL"),
+        ),
+    )
+
+    compact_expected = "prog [OPTIONS] <HOST>\nprog [OPTIONS] <SOCKET>\nprog ..."
+    expanded_expected = "prog [--verbose] <HOST>\nprog [--verbose] <SOCKET>\nprog ..."
+
+    @test render_usage(usage; progname = "prog", style = :compact) == compact_expected
+    @test render_usage(usage; progname = "prog", style = :expanded) == expanded_expected
+end
+
 @testset "should be type stable" begin
     usage = UsageCommand(
         ("serve",),
