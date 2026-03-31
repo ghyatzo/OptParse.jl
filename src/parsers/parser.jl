@@ -16,11 +16,6 @@ end
 ptypes(::Type{<:AbstractParser{T, S, _p, P}}) where {T, S, _p, P} = P
 ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
 
-
-include("context.jl")
-include("errors.jl")
-include("parseresult.jl")
-
 include("valueparsers/valueparsers.jl")
 include("primitives/primitives.jl")
 include("constructors/constructors.jl")
@@ -52,7 +47,6 @@ function complete(p::Parser{T, S}, st::S)::ParseResult{T} where {T, S}
     complete(unwrapunion(p), st)
 end
 
-include("show.jl")
 
 # modifiers
 

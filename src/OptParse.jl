@@ -106,7 +106,11 @@ export
     withDefault
 
 include("utils.jl")
+include("core/context.jl")
+include("core/errors.jl")
+include("core/parseresult.jl")
 include("parsers/parser.jl")
+include("display/parser_show.jl")
 
 
 """
