@@ -110,12 +110,12 @@ end
 const InnerParseResult{S} = Result{InnerParseSuccess{S}, InnerParseFailure}
 
 
-const ℒ_nextctx = @optic _.next
-const ℒ_consumed = @optic _.consumed
-const ℒ_nconsumed = @optic _.consumed
+const ℒ_nextctx = @o _.next
+const ℒ_consumed = @o _.consumed
+const ℒ_nconsumed = @o _.consumed
 
-const ℒ_ranges = (@optic _.ranges) ∘ ℒ_consumed
-const ℒ_error = @optic _.error
+const ℒ_ranges = (@o _.ranges) ∘ ℒ_consumed
+const ℒ_error = @o _.error
 const ℒ_nextstate = ℒ_state ∘ ℒ_nextctx
 
 

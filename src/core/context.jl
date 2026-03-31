@@ -17,23 +17,15 @@ Base.@kwdef struct Context{S}
     pos::Int = 1
     state::S
     optionsTerminated::Bool = false
+    path::Vector{Breadcrumb} = Breadcrumb[]
 end
 
-# -----------------------------------------------------------------------------
-# Custom optics (define once; use everywhere)
-# -----------------------------------------------------------------------------
-
-"""
-    ℒ_buffer, ℒ_pos, ℒ_state, ℒ_optterm
-
-Stable optics for Context fields. Use these instead of `@optic _.field`
-
-Note: the ℒ is `\\scrL<TAB>`
-"""
-const ℒ_buffer  = @optic _.buffer
-const ℒ_pos     = @optic _.pos
-const ℒ_state   = @optic _.state
-const ℒ_optterm = @optic _.optionsTerminated
+# Note: the ℒ is `\\scrL<TAB>`
+const ℒ_buffer  = @o _.buffer
+const ℒ_pos     = @o _.pos
+const ℒ_state   = @o _.state
+const ℒ_optterm = @o _.optionsTerminated
+const ℒ_path    = @o _.path
 
 # -----------------------------------------------------------------------------
 # Centralized "checkpoints" and state retagging
@@ -47,7 +39,13 @@ context's state parameter to be `S`. This is the canonical "inference checkpoint
 
 """
 @inline function ctx_with_state(ctx::Context, s::S) where {S}
-    return Context{S}(ℒ_buffer(ctx), ℒ_pos(ctx), s, ℒ_optterm(ctx))
+    return Context{S}(
+        ctx.buffer,
+        ctx.pos,
+        s,
+        ctx.optionsTerminated,
+        ctx.path
+    )
 end
 
 """
@@ -72,10 +70,11 @@ in a type-stable way (as long as `B` is a compile-time type known value).
 @inline function widen_state(::Type{B}, ctx::Context{T}) where {B, T <: B}
     U = promote_type(T, B)
     return Context{U}(
-        ℒ_buffer(ctx),
-        ℒ_pos(ctx),
-        convert(U, ℒ_state(ctx)),
-        ℒ_optterm(ctx)
+        ctx.buffer,
+        ctx.pos,
+        convert(U, ctx.state),
+        ctx.optionsTerminated,
+        ctx.path
     )
 end
 
@@ -87,10 +86,11 @@ Utility function that combines a new state while also widening it
 @inline function widen_restate(::Type{B}, ctx::Context, s::S) where {B, S <: B}
     U = promote_type(S, B)
     return Context{U}(
-        ℒ_buffer(ctx),
-        ℒ_pos(ctx),
+        ctx.buffer,
+        ctx.pos,
         convert(U, s),
-        ℒ_optterm(ctx)
+        ctx.optionsTerminated,
+        ctx.path
     )
 end
 
@@ -98,13 +98,16 @@ end
 # Convenience setters / transformers
 # -----------------------------------------------------------------------------
 
-"""
-    ctx_with_options_terminated(ctx, flag::Bool)
 
-Updates the optionsTerminated flag using optics.
-"""
-@inline ctx_with_options_terminated(ctx::Context, flag::Bool) =
-    set(ctx, ℒ_optterm, flag)
+@inline ctx_with_buffer(ctx::Context, buf::Vector{String}) = set(ctx, ℒ_buffer, buf)
+@inline ctx_with_options_terminated(ctx::Context, flag::Bool) = set(ctx, ℒ_optterm, flag)
+@inline ctx_with_path(ctx::Context, path::Vector{Breadcrumb}) = set(ctx, ℒ_path, path)
+@inline ctx_push_breadcrumb(ctx::Context, bc::Breadcrumb) = let
+    newpath = Breadcrumb[b for b in ctx.path]
+    push!(newpath, bc)
+    set(ctx, ℒ_path, newpath)
+end
+@inline ctx_with_pos(ctx::Context, pos::Int) = set(ctx, ℒ_pos, pos)
 
 """
     ctx_map_state(f, ctx)
@@ -116,7 +119,7 @@ Note: inference usually succeeds if `f` is type-stable and concrete at call site
 If hitting inference issues, prefer `ctx_with_state(ctx, f(state))` explicitly.
 """
 @inline function ctx_map_state(f, ctx::Context)
-    s2 = f(ℒ_state(ctx))
+    s2 = f(ctx.state)
     return ctx_with_state(ctx, s2)   # keeps the checkpoint centralized
 end
 
@@ -135,18 +138,15 @@ Small wrappers around buffer access.
 """
 
 
-@inline ctx_with_buffer(ctx::Context, buf::Vector{String}) = set(ctx, ℒ_buffer, buf)
-
-@inline ctx_hasmore(ctx::Context) = length(ℒ_buffer(ctx)) - (ℒ_pos(ctx) - 1) > 0
-@inline ctx_haslessthan(n::Int, ctx::Context) = length(ℒ_buffer(ctx)) - (ℒ_pos(ctx) - 1) < n
+@inline ctx_hasmore(ctx::Context) = length(ctx.buffer) - (ctx.pos - 1) > 0
+@inline ctx_haslessthan(n::Int, ctx::Context) = length(ctx.buffer) - (ctx.pos - 1) < n
 @inline ctx_hasnone(ctx::Context) = !ctx_hasmore(ctx)
 
-@inline ctx_peek(ctx::Context, n::Int=1) = ℒ_buffer(ctx)[ℒ_pos(ctx)+n-1]
-@inline ctx_peekn(ctx::Context, n::Int=1) = ℒ_buffer(ctx)[ℒ_pos(ctx):ℒ_pos(ctx)+n-1]
+@inline ctx_peek(ctx::Context, n::Int=1) = ctx.buffer[ctx.pos+n-1]
+@inline ctx_peekn(ctx::Context, n::Int=1) = ctx.buffer[ctx.pos:ctx.pos+n-1]
 
-@inline ctx_remaining(ctx::Context) = ℒ_buffer(ctx)[ℒ_pos(ctx):end]
-@inline ctx_length(ctx::Context) = length(ℒ_buffer(ctx)) - (ℒ_pos(ctx) - 1)
+@inline ctx_remaining(ctx::Context) = ctx.buffer[ctx.pos:end]
+@inline ctx_length(ctx::Context) = length(ctx.buffer) - (ctx.pos - 1)
 
-@inline consume(ctx::Context, n::Int) =
-    set(ctx, ℒ_pos, ℒ_pos(ctx)+n)
+@inline consume(ctx::Context, n::Int) = ctx_with_pos(ctx, ctx.pos+n)
 

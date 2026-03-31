@@ -157,6 +157,9 @@ end
                     else
                         new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
                         newctx = widen_restate(OrState{$U}, ℒ_nextctx(parse_ok), new_innerstate)
+                        if !has_selection
+                            newctx = ctx_push_breadcrumb(newctx, usage_alternative_branch($i))
+                        end
                         push!(allconsumed, ℒ_consumed(parse_ok))
                         return innerOk(newctx, merge(allconsumed))
                     end

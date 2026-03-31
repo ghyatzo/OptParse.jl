@@ -1,6 +1,6 @@
 module OptParse
 
-using Accessors: @optic, IndexLens, PropertyLens, insert, set
+using Accessors: @o, @optic, IndexLens, PropertyLens, insert, set
 
 using WrappedUnions: @unionsplit, @wrapped,
     #=conflicts with the unwrap from ErrorTypes.jl=#
@@ -107,6 +107,7 @@ export
     withDefault
 
 include("utils.jl")
+include("core/breadcrumbs.jl")
 include("core/context.jl")
 include("core/errors.jl")
 include("core/parseresult.jl")
