@@ -25,6 +25,7 @@ end
 	ERR_IntegerVal
 	ERR_FloatVal
 	ERR_UUIDVal
+	ERR_PathVal
 end
 
 struct ErrorSite
@@ -122,6 +123,8 @@ function render_error_payload(io::IO, err::ParseError)
 		floatval_render_error(io, FloatErrCode(err.code), err)
 	elseif err.domain == ERR_UUIDVal
 		uuidval_render_error(io, UUIDErrCode(err.code), err)
+	elseif err.domain == ERR_PathVal
+		pathval_render_error(io, PathErrCode(err.code), err)
 	else
 		print(io, "Unreachable")
 	end

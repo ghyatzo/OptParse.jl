@@ -96,6 +96,10 @@ Type-safe parsers that convert strings to values:
 - `choice()` - Enumerated values from a string list or `@enum` type
 - `uuid()` - UUID validation
 
+When you want a named placeholder in help or usage, prefer the positional metavar form:
+`str("FILE")`, `integer("PORT")`, `choice("MODE", Mode)`. The `metavar=` keyword still works,
+but the positional form is the main API.
+
 ### Modifiers
 
 Enhance parsers with additional behavior:
@@ -131,7 +135,7 @@ commonOpts = object((
 # Add command
 addCmd = command("add", objmerge(
     commonOpts,
-    object((packages = multiple(argument(str(metavar="PACKAGE"))),))
+    object((packages = multiple(argument(str("PACKAGE"))),))
 ))
 
 # Remove command
@@ -139,7 +143,7 @@ removeCmd = command("remove", "rm", objmerge(
     commonOpts,
     object((
         all = switch("--all"),
-        packages = multiple(argument(str(metavar="PACKAGE")))
+        packages = multiple(argument(str("PACKAGE")))
     ))
 ))
 

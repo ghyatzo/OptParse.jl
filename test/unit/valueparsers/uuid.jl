@@ -15,3 +15,9 @@
 
     @test_opt u(u1)
 end
+
+@testset "UUIDVal with positional metavar" begin
+    u = uuid("ID", allowedVersions = [1, 4])
+    @test metavar(u) == "ID"
+    @test uuid_version(@? u(string(uuid4()))) == 4
+end

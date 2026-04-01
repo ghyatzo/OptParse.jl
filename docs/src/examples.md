@@ -39,16 +39,16 @@ result = argparse(parser, ["--", "test"])  # "test"
 
 ```julia
 # Type-safe parsing with constraints
-port = option("-p", integer(min=1000, max=65535))
-level = option("-l", choice(["debug", "info", "warn", "error"]))
-config = option("-c", str(pattern=r".*\.toml$"))
+port = option("-p", integer("PORT", min=1000, max=65535))
+level = option("-l", choice("LEVEL", ["debug", "info", "warn", "error"]))
+config = option("-c", str("FILE", pattern=r".*\.toml$"))
 
 @enum Mode begin
     Debug
     Release
 end
 
-mode = option("--mode", choice(Mode))
+mode = option("--mode", choice("MODE", Mode))
 ```
 
 ### Optional and Default Values
@@ -71,7 +71,7 @@ verbosity = multiple(flag("-v"))  # -v -v -v or -vvv
 
 ```julia
 parser = object((
-    input = argument(str(metavar="INPUT")),
+    input = argument(str("INPUT")),
     output = option("-o", "--output", str()),
     force = switch("-f", "--force")
 ))
@@ -85,12 +85,12 @@ result = argparse(parser, ["input.txt", "-o", "output.txt", "-f"])
 # Define commands
 addCmd = command("add", object((
     action = @constant(:add),
-    packages = multiple(argument(str(metavar="PACKAGE")))
+    packages = multiple(argument(str("PACKAGE")))
 )))
 
 removeCmd = command("remove", object((
     action = @constant(:remove),
-    packages = multiple(argument(str(metavar="PACKAGE")))
+    packages = multiple(argument(str("PACKAGE")))
 )))
 
 # Combine with or

@@ -7,6 +7,7 @@ include("helpers.jl")
     include("unit/valueparsers/integer.jl")
     include("unit/valueparsers/float.jl")
     include("unit/valueparsers/uuid.jl")
+    include("unit/valueparsers/path.jl")
 
 end
 

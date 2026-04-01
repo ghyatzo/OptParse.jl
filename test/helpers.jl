@@ -8,6 +8,7 @@ using OptParse:
     complete,
     consumed_empty,
     ctx_remaining,
+    metavar,
     parse,
     priority,
     tstate,

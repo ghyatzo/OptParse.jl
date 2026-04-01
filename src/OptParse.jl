@@ -94,6 +94,7 @@ export
     option,
     optional,
     or,
+    path,
     str,
     switch,
     tryargparse,

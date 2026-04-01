@@ -116,17 +116,21 @@ Type-safe parsers that convert strings to values:
 
 ```julia
 # Type-safe parsing with constraints
-port = option("-p", integer(min=1000, max=65535))
-level = option("-l", choice(["debug", "info", "warn", "error"]))
-config = option("-c", str(pattern=r".*\.toml$"))
+port = option("-p", integer("PORT", min=1000, max=65535))
+level = option("-l", choice("LEVEL", ["debug", "info", "warn", "error"]))
+config = option("-c", str("FILE", pattern=r".*\.toml$"))
 
 @enum Mode begin
     Debug
     Release
 end
 
-mode = option("--mode", choice(Mode))
+mode = option("--mode", choice("MODE", Mode))
 ```
+
+When you want a named placeholder in help or usage, prefer the positional metavar form:
+`str("FILE")`, `integer("PORT")`, `choice("MODE", Mode)`. The `metavar=` keyword still works,
+but the positional form is the main API.
 
 ### Modifiers
 
@@ -164,7 +168,7 @@ Compose parsers into complex structures:
 ```julia
 # Object composition
 parser = object((
-    input = argument(str(metavar="INPUT")),
+    input = argument(str("INPUT")),
     output = option("-o", "--output", str()),
     force = switch("-f", "--force")
 ))
@@ -199,7 +203,7 @@ commonOpts = object((
 # Add command
 addCmd = command("add", objmerge(
     commonOpts,
-    object((packages = multiple(argument(str(metavar="PACKAGE"))),))
+    object((packages = multiple(argument(str("PACKAGE"))),))
 ))
 
 # Remove command
@@ -207,7 +211,7 @@ removeCmd = command("remove", "rm", objmerge(
     commonOpts,
     object((
         all = switch("--all"),
-        packages = multiple(argument(str(metavar="PACKAGE")))
+        packages = multiple(argument(str("PACKAGE")))
     ))
 ))
 

@@ -182,7 +182,7 @@ original parser.
 julia> using OptParse
 
 julia> # Multiple arguments (e.g., `add pkg1 pkg2 pkg3`)
-       packages = multiple(argument(str(metavar="PACKAGE")));
+       packages = multiple(argument(str("PACKAGE")));
 
 julia> result = argparse(packages, ["pkg1", "pkg2", "pkg3"]);
 
@@ -479,13 +479,13 @@ julia> using OptParse
 julia> # Tagging subcommands
        addCmd = command("add", object((
            action = @constant(:add),
-           key = argument(str(metavar="KEY")),
-           value = argument(str(metavar="VALUE"))
+           key = argument(str("KEY")),
+           value = argument(str("VALUE"))
        )));
 
 julia> removeCmd = command("remove", object((
            action = @constant(:remove),
-           key = argument(str(metavar="KEY"))
+           key = argument(str("KEY"))
        )));
 
 julia> parser = or(addCmd, removeCmd);
@@ -549,7 +549,7 @@ A parser that matches a positional argument and returns a value of type `T`.
 julia> using OptParse
 
 julia> # Single argument
-       source = argument(str(metavar="SOURCE"));
+       source = argument(str("SOURCE"));
 
 julia> result = argparse(source, ["/path/to/file"]);
 
@@ -558,8 +558,8 @@ julia> result
 
 julia> # Multiple positional arguments
        parser = object((
-           source = argument(str(metavar="SOURCE")),
-           dest = argument(str(metavar="DEST"))
+           source = argument(str("SOURCE")),
+           dest = argument(str("DEST"))
        ));
 
 julia> result = argparse(parser, ["/from/here", "/to/here"]);
@@ -571,7 +571,7 @@ julia> result.dest
 "/to/here"
 
 julia> # Variable number of arguments
-       files = multiple(argument(str(metavar="FILE")));
+       files = multiple(argument(str("FILE")));
 
 julia> result = argparse(files, ["file1.txt", "file2.txt", "file3.txt"]);
 
@@ -591,7 +591,7 @@ julia> result
 
 julia> # Mixed with options (order flexible)
        parser = object((
-           input = argument(str(metavar="INPUT")),
+           input = argument(str("INPUT")),
            output = option("-o", "--output", str()),
            verbose = switch("-v")
        ));
@@ -660,12 +660,12 @@ julia> (result.verbose, result.manifest)
 julia> # Multiple commands with or combinator
        addCmd = command("add", object((
            action = @constant(:add),
-           packages = multiple(argument(str(metavar="PACKAGE")))
+           packages = multiple(argument(str("PACKAGE")))
        )));
 
 julia> removeCmd = command("remove", object((
            action = @constant(:remove),
-           packages = multiple(argument(str(metavar="PACKAGE")))
+           packages = multiple(argument(str("PACKAGE")))
        )));
 
 julia> pkgParser = or(addCmd, removeCmd);
@@ -895,12 +895,12 @@ julia> using OptParse
 julia> # Subcommands
        addCmd = command("add", object((
            action = @constant(:add),
-           packages = multiple(argument(str(metavar="PACKAGE")))
+           packages = multiple(argument(str("PACKAGE")))
        )));
 
 julia> removeCmd = command("remove", object((
            action = @constant(:remove),
-           packages = multiple(argument(str(metavar="PACKAGE")))
+           packages = multiple(argument(str("PACKAGE")))
        )));
 
 julia> parser = or(addCmd, removeCmd);
@@ -1015,7 +1015,7 @@ julia> result
 
 julia> # Mixed with arguments
        parser = tup(
-           argument(str(metavar="INPUT")),
+           argument(str("INPUT")),
            option("-o", str()),
            switch("-v")
        );

@@ -17,6 +17,12 @@ end
     @test_opt ch("world")
 end
 
+@testset "Choice with positional metavar" begin
+    ch = choice("TEST", ["HELLO", "WoRlD"], caseInsensitive = true)
+    @test metavar(ch) == "TEST"
+    @test (@? ch("world")) == "WORLD"
+end
+
 @testset "Choice enum" begin
     ch = choice(Mode; caseInsensitive = true)
 
@@ -33,4 +39,10 @@ end
     @test (@? ch("low")) == Low
     @test (@? ch("HIGH")) == High
     @test is_error(ch("medium"))
+end
+
+@testset "Choice enum with positional metavar" begin
+    ch = choice("MODE", Mode; caseInsensitive = true)
+    @test metavar(ch) == "MODE"
+    @test (@? ch("release")) == Release
 end

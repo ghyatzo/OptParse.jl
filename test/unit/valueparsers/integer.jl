@@ -11,3 +11,17 @@
 
     @test_opt iv("15")
 end
+
+@testset "IntegerVal with positional metavar" begin
+    iv = integer("COUNT", Int32, min = 10, max = 20)
+    @test metavar(iv) == "COUNT"
+    @test (@? iv("13")) == Int32(13)
+
+    defaultiv = integer("PORT", min = 1)
+    @test metavar(defaultiv) == "PORT"
+    @test (@? defaultiv("8080")) == 8080
+
+    negiv = i64("DELTA")
+    @test metavar(negiv) == "DELTA"
+    @test (@? negiv("-12")) == -12
+end
