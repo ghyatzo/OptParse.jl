@@ -1,8 +1,8 @@
 @enum BreadcrumbKind::UInt8 begin
-    ObjectChild
-    TupleChild
-    AlternativeBranch
-    CommandChild
+    # BREADCRUMB_ObjectChild
+    BREADCRUMB_TupleChild
+    BREADCRUMB_AlternativeBranch
+    BREADCRUMB_CommandChild
 end
 
 struct Breadcrumb
@@ -10,3 +10,7 @@ struct Breadcrumb
     index::Int
 end
 
+# @inline usage_object_child(i) = Breadcrumb(BREADCRUMB_ObjectChild, i)
+@inline usage_alternative_branch(i) = Breadcrumb(BREADCRUMB_AlternativeBranch, i)
+@inline usage_tuple_child(i) = Breadcrumb(BREADCRUMB_TupleChild, i)
+@inline usage_command_boundary() = Breadcrumb(BREADCRUMB_CommandChild, 1)

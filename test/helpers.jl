@@ -13,6 +13,9 @@ using OptParse:
     priority,
     tstate,
     tval,
+    usage_alternative_branch,
+    usage_command_boundary,
+    usage_tuple_child,
     widen_state,
     ℒ_buffer,
     ℒ_consumed,
@@ -20,8 +23,10 @@ using OptParse:
     ℒ_nextctx,
     ℒ_nextstate,
     ℒ_optterm,
+    ℒ_path,
     ℒ_pos,
     ℒ_state
+
 
 using ErrorTypes
 using WrappedUnions: @unionsplit, unwrap as unwrapunion

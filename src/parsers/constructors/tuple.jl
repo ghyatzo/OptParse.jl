@@ -79,6 +79,10 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
                         #= parser succeded and consumed input - match it =#
                         newstate = set(ℒ_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
                         current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), newstate)
+                        current_ctx = ctx_push_breadcrumb(
+                            ctx_with_state(ℒ_nextctx(parse_ok), newstate),
+                            usage_tuple_child($(perm[i]))
+                        )
 
                         push!(allconsumed, ℒ_consumed(parse_ok))
 
@@ -117,6 +121,10 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
 
                     newstate = set(ℒ_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
                     current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), newstate)
+                    current_ctx = ctx_push_breadcrumb(
+                        ctx_with_state(ℒ_nextctx(parse_ok), newstate),
+                        usage_tuple_child($(perm[i]))
+                    )
 
                     push!(matched_parsers, $i)
                     found_match = true
