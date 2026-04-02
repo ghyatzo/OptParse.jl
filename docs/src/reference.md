@@ -24,6 +24,27 @@ command
 @constant
 ```
 
+### Value Parsers
+
+```@docs
+str
+choice
+integer
+i8
+i16
+i32
+i64
+u8
+u16
+u32
+u64
+flt
+flt32
+flt64
+uuid
+path
+```
+
 ### Modifiers
 
 ```@docs

@@ -39,8 +39,8 @@ using OptParse
 
 # Define a parser
 parser = object((
-    name = option("-n", "--name", str()),
-    port = option("-p", "--port", integer(min=1000)),
+    name = option("-n", "--name", str("NAME")),
+    port = option("-p", "--port", integer("PORT"; min=1000)),
     verbose = switch("-v", "--verbose")
 ))
 
@@ -90,15 +90,18 @@ The fundamental parsers that match command-line tokens:
 
 Type-safe parsers that convert strings to values:
 
-- `str()` - String values with optional pattern validation
-- `integer()` / `i8()`, `u32()`, etc. - Integer types with min/max bounds
-- `flt()` / `flt32()`, `flt64()` - Floating point numbers
-- `choice()` - Enumerated values from a string list or `@enum` type
-- `uuid()` - UUID validation
+- [`str`](@ref) - String values with optional pattern validation
+- [`integer`](@ref) / [`i8`](@ref), [`u32`](@ref), etc. - Integer types with min/max bounds
+- [`flt`](@ref) / [`flt32`](@ref), [`flt64`](@ref) - Floating point numbers
+- [`choice`](@ref) - Enumerated values from a string list or `@enum` type
+- [`uuid`](@ref) - UUID validation
+- [`path`](@ref) - Existing filesystem paths
 
 When you want a named placeholder in help or usage, prefer the positional metavar form:
 `str("FILE")`, `integer("PORT")`, `choice("MODE", Mode)`. The `metavar=` keyword still works,
 but the positional form is the main API.
+
+The full constructor reference for value parsers is listed in the [API reference](reference.md).
 
 ### Modifiers
 
@@ -193,7 +196,7 @@ and compile-time guarantees about the structure of your parsed results.
 OptParse exposes two entrypoints:
 
 ```julia
-parser = option("-p", integer(min=1000))
+parser = option("-p", integer("PORT"; min=1000))
 
 # Throwing API
 value = argparse(parser, ["-p", "3000"])
@@ -208,7 +211,7 @@ result = tryargparse(parser, ["-p", "3000"])
 Rendered error messages are produced centrally from structured internal diagnostics. The exact wording may evolve, but failures are surfaced with parser-specific context, for example invalid values, missing required inputs, or unexpected arguments.
 
 ```julia
-parser = option("-p", integer(min=1000))
+parser = option("-p", integer("PORT"; min=1000))
 
 try
     argparse(parser, ["-p", "abc"])

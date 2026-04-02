@@ -4,7 +4,7 @@
 
 ```julia
 # Options with different styles
-port = option("-p", "--port", integer())
+port = option("-p", "--port", integer("PORT"))
 
 result = argparse(port, ["--port=8080"])  # Long form with =
 result = argparse(port, ["-p", "8080"])   # Short form
@@ -28,8 +28,8 @@ result = argparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
 ```julia
 # After `--`, everything is treated as positional input
 parser = or(
-    command("test", object((opt = option("-v", integer()),))),
-    argument(str())
+    command("test", object((opt = option("-v", integer("LEVEL")),))),
+    argument(str("ARG"))
 )
 
 result = argparse(parser, ["--", "test"])  # "test"
@@ -39,9 +39,9 @@ result = argparse(parser, ["--", "test"])  # "test"
 
 ```julia
 # Type-safe parsing with constraints
-port = option("-p", integer("PORT", min=1000, max=65535))
+port = option("-p", integer("PORT"; min=1000, max=65535))
 level = option("-l", choice("LEVEL", ["debug", "info", "warn", "error"]))
-config = option("-c", str("FILE", pattern=r".*\.toml$"))
+config = option("-c", str("FILE"; pattern=r".*\.toml$"))
 
 @enum Mode begin
     Debug
@@ -55,13 +55,13 @@ mode = option("--mode", choice("MODE", Mode))
 
 ```julia
 # Optional values (`optional(p)` is equivalent to `withDefault(p, nothing)`)
-email = optional(option("-e", "--email", str()))
+email = optional(option("-e", "--email", str("EMAIL")))
 
 # With defaults
-port = withDefault(option("-p", integer()), 8080)
+port = withDefault(option("-p", integer("PORT")), 8080)
 
 # Multiple values
-packages = multiple(argument(str()))  # pkg add Package1 Package2 Package3
+packages = multiple(argument(str("PACKAGE")))  # pkg add Package1 Package2 Package3
 
 # Verbosity levels
 verbosity = multiple(flag("-v"))  # -v -v -v or -vvv
@@ -72,7 +72,7 @@ verbosity = multiple(flag("-v"))  # -v -v -v or -vvv
 ```julia
 parser = object((
     input = argument(str("INPUT")),
-    output = option("-o", "--output", str()),
+    output = option("-o", "--output", str("OUTPUT")),
     force = switch("-f", "--force")
 ))
 
