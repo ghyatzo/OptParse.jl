@@ -58,7 +58,7 @@ julia> name = str("NAME");
 julia> argparse(argument(name), ["alice"])
 "alice"
 
-julia> txt = str("FILE"; pattern = r".*\\.(txt|md)$");
+julia> txt = str("FILE"; pattern = r".*\\.(txt|md)\$");
 
 julia> argparse(argument(txt), ["readme.md"])
 "readme.md"
