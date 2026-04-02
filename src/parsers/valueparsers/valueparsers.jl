@@ -37,9 +37,72 @@ trymetavar(v::ValueParser) = isempty(metavar(v)) ? default_metavar(unwrapunion(v
 ((v::ValueParser{T})(input::String)::ParseResult{T}) where {T} = @unionsplit v(input)
 
 
+"""
+    str(; kw...)
+    str(metavar::AbstractString; kw...)
+
+String value parser.
+
+Accepts any string by default, optionally constrained by a regular expression.
+
+# Keywords
+- `pattern::Regex = r".*"`: regular expression the input must match
+- `metavar::String`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> name = str("NAME");
+
+julia> argparse(argument(name), ["alice"])
+"alice"
+
+julia> txt = str("FILE"; pattern = r".*\\.(txt|md)$");
+
+julia> argparse(argument(txt), ["readme.md"])
+"readme.md"
+```
+
+# See Also
+- [`argument`](@ref): consume a positional value using this parser
+- [`option`](@ref): consume an option value using this parser
+"""
 str(; kw...) = ValueParser{String}(StringVal{String}(; kw...))
 str(meta::AbstractString; kw...) = ValueParser{String}(StringVal{String}(; metavar = String(meta), kw...))
 
+"""
+    choice(values::AbstractVector{<:AbstractString}; kw...)
+    choice(metavar::AbstractString, values::AbstractVector{<:AbstractString}; kw...)
+    choice(::Type{<:Enum}; kw...)
+    choice(metavar::AbstractString, ::Type{<:Enum}; kw...)
+
+Enumerated-choice value parser.
+
+Parses one value from a fixed set of accepted strings, or from the string names of
+an enum type. Matching is case-insensitive by default.
+
+# Keywords
+- `caseInsensitive::Bool = true`: whether matching should ignore case
+- `metavar::String`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> mode = choice("MODE", ["debug", "release"]);
+
+julia> argparse(argument(mode), ["DEBUG"])
+"DEBUG"
+
+julia> @enum LogLevel info warn error
+
+julia> level = choice("LEVEL", LogLevel);
+
+julia> argparse(argument(level), ["warn"])
+warn::LogLevel = 1
+```
+"""
 choice(values::AbstractVector{<:AbstractString}; kw...) = ValueParser{String}(Choice(String.(values); kw...))
 choice(metavar::AbstractString, values::AbstractVector{<:AbstractString}; kw...) =
     ValueParser{String}(Choice(String.(values); metavar = String(metavar), kw...))
@@ -47,11 +110,70 @@ choice(::Type{AnEnum}; kw...) where {AnEnum <: Enum} = ValueParser{AnEnum}(Choic
 choice(metavar::AbstractString, ::Type{AnEnum}; kw...) where {AnEnum <: Enum} =
     ValueParser{AnEnum}(Choice(AnEnum; metavar = String(metavar), kw...))
 
+"""
+    integer(::Type{T}; kw...) where {T <: Integer}
+    integer(metavar::AbstractString, ::Type{T}; kw...) where {T <: Integer}
+    integer(; kw...)
+    integer(metavar::AbstractString; kw...)
+
+Integer value parser.
+
+Parses signed or unsigned integers, optionally enforcing bounds.
+
+# Keywords
+- `min`: minimum accepted value
+- `max`: maximum accepted value
+- `metavar::String`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> port = integer("PORT"; min = 1024, max = 65535);
+
+julia> argparse(argument(port), ["8080"])
+8080
+
+julia> small = integer("COUNT", Int8);
+
+julia> argparse(argument(small), ["12"])
+12
+```
+
+# See Also
+- [`i8`](@ref), [`i16`](@ref), [`i32`](@ref), [`i64`](@ref)
+- [`u8`](@ref), [`u16`](@ref), [`u32`](@ref), [`u64`](@ref)
+"""
 integer(::Type{T}; kw...) where {T <: Integer} = ValueParser{T}(IntegerVal{T}(; type = T, kw...))
 integer(metavar::AbstractString, ::Type{T}; kw...) where {T <: Integer} =
     ValueParser{T}(IntegerVal{T}(; metavar = String(metavar), type = T, kw...))
 integer(; kw...) = ValueParser{Int}(IntegerVal{Int}(; kw...))
 integer(metavar::AbstractString; kw...) = ValueParser{Int}(IntegerVal{Int}(; metavar = String(metavar), kw...))
+
+"""
+    i8(; kw...)
+    i8(metavar::AbstractString; kw...)
+    i16(; kw...)
+    i16(metavar::AbstractString; kw...)
+    i32(; kw...)
+    i32(metavar::AbstractString; kw...)
+    i64(; kw...)
+    i64(metavar::AbstractString; kw...)
+    u8(; kw...)
+    u8(metavar::AbstractString; kw...)
+    u16(; kw...)
+    u16(metavar::AbstractString; kw...)
+    u32(; kw...)
+    u32(metavar::AbstractString; kw...)
+    u64(; kw...)
+    u64(metavar::AbstractString; kw...)
+
+Width-specific integer parser shorthands.
+
+These constructors are aliases for [`integer`](@ref) specialized to the matching
+machine integer type while preserving the same keyword arguments such as `min`,
+`max`, and `metavar`.
+"""
 i8(; kw...) = integer(Int8; kw...)
 i8(metavar::AbstractString; kw...) = integer(metavar, Int8; kw...)
 i16(; kw...) = integer(Int16; kw...)
@@ -69,18 +191,115 @@ u32(metavar::AbstractString; kw...) = integer(metavar, UInt32; kw...)
 u64(; kw...) = integer(UInt64; kw...)
 u64(metavar::AbstractString; kw...) = integer(metavar, UInt64; kw...)
 
+"""
+    flt(::Type{T}; kw...) where {T}
+    flt(metavar::AbstractString, ::Type{T}; kw...) where {T}
+    flt(; kw...)
+    flt(metavar::AbstractString; kw...)
+
+Floating-point value parser.
+
+Parses floating-point values, optionally enforcing bounds and controlling whether
+`Inf` and `NaN` are accepted.
+
+# Keywords
+- `min`: minimum accepted value
+- `max`: maximum accepted value
+- `allowInfinity::Bool = false`
+- `allowNan::Bool = false`
+- `metavar::String`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> ratio = flt("RATIO"; min = 0.0, max = 1.0);
+
+julia> argparse(argument(ratio), ["0.25"])
+0.25
+
+julia> x = flt("X", Float32);
+
+julia> typeof(argparse(argument(x), ["1.5"]))
+Float32
+```
+
+# See Also
+- [`flt32`](@ref)
+- [`flt64`](@ref)
+"""
 flt(::Type{T}; kw...) where {T} = ValueParser{T}(FloatVal{T}(; type = T, kw...))
 flt(metavar::AbstractString, ::Type{T}; kw...) where {T} =
     ValueParser{T}(FloatVal{T}(; metavar = String(metavar), type = T, kw...))
 flt(; kw...) = flt64(; kw...)
 flt(metavar::AbstractString; kw...) = flt64(metavar; kw...)
+
+"""
+    flt32(; kw...)
+    flt32(metavar::AbstractString; kw...)
+    flt64(; kw...)
+    flt64(metavar::AbstractString; kw...)
+
+Typed floating-point parser shorthands.
+
+These are aliases for [`flt`](@ref) specialized to `Float32` and `Float64`.
+"""
 flt32(; kw...) = flt(Float32; kw...)
 flt32(metavar::AbstractString; kw...) = flt(metavar, Float32; kw...)
 flt64(; kw...) = flt(Float64; kw...)
 flt64(metavar::AbstractString; kw...) = flt(metavar, Float64; kw...)
 
+"""
+    uuid(; kw...)
+    uuid(metavar::AbstractString; kw...)
+
+UUID value parser.
+
+Parses UUID strings into `UUID` values and can restrict accepted UUID versions.
+
+# Keywords
+- `allowedVersions::Vector{Int} = Int[]`: accepted UUID versions. An empty vector
+  accepts any valid UUID version.
+- `metavar::String`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse, UUIDs
+
+julia> id = uuid("ID");
+
+julia> val = argparse(argument(id), ["550e8400-e29b-41d4-a716-446655440000"]);
+
+julia> typeof(val)
+UUID
+```
+"""
 uuid(; kw...) = ValueParser{UUID}(UUIDVal{UUID}(; kw...))
 uuid(metavar::AbstractString; kw...) = ValueParser{UUID}(UUIDVal{UUID}(; metavar = String(metavar), kw...))
 
+# TODO: maybe add also file and directory
+"""
+    path(; kw...)
+    path(metavar::AbstractString; kw...)
+
+Filesystem path value parser.
+
+Currently validates that the provided path exists as a file, and can additionally
+require the path to be absolute.
+
+# Keywords
+- `absolute::Bool = false`: require an absolute path
+- `metavar::String`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> file = path("FILE");
+
+julia> typeof(file)
+OptParse.ValueParser{String}
+```
+"""
 path(; kw...) = ValueParser{String}(PathVal{String}(; kw...))
 path(metavar::AbstractString; kw...) = ValueParser{String}(PathVal{String}(; metavar = String(metavar), kw...))
