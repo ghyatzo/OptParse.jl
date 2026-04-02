@@ -153,20 +153,6 @@ integer(metavar::AbstractString; kw...) = ValueParser{Int}(IntegerVal{Int}(; met
 """
     i8(; kw...)
     i8(metavar::AbstractString; kw...)
-    i16(; kw...)
-    i16(metavar::AbstractString; kw...)
-    i32(; kw...)
-    i32(metavar::AbstractString; kw...)
-    i64(; kw...)
-    i64(metavar::AbstractString; kw...)
-    u8(; kw...)
-    u8(metavar::AbstractString; kw...)
-    u16(; kw...)
-    u16(metavar::AbstractString; kw...)
-    u32(; kw...)
-    u32(metavar::AbstractString; kw...)
-    u64(; kw...)
-    u64(metavar::AbstractString; kw...)
 
 Width-specific integer parser shorthands.
 
@@ -176,18 +162,67 @@ machine integer type while preserving the same keyword arguments such as `min`,
 """
 i8(; kw...) = integer(Int8; kw...)
 i8(metavar::AbstractString; kw...) = integer(metavar, Int8; kw...)
+
+"""
+    i16(; kw...)
+    i16(metavar::AbstractString; kw...)
+
+Alias for [`integer`](@ref) specialized to `Int16`.
+"""
 i16(; kw...) = integer(Int16; kw...)
 i16(metavar::AbstractString; kw...) = integer(metavar, Int16; kw...)
+
+"""
+    i32(; kw...)
+    i32(metavar::AbstractString; kw...)
+
+Alias for [`integer`](@ref) specialized to `Int32`.
+"""
 i32(; kw...) = integer(Int32; kw...)
 i32(metavar::AbstractString; kw...) = integer(metavar, Int32; kw...)
+
+"""
+    i64(; kw...)
+    i64(metavar::AbstractString; kw...)
+
+Alias for [`integer`](@ref) specialized to `Int64`.
+"""
 i64(; kw...) = integer(Int64; kw...)
 i64(metavar::AbstractString; kw...) = integer(metavar, Int64; kw...)
+
+"""
+    u8(; kw...)
+    u8(metavar::AbstractString; kw...)
+
+Alias for [`integer`](@ref) specialized to `UInt8`.
+"""
 u8(; kw...) = integer(UInt8; kw...)
 u8(metavar::AbstractString; kw...) = integer(metavar, UInt8; kw...)
+
+"""
+    u16(; kw...)
+    u16(metavar::AbstractString; kw...)
+
+Alias for [`integer`](@ref) specialized to `UInt16`.
+"""
 u16(; kw...) = integer(UInt16; kw...)
 u16(metavar::AbstractString; kw...) = integer(metavar, UInt16; kw...)
+
+"""
+    u32(; kw...)
+    u32(metavar::AbstractString; kw...)
+
+Alias for [`integer`](@ref) specialized to `UInt32`.
+"""
 u32(; kw...) = integer(UInt32; kw...)
 u32(metavar::AbstractString; kw...) = integer(metavar, UInt32; kw...)
+
+"""
+    u64(; kw...)
+    u64(metavar::AbstractString; kw...)
+
+Alias for [`integer`](@ref) specialized to `UInt64`.
+"""
 u64(; kw...) = integer(UInt64; kw...)
 u64(metavar::AbstractString; kw...) = integer(metavar, UInt64; kw...)
 
@@ -237,8 +272,6 @@ flt(metavar::AbstractString; kw...) = flt64(metavar; kw...)
 """
     flt32(; kw...)
     flt32(metavar::AbstractString; kw...)
-    flt64(; kw...)
-    flt64(metavar::AbstractString; kw...)
 
 Typed floating-point parser shorthands.
 
@@ -246,6 +279,13 @@ These are aliases for [`flt`](@ref) specialized to `Float32` and `Float64`.
 """
 flt32(; kw...) = flt(Float32; kw...)
 flt32(metavar::AbstractString; kw...) = flt(metavar, Float32; kw...)
+
+"""
+    flt64(; kw...)
+    flt64(metavar::AbstractString; kw...)
+
+Alias for [`flt`](@ref) specialized to `Float64`.
+"""
 flt64(; kw...) = flt(Float64; kw...)
 flt64(metavar::AbstractString; kw...) = flt(metavar, Float64; kw...)
 
