@@ -4,7 +4,7 @@ using OptParse
 
 export @main
 
-const greet = cmd(
+const greet = command(
 	"greet",
 	object((;
 		cmd = @constant(:greet),
@@ -13,7 +13,7 @@ const greet = cmd(
 	))
 )
 
-const goodbye = cmd(
+const goodbye = command(
 	"bye",
 	object((;
 		cmd = @constant(:bye),

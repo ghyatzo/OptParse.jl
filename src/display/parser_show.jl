@@ -103,7 +103,7 @@ show_compact(io::IO, p::ArgArgument) = let
 	print(io, ")")
 end
 show_compact(io::IO, p::ArgCommand) = let
-	print(io, "cmd(")
+	print(io, "command(")
 	print(io, p.names[1])
 	print(io, ")")
 end

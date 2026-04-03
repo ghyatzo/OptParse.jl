@@ -1,6 +1,6 @@
 using OptParse
 
-const show_cmd = cmd(
+const show_cmd = command(
     "show",
     object((;
         kind = @constant(:show),
@@ -9,7 +9,7 @@ const show_cmd = cmd(
     ))
 )
 
-const edit_cmd = cmd(
+const edit_cmd = command(
     "edit",
     object((;
         kind = @constant(:edit),

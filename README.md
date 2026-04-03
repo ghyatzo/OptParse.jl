@@ -88,7 +88,7 @@ The fundamental parsers that match command-line tokens:
 - **`flag`** - Optional boolean flags like: `--verbose` or `-v`
 - **`gate`** - Required presence flags used to guard a branch or feature
 - **`arg`** - Positional arguments: `cp source destination`
-- **`cmd`** - Subcommands: `git add file.txt`
+- **`command`** - Subcommands: `git add file.txt`
 
 ```julia
 # Options with different styles
@@ -176,12 +176,12 @@ parser = object((
 ))
 
 # Alternative commands with or
-addCmd = cmd("add", object((
+addCmd = command("add", object((
     action = @constant(:add),
     packages = multiple(arg(str("PACKAGE")))
 )))
 
-removeCmd = cmd("remove", object((
+removeCmd = command("remove", object((
     action = @constant(:remove),
     packages = multiple(arg(str("PACKAGE")))
 )))
@@ -203,13 +203,13 @@ commonOpts = object((
 ))
 
 # Add command
-addCmd = cmd("add", combine(
+addCmd = command("add", combine(
     commonOpts,
     object((packages = multiple(arg(str("PACKAGE"))),))
 ))
 
 # Remove command
-removeCmd = cmd("remove", "rm", combine(
+removeCmd = command("remove", "rm", combine(
     commonOpts,
     object((
         all = flag("--all"),
@@ -218,7 +218,7 @@ removeCmd = cmd("remove", "rm", combine(
 ))
 
 # Instantiate command
-instantiateCmd = cmd("instantiate", combine(
+instantiateCmd = command("instantiate", combine(
     commonOpts,
     object((
         manifest = flag("-m", "--manifest"),

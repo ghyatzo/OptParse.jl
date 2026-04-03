@@ -20,7 +20,7 @@ option
 flag
 gate
 arg
-cmd
+command
 @constant
 ```
 

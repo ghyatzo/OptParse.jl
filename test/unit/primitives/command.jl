@@ -9,7 +9,7 @@
             id = arg(str()),
         )
     )
-    showParser = cmd(
+    showParser = command(
         "show",
         inner_obj,
     )
@@ -19,7 +19,7 @@
 end
 
 @testset "should parse a basic subcommand with arguments" begin
-    showParser = cmd(
+    showParser = command(
         "show",
         object(
             (
@@ -37,7 +37,7 @@ end
 end
 
 @testset "should suport aliases (multiple names)" begin
-    showParser = cmd(
+    showParser = command(
         "show", "sh",
         object(
             (
@@ -55,7 +55,7 @@ end
 end
 
 @testset "should fail when wrong subcommand is provided" begin
-    showParser = cmd(
+    showParser = command(
         "show",
         object(
             (
@@ -71,7 +71,7 @@ end
 end
 
 @testset "should fail when subcommand is provided but required arguments are missing" begin
-    editParser = cmd(
+    editParser = command(
         "edit",
         object(
             (
@@ -87,7 +87,7 @@ end
 end
 
 @testset "should handle optional options in subcommands" begin
-    editParser = cmd(
+    editParser = command(
         "edit",
         object(
             (
@@ -114,7 +114,7 @@ end
 
 @testset "should work with or() combinator for multiple subcommands" begin
     parser = or(
-        cmd(
+        command(
             "show",
             object(
                 (
@@ -124,7 +124,7 @@ end
                 )
             ),
         ),
-        cmd(
+        command(
             "edit",
             object(
                 (
@@ -152,7 +152,7 @@ end
 
 @testset "should fail gracefully when no matching subcommand is found in or() combinator" begin
     parser = or(
-        cmd(
+        command(
             "show",
             object(
                 (
@@ -161,7 +161,7 @@ end
                 )
             ),
         ),
-        cmd(
+        command(
             "edit",
             object(
                 (
@@ -178,7 +178,7 @@ end
 end
 
 @testset "should handle empty input" begin
-    showParser = cmd(
+    showParser = command(
         "show",
         object(
             (
@@ -195,7 +195,7 @@ end
 @testset "should provide correct type inference with InferValue" begin
     # or() of commands should behave like a union at runtime; we verify both branches.
     parser = or(
-        cmd(
+        command(
             "show",
             object(
                 (
@@ -205,7 +205,7 @@ end
                 )
             ),
         ),
-        cmd(
+        command(
             "edit",
             object(
                 (
@@ -230,7 +230,7 @@ end
 
 @testset "should handle commands with same prefix names" begin
     parser = or(
-        cmd(
+        command(
             "test",
             object(
                 (
@@ -239,7 +239,7 @@ end
                 )
             ),
         ),
-        cmd(
+        command(
             "testing",
             object(
                 (
@@ -260,7 +260,7 @@ end
 end
 
 @testset "should handle commands that look like options" begin
-    parser = cmd(
+    parser = command(
         "--help",
         object(
             (
@@ -278,7 +278,7 @@ end
     nestedParser = object(
         (
             globalFlag = gate("--global"),
-            command = cmd(
+            cmd = command(
                 "run",
                 object(
                     (
@@ -293,14 +293,14 @@ end
     val = parse_ok(nestedParser, ["--global", "run", "build"])
     @test val.globalFlag == true
 
-    command = val.command
-    @test command.type == Val(:run)
-    @test command.script == "build"
+    cmd = val.cmd
+    @test cmd.type == Val(:run)
+    @test cmd.script == "build"
 end
 
 # @testset "should fail when command is used with tuple parser and insufficient elements" begin
 #     tupleParser = tuple((
-#         cmd("start", @constant(:start)),
+#         command("start", @constant(:start)),
 #         arg(str()),
 #     ))
 
@@ -311,7 +311,7 @@ end
 # end
 
 @testset "should handle options terminator with commands" begin
-    parser = cmd(
+    parser = command(
         "exec",
         object((
             type = @constant(:exec),
@@ -326,7 +326,7 @@ end
 end
 
 @testset "should keep treating input after -- as positional once a command is selected" begin
-    parser = cmd(
+    parser = command(
         "test",
         object((
             type = @constant(:test),
@@ -341,8 +341,8 @@ end
 
 @testset "should handle commands with numeric names" begin
     parser = or(
-        cmd("v1", @constant(:version1)),
-        cmd("v2", @constant(:version2)),
+        command("v1", @constant(:version1)),
+        command("v2", @constant(:version2)),
     )
 
     val1 = parse_ok(parser, ["v1"])
@@ -353,7 +353,7 @@ end
 end
 
 @testset "should handle empty command name gracefully" begin
-    parser = cmd("", @constant(:empty))
+    parser = command("", @constant(:empty))
 
     val = parse_ok(parser, [""])
     @test val == Val(:empty)

@@ -104,7 +104,7 @@ end
 
 @testset "should treat everything after -- as positional input rather than command syntax" begin
     parser = or(
-        cmd("test", object((opt = option("-v", integer()),))),
+        command("test", object((opt = option("-v", integer()),))),
         arg(str()),
     )
 
@@ -114,7 +114,7 @@ end
 
 @testset "should keep parsing the already selected branch after command match" begin
     parser = or(
-        cmd("bye", object((
+        command("bye", object((
             name = option("-n", str()),
             port = option("-p", integer()),
         ))),

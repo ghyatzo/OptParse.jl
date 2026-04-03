@@ -28,7 +28,7 @@ result = argparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
 ```julia
 # After `--`, flags and options stop being recognized
 parser = or(
-    cmd("test", object((opt = option("-v", integer("LEVEL")),))),
+    command("test", object((opt = option("-v", integer("LEVEL")),))),
     arg(str("ARG"))
 )
 
@@ -83,12 +83,12 @@ result = argparse(parser, ["input.txt", "-o", "output.txt", "-f"])
 
 ```julia
 # Define commands
-addCmd = cmd("add", object((
+addCmd = command("add", object((
     action = @constant(:add),
     packages = multiple(arg(str("PACKAGE")))
 )))
 
-removeCmd = cmd("remove", object((
+removeCmd = command("remove", object((
     action = @constant(:remove),
     packages = multiple(arg(str("PACKAGE")))
 )))

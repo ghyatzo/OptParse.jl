@@ -79,7 +79,7 @@ export
     choice,
     combine,
     concat,
-    cmd,
+    command,
     default,
     flag,
     flt,

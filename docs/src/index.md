@@ -83,7 +83,7 @@ The fundamental parsers that match command-line tokens:
 - [`flag`](@ref) - Optional boolean flags that default to `false`
 - [`gate`](@ref) - Required presence flags: `--experimental` or `-x`
 - [`arg`](@ref) - Positional arguments: `source destination`
-- [`cmd`](@ref) - Subcommands: `git add file.txt`
+- [`command`](@ref) - Subcommands: `git add file.txt`
 - [`@constant`](@ref) - Always returns a constant value
 
 ### Value Parsers
@@ -136,13 +136,13 @@ commonOpts = object((
 ))
 
 # Add command
-addCmd = cmd("add", combine(
+addCmd = command("add", combine(
     commonOpts,
     object((packages = multiple(arg(str("PACKAGE"))),))
 ))
 
 # Remove command
-removeCmd = cmd("remove", "rm", combine(
+removeCmd = command("remove", "rm", combine(
     commonOpts,
     object((
         all = flag("--all"),
@@ -151,7 +151,7 @@ removeCmd = cmd("remove", "rm", combine(
 ))
 
 # Instantiate command
-instantiateCmd = cmd("instantiate", combine(
+instantiateCmd = command("instantiate", combine(
     commonOpts,
     object((
         manifest = flag("-m", "--manifest"),

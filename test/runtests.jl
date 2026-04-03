@@ -33,8 +33,8 @@ end
         include("unit/primitives/arg.jl")
     end
 
-    @testset "Cmd parser" begin
-        include("unit/primitives/cmd.jl")
+    @testset "Command parser" begin
+        include("unit/primitives/command.jl")
     end
 end
 

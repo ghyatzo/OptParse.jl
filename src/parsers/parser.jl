@@ -476,13 +476,13 @@ A parser that always succeeds and returns `val` without consuming any input.
 julia> using OptParse
 
 julia> # Tagging subcommands
-       addCmd = cmd("add", object((
+       addCmd = command("add", object((
            action = @constant(:add),
            key = arg(str("KEY")),
            value = arg(str("VALUE"))
        )));
 
-julia> removeCmd = cmd("remove", object((
+julia> removeCmd = command("remove", object((
            action = @constant(:remove),
            key = arg(str("KEY"))
        )));
@@ -617,11 +617,11 @@ function arg end
 arg(valparser::ValueParser{T}; kw...) where {T} = _parser(ArgArgument(valparser; kw...))
 arg(; kw...) = (valp::ValueParser) -> arg(valp; kw...)
 
-## cmd
+## command
 
 """
-    cmd(name::String, p::Parser; kw...)
-    cmd(name::String, alias::String, p::Parser; kw...)
+    command(name::String, p::Parser; kw...)
+    command(name::String, alias::String, p::Parser; kw...)
 
 Primitive parser that matches a subcommand and its associated arguments.
 
@@ -647,7 +647,7 @@ using the provided parser.
 julia> using OptParse
 
 julia> # Simple command
-       instantiate = cmd("instantiate", object((
+       instantiate = command("instantiate", object((
            verbose = flag("-v", "--verbose"),
            manifest = flag("-m", "--manifest")
        )));
@@ -658,12 +658,12 @@ julia> (result.verbose, result.manifest)
 (true, true)
 
 julia> # Multiple commands with or combinator
-       addCmd = cmd("add", object((
+       addCmd = command("add", object((
            action = @constant(:add),
            packages = multiple(arg(str("PACKAGE")))
        )));
 
-julia> removeCmd = cmd("remove", object((
+julia> removeCmd = command("remove", object((
            action = @constant(:remove),
            packages = multiple(arg(str("PACKAGE")))
        )));
@@ -696,11 +696,11 @@ julia> result.packages
 - Often combined with `or` to provide multiple subcommands
 - Can be nested to create hierarchical command structures
 """
-function cmd end
+function command end
 
-cmd(names::Tuple{Vararg{String}}, p::Parser; kw...) = _parser(ArgCommand(names, p; kw...))
-cmd(name::String, p::Parser; kw...) = _parser(ArgCommand((name,), p; kw...))
-cmd(name::String, alias::String, p::Parser; kw...) = _parser(ArgCommand((name, alias), p; kw...))
+command(names::Tuple{Vararg{String}}, p::Parser; kw...) = _parser(ArgCommand(names, p; kw...))
+command(name::String, p::Parser; kw...) = _parser(ArgCommand((name,), p; kw...))
+command(name::String, alias::String, p::Parser; kw...) = _parser(ArgCommand((name, alias), p; kw...))
 
 
 # constructors
@@ -892,12 +892,12 @@ A parser that returns the result of the first successfully matching parser.
 julia> using OptParse
 
 julia> # Subcommands
-       addCmd = cmd("add", object((
+       addCmd = command("add", object((
            action = @constant(:add),
            packages = multiple(arg(str("PACKAGE")))
        )));
 
-julia> removeCmd = cmd("remove", object((
+julia> removeCmd = command("remove", object((
            action = @constant(:remove),
            packages = multiple(arg(str("PACKAGE")))
        )));
@@ -959,7 +959,7 @@ julia> result.file
 - All alternatives should typically be mutually exclusive for clarity
 
 # See Also
-- [`cmd`](@ref): Often used with `or` for subcommands
+- [`command`](@ref): Often used with `or` for subcommands
 - `@constant`: Useful for tagging branches
 """
 function or end

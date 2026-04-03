@@ -1,6 +1,6 @@
 using OptParse
 
-const sync_cmd = cmd(
+const sync_cmd = command(
     "sync",
     sequence(
         object((;
@@ -12,7 +12,7 @@ const sync_cmd = cmd(
     )
 )
 
-const status_cmd = cmd(
+const status_cmd = command(
     "status",
     object((;
         long = optional(gate("-l", "--long")),
