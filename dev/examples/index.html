@@ -5,15 +5,15 @@ port = option(&quot;-p&quot;, &quot;--port&quot;, integer(&quot;PORT&quot;))
 result = argparse(port, [&quot;--port=8080&quot;])  # Long form with =
 result = argparse(port, [&quot;-p&quot;, &quot;8080&quot;])   # Short form</code></pre><h3 id="Bundled-Flags"><a class="docs-heading-anchor" href="#Bundled-Flags">Bundled Flags</a><a id="Bundled-Flags-1"></a><a class="docs-heading-anchor-permalink" href="#Bundled-Flags" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Flags can be bundled
 parser = object((
-    all = flag(&quot;-a&quot;),
-    long = flag(&quot;-l&quot;),
-    human = flag(&quot;-h&quot;)
+    all = gate(&quot;-a&quot;),
+    long = gate(&quot;-l&quot;),
+    human = gate(&quot;-h&quot;)
 ))
 
-result = argparse(parser, [&quot;-alh&quot;])  # Equivalent to [&quot;-a&quot;, &quot;-l&quot;, &quot;-h&quot;]</code></pre><h3 id="Options-Terminator"><a class="docs-heading-anchor" href="#Options-Terminator">Options Terminator</a><a id="Options-Terminator-1"></a><a class="docs-heading-anchor-permalink" href="#Options-Terminator" title="Permalink"></a></h3><pre><code class="language-julia hljs"># After `--`, everything is treated as positional input
+result = argparse(parser, [&quot;-alh&quot;])  # Equivalent to [&quot;-a&quot;, &quot;-l&quot;, &quot;-h&quot;]</code></pre><h3 id="Options-Terminator"><a class="docs-heading-anchor" href="#Options-Terminator">Options Terminator</a><a id="Options-Terminator-1"></a><a class="docs-heading-anchor-permalink" href="#Options-Terminator" title="Permalink"></a></h3><pre><code class="language-julia hljs"># After `--`, flags and options stop being recognized
 parser = or(
-    command(&quot;test&quot;, object((opt = option(&quot;-v&quot;, integer(&quot;LEVEL&quot;)),))),
-    argument(str(&quot;ARG&quot;))
+    cmd(&quot;test&quot;, object((opt = option(&quot;-v&quot;, integer(&quot;LEVEL&quot;)),))),
+    arg(str(&quot;ARG&quot;))
 )
 
 result = argparse(parser, [&quot;--&quot;, &quot;test&quot;])  # &quot;test&quot;</code></pre><h3 id="Type-Constraints"><a class="docs-heading-anchor" href="#Type-Constraints">Type Constraints</a><a id="Type-Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Type-Constraints" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Type-safe parsing with constraints
@@ -26,31 +26,31 @@ config = option(&quot;-c&quot;, str(&quot;FILE&quot;; pattern=r&quot;.*\.toml$&q
     Release
 end
 
-mode = option(&quot;--mode&quot;, choice(&quot;MODE&quot;, Mode))</code></pre><h3 id="Optional-and-Default-Values"><a class="docs-heading-anchor" href="#Optional-and-Default-Values">Optional and Default Values</a><a id="Optional-and-Default-Values-1"></a><a class="docs-heading-anchor-permalink" href="#Optional-and-Default-Values" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Optional values (`optional(p)` is equivalent to `withDefault(p, nothing)`)
+mode = option(&quot;--mode&quot;, choice(&quot;MODE&quot;, Mode))</code></pre><h3 id="Optional-and-Default-Values"><a class="docs-heading-anchor" href="#Optional-and-Default-Values">Optional and Default Values</a><a id="Optional-and-Default-Values-1"></a><a class="docs-heading-anchor-permalink" href="#Optional-and-Default-Values" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Optional values (`optional(p)` is equivalent to `default(p, nothing)`)
 email = optional(option(&quot;-e&quot;, &quot;--email&quot;, str(&quot;EMAIL&quot;)))
 
 # With defaults
-port = withDefault(option(&quot;-p&quot;, integer(&quot;PORT&quot;)), 8080)
+port = default(option(&quot;-p&quot;, integer(&quot;PORT&quot;)), 8080)
 
 # Multiple values
-packages = multiple(argument(str(&quot;PACKAGE&quot;)))  # pkg add Package1 Package2 Package3
+packages = multiple(arg(str(&quot;PACKAGE&quot;)))  # pkg add Package1 Package2 Package3
 
 # Verbosity levels
-verbosity = multiple(flag(&quot;-v&quot;))  # -v -v -v or -vvv</code></pre><h3 id="Object-Composition"><a class="docs-heading-anchor" href="#Object-Composition">Object Composition</a><a id="Object-Composition-1"></a><a class="docs-heading-anchor-permalink" href="#Object-Composition" title="Permalink"></a></h3><pre><code class="language-julia hljs">parser = object((
-    input = argument(str(&quot;INPUT&quot;)),
+verbosity = multiple(gate(&quot;-v&quot;))  # -v -v -v or -vvv</code></pre><h3 id="Object-Composition"><a class="docs-heading-anchor" href="#Object-Composition">Object Composition</a><a id="Object-Composition-1"></a><a class="docs-heading-anchor-permalink" href="#Object-Composition" title="Permalink"></a></h3><pre><code class="language-julia hljs">parser = object((
+    input = arg(str(&quot;INPUT&quot;)),
     output = option(&quot;-o&quot;, &quot;--output&quot;, str(&quot;OUTPUT&quot;)),
-    force = switch(&quot;-f&quot;, &quot;--force&quot;)
+    force = flag(&quot;-f&quot;, &quot;--force&quot;)
 ))
 
 result = argparse(parser, [&quot;input.txt&quot;, &quot;-o&quot;, &quot;output.txt&quot;, &quot;-f&quot;])</code></pre><h3 id="Subcommands-with-or"><a class="docs-heading-anchor" href="#Subcommands-with-or">Subcommands with or</a><a id="Subcommands-with-or-1"></a><a class="docs-heading-anchor-permalink" href="#Subcommands-with-or" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Define commands
-addCmd = command(&quot;add&quot;, object((
+addCmd = cmd(&quot;add&quot;, object((
     action = @constant(:add),
-    packages = multiple(argument(str(&quot;PACKAGE&quot;)))
+    packages = multiple(arg(str(&quot;PACKAGE&quot;)))
 )))
 
-removeCmd = command(&quot;remove&quot;, object((
+removeCmd = cmd(&quot;remove&quot;, object((
     action = @constant(:remove),
-    packages = multiple(argument(str(&quot;PACKAGE&quot;)))
+    packages = multiple(arg(str(&quot;PACKAGE&quot;)))
 )))
 
 # Combine with or
@@ -58,5 +58,5 @@ pkgParser = or(addCmd, removeCmd)
 
 # Parse
 result = argparse(pkgParser, [&quot;add&quot;, &quot;DataFrames&quot;, &quot;Plots&quot;])
-@assert result.action == :add
-@assert result.packages == [&quot;DataFrames&quot;, &quot;Plots&quot;]</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« OptParse.jl</a><a class="docs-footer-nextpage" href="../reference/">API Docstrings »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Thursday 2 April 2026 17:42">Thursday 2 April 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+@assert result.action == Val(:add)
+@assert result.packages == [&quot;DataFrames&quot;, &quot;Plots&quot;]</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« OptParse.jl</a><a class="docs-footer-nextpage" href="../reference/">API Docstrings »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Friday 3 April 2026 22:49">Friday 3 April 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
