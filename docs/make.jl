@@ -8,6 +8,13 @@ makedocs(
         "index.md",
         "Examples" => "examples.md",
         "API Docstrings" => "reference.md",
+        "Development" => [
+            "Overview" => "development/index.md",
+            "Runtime Model" => "development/runtime.md",
+            "Parser Semantics" => "development/parsers.md",
+            "Extending OptParse" => "development/extending.md",
+            "Inference And Trimming" => "development/inference.md",
+        ],
     ],
     modules = [OptParse]
 )
