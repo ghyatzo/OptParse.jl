@@ -1,3 +1,6 @@
 [deps]
 OptParse = "1244ff17-1aa7-4121-9347-f4ead108e58f"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+
+[sources]
+OptParse = {path = ".."}
