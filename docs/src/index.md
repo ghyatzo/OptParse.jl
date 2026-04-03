@@ -63,6 +63,7 @@ For the public entrypoints:
 
 - `argparse(parser, argv)` is the high-level convenience entrypoint
 - `tryargparse(parser, argv)` is the lower-level entrypoint and returns a result object instead of throwing
+- `resulttype(parser)` returns the final value type produced by a parser
 
 `argparse` currently has a build-time split:
 
@@ -190,6 +191,20 @@ parser = or(
 
 This means that Julia's compiler can optimize your parsing code effectively, and you get better performance
 and compile-time guarantees about the structure of your parsed results.
+
+When you want to dispatch on the result of a specific parser, use
+[`resulttype`](@ref):
+
+```julia
+greet = command("greet", object((
+    cmd = @constant(:greet),
+    name = option("-n", str("NAME")),
+)))
+
+const Greet = resulttype(greet)
+
+handle(x::Greet) = println("hello $(x.name)")
+```
 
 ## Error Handling
 

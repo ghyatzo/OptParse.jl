@@ -68,6 +68,7 @@ For the public entrypoints:
 
 - `argparse(parser, argv)` is the high-level convenience entrypoint
 - `tryargparse(parser, argv)` is the lower-level entrypoint and returns a result object instead of throwing
+- `resulttype(parser)` returns the final value type produced by a parser
 
 `argparse` currently has a build-time split:
 
@@ -253,6 +254,20 @@ parser = or(
 )
 
 # Return type: Union{@NamedTuple{mode::Val{:a}, ...}, @NamedTuple{mode::Val{:b}, ...}}
+```
+
+If you want to dispatch on the output of a specific parser, expose the type
+through `resulttype`:
+
+```julia
+greet = command("greet", object((
+    cmd = @constant(:greet),
+    name = option("-n", str("NAME")),
+)))
+
+const Greet = resulttype(greet)
+
+handle(x::Greet) = println("hello $(x.name)")
 ```
 
 ## Error Handling

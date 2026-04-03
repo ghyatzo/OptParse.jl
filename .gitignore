@@ -31,3 +31,5 @@ manifest*
 HANDOFF.md
 
 test/trim/trimmability/build
+
+examples/*/build

@@ -16,6 +16,38 @@ end
 ptypes(::Type{<:AbstractParser{T, S, _p, P}}) where {T, S, _p, P} = P
 ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
 
+"""
+    resulttype(parser_or_type)
+
+Return the final value type produced by a parser.
+
+This is useful when you want to refer to a parser's output type in user code,
+for example to define method specializations on the result of a specific parser.
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> greet = command("greet", object((
+           cmd = @constant(:greet),
+           name = option("-n", str("NAME")),
+       )));
+
+julia> const Greet = resulttype(greet);
+
+julia> Greet
+@NamedTuple{name::String, cmd::Val{:greet}}
+```
+
+A common pattern is to define a stable alias once and dispatch on it later
+
+# See Also
+- [`argparse`](@ref)
+- [`tryargparse`](@ref)
+"""
+resulttype(::Type{<:AbstractParser{T}}) where {T} = T
+resulttype(::AbstractParser{T}) where {T} = T
+
 include("valueparsers/valueparsers.jl")
 include("primitives/primitives.jl")
 include("constructors/constructors.jl")
@@ -46,6 +78,7 @@ Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
 function complete(p::Parser{T, S}, st::S)::ParseResult{T} where {T, S}
     complete(unwrapunion(p), st)
 end
+
 
 
 # modifiers

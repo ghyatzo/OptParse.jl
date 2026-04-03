@@ -1,0 +1,7 @@
+name = "HelloWorld"
+uuid = "97f9897f-475e-47cf-9324-2173eaa072f1"
+version = "0.1.0"
+authors = ["cschen <dev@cschen.cc>"]
+
+[deps]
+OptParse = "1244ff17-1aa7-4121-9347-f4ead108e58f"

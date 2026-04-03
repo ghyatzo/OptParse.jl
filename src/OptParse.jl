@@ -97,6 +97,7 @@ export
     optional,
     or,
     path,
+    resulttype,
     str,
     tryargparse,
     sequence,

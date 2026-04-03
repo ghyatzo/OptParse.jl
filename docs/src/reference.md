@@ -10,6 +10,7 @@
 ```@docs
 argparse
 tryargparse
+resulttype
 OptParse.ParseException
 ```
 
