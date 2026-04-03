@@ -18,7 +18,7 @@ end
     parser = object(
         (
             locales = multiple(option(("-l", "--locale"), str())),
-            verbose = flag("-v", "--verbose"),
+            verbose = gate("-v", "--verbose"),
         )
     )
 
@@ -36,7 +36,7 @@ end
 end
 
 @testset "should not count control-only consuming matches as repetitions" begin
-    parser = multiple(flag("-a"); min = 1)
+    parser = multiple(gate("-a"); min = 1)
 
     # `--` is consumed only to propagate option termination.
     # It must not count as satisfying the minimum repetition count.
@@ -97,7 +97,7 @@ end
     parser = object(
         (
             options = multiple(option("-x", str())),
-            help = flag("-h", "--help"),
+            help = gate("-h", "--help"),
         )
     )
 
@@ -125,7 +125,7 @@ end
     parser = object(
         (
             locales = multiple(option(("-l", "--locale"), str())),
-            verbose = flag("-v", "--verbose"),
+            verbose = gate("-v", "--verbose"),
             files = multiple(arg(str()); min = 1),
         )
     )
@@ -160,7 +160,7 @@ end
 end
 
 @testset "should work with boolean flag options" begin
-    baseParser = flag("-v", "--verbose")
+    baseParser = gate("-v", "--verbose")
     multipleParser = multiple(baseParser)
 
     val = parse_ok(multipleParser, ["-v", "-v", "-v"])
@@ -333,7 +333,7 @@ end
 @testset "should maintain type safety with different value types" begin
     stringMultiple = multiple(option("-s", str()))
     integerMultiple = multiple(option("-i", integer()))
-    booleanMultiple = multiple(flag("-b"))
+    booleanMultiple = multiple(gate("-b"))
 
     # Strings
     sVals = parse_ok(stringMultiple, ["-s", "hello", "-s", "world"])

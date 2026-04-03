@@ -5,7 +5,7 @@ const show_cmd = cmd(
     object((;
         kind = @constant(:show),
         id = arg(str()),
-        verbose = optional(flag("-v", "--verbose")),
+        verbose = optional(gate("-v", "--verbose")),
     ))
 )
 
@@ -19,7 +19,7 @@ const edit_cmd = cmd(
 )
 
 const parser = or(
-    flag("-h", "--help"),
+    gate("-h", "--help"),
     option("-p", "--port", integer()),
     show_cmd,
     edit_cmd,

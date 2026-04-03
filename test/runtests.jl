@@ -21,6 +21,10 @@ end
         include("unit/primitives/flag.jl")
     end
 
+    @testset "Gate parser" begin
+        include("unit/primitives/gate.jl")
+    end
+
     @testset "Option parser" begin
         include("unit/primitives/option.jl")
     end

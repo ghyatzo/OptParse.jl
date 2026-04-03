@@ -15,9 +15,9 @@ result = argparse(port, ["-p", "8080"])   # Short form
 ```julia
 # Flags can be bundled
 parser = object((
-    all = flag("-a"),
-    long = flag("-l"),
-    human = flag("-h")
+    all = gate("-a"),
+    long = gate("-l"),
+    human = gate("-h")
 ))
 
 result = argparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
@@ -64,7 +64,7 @@ port = default(option("-p", integer("PORT")), 8080)
 packages = multiple(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
 
 # Verbosity levels
-verbosity = multiple(flag("-v"))  # -v -v -v or -vvv
+verbosity = multiple(gate("-v"))  # -v -v -v or -vvv
 ```
 
 ### Object Composition
@@ -73,7 +73,7 @@ verbosity = multiple(flag("-v"))  # -v -v -v or -vvv
 parser = object((
     input = arg(str("INPUT")),
     output = option("-o", "--output", str("OUTPUT")),
-    force = switch("-f", "--force")
+    force = flag("-f", "--force")
 ))
 
 result = argparse(parser, ["input.txt", "-o", "output.txt", "-f"])

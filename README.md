@@ -46,7 +46,7 @@ using OptParse
 parser = object((
     name = option("-n", "--name", str("NAME")),
     port = option("-p", "--port", integer("PORT"; min=1000)),
-    verbose = switch("-v", "--verbose")
+    verbose = flag("-v", "--verbose")
 ))
 
 # Parse arguments
@@ -85,7 +85,8 @@ OptParse provides four types of building blocks:
 The fundamental parsers that match command-line tokens:
 
 - **`option`** - Matches key-value pairs: `--port 8080` or `-p 8080`
-- **`flag`** - Boolean flags like: `--verbose` or `-v`. A plain `flag` MUST be present. See `switch` for a flag that is false if not passed.
+- **`flag`** - Optional boolean flags like: `--verbose` or `-v`
+- **`gate`** - Required presence flags used to guard a branch or feature
 - **`arg`** - Positional arguments: `cp source destination`
 - **`cmd`** - Subcommands: `git add file.txt`
 
@@ -97,9 +98,9 @@ result = argparse(port, ["-p", "8080"])   # Short form
 
 # Flags can be bundled
 parser = object((
-    all = flag("-a"),
-    long = flag("-l"),
-    human = flag("-h")
+    all = gate("-a"),
+    long = gate("-l"),
+    human = gate("-h")
 ))
 result = argparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
 ```
@@ -152,7 +153,7 @@ port = default(option("-p", integer("PORT")), 8080)
 packages = multiple(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
 
 # Verbosity levels
-verbosity = multiple(flag("-v"))  # -v -v -v or -vvv
+verbosity = multiple(gate("-v"))  # -v -v -v or -vvv
 ```
 
 ### Constructors
@@ -171,7 +172,7 @@ Compose parsers into complex structures:
 parser = object((
     input = arg(str("INPUT")),
     output = option("-o", "--output", str("OUTPUT")),
-    force = switch("-f", "--force")
+    force = flag("-f", "--force")
 ))
 
 # Alternative commands with or
@@ -197,8 +198,8 @@ using OptParse
 
 # Shared options
 commonOpts = object((
-    verbose = switch("-v", "--verbose"),
-    quiet = switch("-q", "--quiet")
+    verbose = flag("-v", "--verbose"),
+    quiet = flag("-q", "--quiet")
 ))
 
 # Add command
@@ -211,7 +212,7 @@ addCmd = cmd("add", combine(
 removeCmd = cmd("remove", "rm", combine(
     commonOpts,
     object((
-        all = switch("--all"),
+        all = flag("--all"),
         packages = multiple(arg(str("PACKAGE")))
     ))
 ))
@@ -220,8 +221,8 @@ removeCmd = cmd("remove", "rm", combine(
 instantiateCmd = cmd("instantiate", combine(
     commonOpts,
     object((
-        manifest = switch("-m", "--manifest"),
-        project = switch("-p", "--project")
+        manifest = flag("-m", "--manifest"),
+        project = flag("-p", "--project")
     ))
 ))
 

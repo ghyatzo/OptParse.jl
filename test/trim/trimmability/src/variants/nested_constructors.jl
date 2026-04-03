@@ -6,7 +6,7 @@ const sync_cmd = cmd(
         object((;
             source = option("--src", str()),
             dest = option("--dst", str()),
-            force = default(flag("-f", "--force"), false),
+            force = default(gate("-f", "--force"), false),
         )),
         optional(option("-t", "--threads", integer(; min = 1, max = 16))),
     )
@@ -15,8 +15,8 @@ const sync_cmd = cmd(
 const status_cmd = cmd(
     "status",
     object((;
-        long = optional(flag("-l", "--long")),
-        json = default(flag("--json"), false),
+        long = optional(gate("-l", "--long")),
+        json = default(gate("--json"), false),
     ))
 )
 

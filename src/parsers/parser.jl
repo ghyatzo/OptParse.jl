@@ -23,7 +23,7 @@ include("modifiers/modifiers.jl")
 
 @wrapped struct Parser{T, S, p, P} <: AbstractParser{T, S, p, P}
     union::Union{
-        ArgFlag{T, S, p, P},
+        ArgGate{T, S, p, P},
         ArgOption{T, S, p, P},
         ArgConstant{T, S, p, P},
         ArgArgument{T, S, p, P},
@@ -120,8 +120,8 @@ A modified parser that returns `nothing` if parsing fails, or the parsed value o
 ```jldoctest
 julia> using OptParse
 
-julia> # Optional flag - returns true if present, nothing otherwise
-       verbose = optional(flag("-v", "--verbose"));
+julia> # Optional gate - returns true if present, nothing otherwise
+       verbose = optional(gate("-v", "--verbose"));
 
 julia> result = argparse(verbose, String[]);
 
@@ -192,8 +192,8 @@ julia> result
  "pkg2"
  "pkg3"
 
-julia> # Multiple flags for verbosity levels (e.g., `-v -v -v`)
-       verbosity = multiple(flag("-v"));
+julia> # Multiple gates for verbosity levels (e.g., `-v -v -v`)
+       verbosity = multiple(gate("-v"));
 
 julia> result = argparse(verbosity, ["-v", "-v", "-v"]);
 
@@ -314,16 +314,16 @@ option(opt1::String, opt2::String, opt3::String, valparser::ValueParser{T}; kw..
 
 option(names::Tuple{Vararg{String}}; kw...) = (valp::ValueParser) -> option(names, valp; kw...)
 
-## Flag
+## Gate
 
 """
-    flag(names...; kw...)
+    gate(names...; kw...)
 
-Primitive parser that matches boolean flags without associated values.
+Primitive parser that requires a boolean flag to be present.
 
-Flags represent on/off states and are used to activate features or modify behavior.
-When present in arguments, they indicate `true`; when absent, parsing fails (unless
-wrapped with modifiers like `optional` or `default`).
+Gates represent required flag markers used to activate features or guard specific
+subtrees. When present in arguments, they indicate `true`; when absent, parsing fails
+(unless wrapped with modifiers like `optional` or `default`).
 
 # Arguments
 - `names...`: One or more flag names (strings). Can include short (`"-v"`) and/or
@@ -339,16 +339,16 @@ A parser that returns `true` when the flag is present.
 ```jldoctest
 julia> using OptParse
 
-julia> # Simple flag
-       verbose = flag("--verbose");
+julia> # Simple gate
+       experimental = gate("--experimental");
 
-julia> result = argparse(verbose, ["--verbose"]);
+julia> result = argparse(experimental, ["--experimental"]);
 
 julia> result
 true
 
 julia> # Multiple names
-       debug = flag("-d", "--debug");
+       debug = gate("-d", "--debug");
 
 julia> result = argparse(debug, ["-d"]);
 
@@ -361,38 +361,38 @@ julia> result
 true
 
 julia> # Bundled short flags: `-abc` parsed as `-a -b -c`
-       flags = object((
-           all = flag("-a"),
-           brief = flag("-b"),
-           color = flag("-c")
+       gates = object((
+           all = gate("-a"),
+           brief = gate("-b"),
+           color = gate("-c")
        ));
 
-julia> result = argparse(flags, ["-abc"]);
+julia> result = argparse(gates, ["-abc"]);
 
 julia> (result.all, result.brief, result.color)
 (true, true, true)
 ```
 
 # Notes
-- By itself, `flag` requires the flag to be present (fails if absent)
-- Use `switch` for optional flags that default to `false`
+- By itself, `gate` requires the flag to be present (fails if absent)
+- Use `flag` for optional boolean flags that default to `false`
 - Supports bundled short options (e.g., `-abc` equivalent to `-a -b -c`)
 
 # See Also
-- [`switch`](@ref): Optional flag that defaults to `false`
+- [`flag`](@ref): Optional flag that defaults to `false`
 """
-function flag end
+function gate end
 
-flag(names...; kw...) = _parser(ArgFlag(names; kw...))
+gate(names...; kw...) = _parser(ArgGate(names; kw...))
 
-## switch
+## Flag
 
 """
-    switch(names...; kw...)
+    flag(names...; kw...)
 
 Convenience function for an optional flag that defaults to `false`.
 
-This is equivalent to `default(flag(names...; kw...), false)`. When the flag is
+This is equivalent to `default(gate(names...; kw...), false)`. When the flag is
 present in arguments, it returns `true`; when absent, it returns `false`.
 
 # Arguments
@@ -409,7 +409,7 @@ A parser that returns `true` if the flag is present, `false` otherwise.
 julia> using OptParse
 
 julia> # Basic usage
-       verbose = switch("-v", "--verbose");
+       verbose = flag("-v", "--verbose");
 
 julia> result = argparse(verbose, String[]);
 
@@ -423,9 +423,9 @@ true
 
 julia> # In an object parser
        parser = object((
-           help = switch("-h", "--help"),
-           version = switch("--version"),
-           quiet = switch("-q", "--quiet")
+           help = flag("-h", "--help"),
+           version = flag("--version"),
+           quiet = flag("-q", "--quiet")
        ));
 
 julia> result = argparse(parser, ["-h", "--version"]);
@@ -433,7 +433,7 @@ julia> result = argparse(parser, ["-h", "--version"]);
 julia> (result.help, result.version, result.quiet)
 (true, true, false)
 
-julia> verbosity = multiple(switch("-v")); # Multiple verbosity levels using multiple
+julia> verbosity = multiple(gate("-v")); # Multiple verbosity levels using multiple
 
 julia> result = argparse(verbosity, ["-v", "-v", "-v"]);
 
@@ -445,15 +445,15 @@ julia> result
 ```
 
 # Implementation Note
-This is implemented as: `default(flag(names...; kw...), false)`
+This is implemented as: `default(gate(names...; kw...), false)`
 
 # See Also
-- [`flag`](@ref): Required flag that fails if absent
+- [`gate`](@ref): Required flag that fails if absent
 - [`default`](@ref): General modifier for default values
 """
-function switch end
+function flag end
 
-switch(names...; kw...) = default(flag(names...; kw...), false)
+flag(names...; kw...) = default(gate(names...; kw...), false)
 
 ## Constant
 
@@ -592,7 +592,7 @@ julia> # Mixed with options (order flexible)
        parser = object((
            input = arg(str("INPUT")),
            output = option("-o", "--output", str()),
-           verbose = switch("-v")
+           verbose = flag("-v")
        ));
 
 julia> result = argparse(parser, ["input.txt", "-o", "output.txt", "-v"]);
@@ -648,8 +648,8 @@ julia> using OptParse
 
 julia> # Simple command
        instantiate = cmd("instantiate", object((
-           verbose = switch("-v", "--verbose"),
-           manifest = switch("-m", "--manifest")
+           verbose = flag("-v", "--verbose"),
+           manifest = flag("-m", "--manifest")
        )));
 
 julia> result = argparse(instantiate, ["instantiate", "-v", "-m"]);
@@ -734,7 +734,7 @@ julia> # Basic usage
        parser = object((
            name = option("-n", "--name", str()),
            port = option("-p", "--port", integer()),
-           verbose = switch("-v")
+           verbose = flag("-v")
        ));
 
 julia> result = argparse(parser, ["-n", "server", "-p", "8080", "-v"]);
@@ -818,8 +818,8 @@ julia> using OptParse
 
 julia> # Reusable parser components
        commonOpts = object((
-           verbose = switch("-v", "--verbose"),
-           quiet = switch("-q", "--quiet")
+           verbose = flag("-v", "--verbose"),
+           quiet = flag("-q", "--quiet")
        ));
 
 julia> networkOpts = object((
@@ -921,9 +921,9 @@ Val{:remove}()
 
 julia> # Alternative formats
        helpFormat = or(
-           flag("-h"),
-           flag("--help"),
-           flag("-?")
+           gate("-h"),
+           gate("--help"),
+           gate("-?")
        );
 
 julia> result = argparse(helpFormat, ["-h"]);
@@ -1016,7 +1016,7 @@ julia> # Mixed with arguments
        parser = sequence(
            arg(str("INPUT")),
            option("-o", str()),
-           switch("-v")
+           gate("-v")
        );
 
 julia> result = argparse(parser, ["input.txt", "-v", "-o", "output.txt"]);

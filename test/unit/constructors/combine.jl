@@ -1,7 +1,7 @@
 @testset "should combine object parsers into a single parser" begin
     parser = combine(
         object((
-            verbose = flag("-v", "--verbose"),
+            verbose = gate("-v", "--verbose"),
         )),
         object((
             port = option(("-p", "--port"), integer()),

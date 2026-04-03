@@ -22,7 +22,7 @@ const goodbye = cmd(
 	))
 )
 
-const simple = flag("-v")
+const simple = gate("-v")
 
 const multiarg = multiple(arg(str()))
 

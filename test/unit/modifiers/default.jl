@@ -1,5 +1,5 @@
 @testset "should create a parser with same priority as wrapped parser" begin
-    baseParser = flag("-v", "--verbose")
+    baseParser = gate("-v", "--verbose")
     defaultParser = default(baseParser, false)
 
     @test priority(defaultParser) == priority(baseParser)
@@ -7,7 +7,7 @@
 end
 
 @testset "should return wrapped parser value when it succeeds" begin
-    baseParser = flag("-v", "--verbose")
+    baseParser = gate("-v", "--verbose")
     defaultParser = default(baseParser, false)
 
     buffer = ["-v"]
@@ -23,7 +23,7 @@ end
 end
 
 @testset "should return default value when parser doesn't match" begin
-    baseParser = flag("-v", "--verbose")
+    baseParser = gate("-v", "--verbose")
     defaultValue = false
     defaultParser = default(baseParser, defaultValue)
 
@@ -39,7 +39,7 @@ end
 #         call_count[] > 1
 #     end
 
-#     baseParser = flag("-v", "--verbose")
+#     baseParser = gate("-v", "--verbose")
 #     defaultParser = default(baseParser, defaultFunction)
 
 #     # First call
@@ -77,7 +77,7 @@ end
 end
 
 @testset "should return success with empty consumed when inner parser fails without consuming." begin
-    baseParser = flag("-v", "--verbose")
+    baseParser = gate("-v", "--verbose")
     defaultParser = default(baseParser, false)
 
     buffer = ["--help"]
@@ -97,7 +97,7 @@ end
 @testset "should work in object combinations - main use case" begin
     parser = object(
         (
-            verbose = flag("-v", "--verbose"),
+            verbose = gate("-v", "--verbose"),
             port = (default(8080) ∘ option)(("--port", "-p"), integer()),
             host = (default("localhost") ∘ option)(("--host", "-h"), str()),
         )
@@ -147,7 +147,7 @@ end
 @testset "should work with different value types" begin
     stringParser = default(option("-s", str()), "default-string")
     numberParser = default(option("-n", integer()), 42)
-    booleanParser = default(flag("-b"), true)
+    booleanParser = default(gate("-b"), true)
     arrayParser = default(@constant((1, 2, 3)), Val((1, 2, 3)))
 
     # Test string default
@@ -203,7 +203,7 @@ end
 @testset "should work with argument parsers in object context" begin
     parser = object(
         (
-            verbose = flag("-v", "--verbose"),
+            verbose = gate("-v", "--verbose"),
             file = default(arg(str(; metavar = "FILE")), "input.txt"),
         )
     )
@@ -223,7 +223,7 @@ end
         (
             command = option(("-c", "--command"), str()),
             port = default(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080),
-            debug = default(flag("-d", "--debug"), false),
+            debug = default(gate("-d", "--debug"), false),
         )
     )
 
@@ -244,7 +244,7 @@ end
 
     @test parse_ok(parser, String[]) == "Bob"
 
-    defflag = default(flag("-v"), false)
+    defflag = default(gate("-v"), false)
     @test parse_ok(defflag, String[]) == false
 end
 
@@ -282,13 +282,13 @@ end
 
 @testset "should be type stable" begin
     @test_opt default(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080)
-    @test_opt default(flag("-d", "--debug"), false)
+    @test_opt default(gate("-d", "--debug"), false)
 
     @test_opt object(
         (
             command = option(("-c", "--command"), str()),
             port = default(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080),
-            debug = default(flag("-d", "--debug"), false),
+            debug = default(gate("-d", "--debug"), false),
         )
     )
 
@@ -296,7 +296,7 @@ end
         (
             port = option(("-p", "--port"), integer(; min = 1024, max = 0xffff)),
             command = option(("-c", "--command"), str()),
-            debug = flag("-d", "--debug"),
+            debug = gate("-d", "--debug"),
         )
     )
 

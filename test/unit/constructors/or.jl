@@ -1,32 +1,32 @@
 @testset "should try parsers in order" begin
-    parser1 = flag("-a")
-    parser2 = flag("-b")
+    parser1 = gate("-a")
+    parser2 = gate("-b")
     orParser = or(parser1, parser2)
 
-    using OptParse: OrState, FlagState, ParseSuccess
-    # @test getproperty(orParser, :initialState) isa OrState{Union{Val{0}, Val{1}, Val{2}}, Tuple{Option{ParseSuccess{FlagState}}, Option{ParseSuccess{FlagState}}}}
+    using OptParse: OrState, GateState, ParseSuccess
+    # @test getproperty(orParser, :initialState) isa OrState{Union{Val{0}, Val{1}, Val{2}}, Tuple{Option{ParseSuccess{GateState}}, Option{ParseSuccess{GateState}}}}
     @test priority(orParser) == max(priority(parser1), priority(parser2))
 end
 
 @testset "should succeed with first matching parser" begin
-    parser1 = flag("-a")
-    parser2 = flag("-b")
+    parser1 = gate("-a")
+    parser2 = gate("-b")
     orParser = or(parser1, parser2)
 
     @test parse_ok(orParser, ["-a"]) == true
 end
 
 @testset "should succeed with second parser when first fails" begin
-    parser1 = flag("-a")
-    parser2 = flag("-b")
+    parser1 = gate("-a")
+    parser2 = gate("-b")
     orParser = or(parser1, parser2)
 
     @test parse_ok(orParser, ["-b"]) == true
 end
 
 @testset "should fail when no parser matches" begin
-    parser1 = flag("-a")
-    parser2 = flag("-b")
+    parser1 = gate("-a")
+    parser2 = gate("-b")
     orParser = or(parser1, parser2)
 
     err = parse_fail(orParser, ["-c"])
@@ -35,19 +35,19 @@ end
 end
 
 @testset "should detect mutually exclusive options" begin
-    parser1 = flag("-a")
-    parser2 = flag("-b")
+    parser1 = gate("-a")
+    parser2 = gate("-b")
     orParser = or(parser1, parser2)
 
     err = parse_fail(orParser, ["-a", "-b"])
-    @test err.domain == OptParse.ERR_ArgFlag
-    @test OptParse.FlagErrCode(err.code) == OptParse.FLAG_NoMatch
+    @test err.domain == OptParse.ERR_ArgGate
+    @test OptParse.GateErrCode(err.code) == OptParse.GATE_NoMatch
 end
 
 @testset "should work with more than two parsers" begin
-    parser1 = flag("-a")
-    parser2 = flag("-b")
-    parser3 = flag("-c")
+    parser1 = gate("-a")
+    parser2 = gate("-b")
+    parser3 = gate("-c")
     orParser = or(parser1, parser2, parser3)
 
     @test parse_ok(orParser, ["-a"]) == true
@@ -60,8 +60,8 @@ end
 @testset "should allow duplicate option names in different branches" begin
     # or() allows duplicates because branches are mutually exclusive
     parser = or(
-        flag("-v", "--verbose"),
-        flag("-v", "--version"),
+        gate("-v", "--verbose"),
+        gate("-v", "--version"),
     )
 
     # Should succeed - first parser wins
@@ -70,9 +70,9 @@ end
 
 @testset "should allow same options in nested or branches" begin
     parser = or(
-        object((verbose = flag("-v"),)),
-        object((version = flag("-v"),)),
-        object((verify = flag("-v"),)),
+        object((verbose = gate("-v"),)),
+        object((version = gate("-v"),)),
+        object((verify = gate("-v"),)),
     )
 
     # Should succeed - first matching branch wins
@@ -81,7 +81,7 @@ end
 
 @testset "Should handle control only matches correctly" begin
     parser = or(
-        flag("-a"),
+        gate("-a"),
         arg(str()),
     )
 
@@ -91,7 +91,7 @@ end
     @test parse_ok(parser, ["--", "-a"]) == "-a"
 
     ctrlonly = or(
-        flag("-a"),
+        gate("-a"),
         option("-b", str()),
     )
 
@@ -129,15 +129,15 @@ end
 
 @testset "should be type stable" begin
     @test_opt or(
-        object((verbose = flag("-v"),)),
-        object((version = flag("-v"),)),
-        object((verify = flag("-v"),)),
+        object((verbose = gate("-v"),)),
+        object((version = gate("-v"),)),
+        object((verify = gate("-v"),)),
     )
 
     parser = or(
-        object((verbose = flag("-v"),)),
-        object((version = flag("-v"),)),
-        object((verify = flag("-v"),)),
+        object((verbose = gate("-v"),)),
+        object((version = gate("-v"),)),
+        object((verify = gate("-v"),)),
     )
 
     @test_opt argparse(parser, ["-v"])

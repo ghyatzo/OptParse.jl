@@ -5,7 +5,7 @@
     inner_obj = object(
         (
             type = @constant(:show),
-            progress = flag("-p", "--progress"),
+            progress = gate("-p", "--progress"),
             id = arg(str()),
         )
     )
@@ -24,7 +24,7 @@ end
         object(
             (
                 type = @constant(:show),
-                progress = flag("-p", "--progress"),
+                progress = gate("-p", "--progress"),
                 id = arg(str()),
             )
         ),
@@ -42,7 +42,7 @@ end
         object(
             (
                 type = @constant(:show),
-                progress = flag("-p", "--progress"),
+                progress = gate("-p", "--progress"),
                 id = arg(str()),
             )
         ),
@@ -119,7 +119,7 @@ end
             object(
                 (
                     type = @constant(:show),
-                    progress = flag("-p", "--progress"),
+                    progress = gate("-p", "--progress"),
                     id = arg(str()),
                 )
             ),
@@ -200,7 +200,7 @@ end
             object(
                 (
                     type = @constant(:show),
-                    progress = flag("-p", "--progress"),
+                    progress = gate("-p", "--progress"),
                     id = arg(str()),
                 )
             ),
@@ -277,7 +277,7 @@ end
 @testset "should handle nested commands (command within object parser)" begin
     nestedParser = object(
         (
-            globalFlag = flag("--global"),
+            globalFlag = gate("--global"),
             command = cmd(
                 "run",
                 object(

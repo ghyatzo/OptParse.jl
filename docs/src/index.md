@@ -41,7 +41,7 @@ using OptParse
 parser = object((
     name = option("-n", "--name", str("NAME")),
     port = option("-p", "--port", integer("PORT"; min=1000)),
-    verbose = switch("-v", "--verbose")
+    verbose = flag("-v", "--verbose")
 ))
 
 # Parse arguments
@@ -80,8 +80,8 @@ OptParse provides four types of building blocks that compose together to create 
 The fundamental parsers that match command-line tokens:
 
 - [`option`](@ref) - Matches key-value pairs: `--port 8080` or `-p 8080`
-- [`flag`](@ref) - Mandatory boolean flags: `--verbose` or `-v`
-- [`switch`](@ref) - Optional boolean flags that default to `false`
+- [`flag`](@ref) - Optional boolean flags that default to `false`
+- [`gate`](@ref) - Required presence flags: `--experimental` or `-x`
 - [`arg`](@ref) - Positional arguments: `source destination`
 - [`cmd`](@ref) - Subcommands: `git add file.txt`
 - [`@constant`](@ref) - Always returns a constant value
@@ -131,8 +131,8 @@ using OptParse
 
 # Shared options
 commonOpts = object((
-    verbose = switch("-v", "--verbose"),
-    quiet = switch("-q", "--quiet")
+    verbose = flag("-v", "--verbose"),
+    quiet = flag("-q", "--quiet")
 ))
 
 # Add command
@@ -145,7 +145,7 @@ addCmd = cmd("add", combine(
 removeCmd = cmd("remove", "rm", combine(
     commonOpts,
     object((
-        all = switch("--all"),
+        all = flag("--all"),
         packages = multiple(arg(str("PACKAGE")))
     ))
 ))
@@ -154,8 +154,8 @@ removeCmd = cmd("remove", "rm", combine(
 instantiateCmd = cmd("instantiate", combine(
     commonOpts,
     object((
-        manifest = switch("-m", "--manifest"),
-        project = switch("-p", "--project")
+        manifest = flag("-m", "--manifest"),
+        project = flag("-p", "--project")
     ))
 ))
 

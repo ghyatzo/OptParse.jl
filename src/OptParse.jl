@@ -66,8 +66,8 @@ using UUIDs:
 
 # API Changes TODO/IDEAS
 # - shorten names: object -> obj
-# OK make switch the default behaviour and call it flag.
-# NO rename flag to `gate`
+# OK make optional boolean flags the default `flag` behaviour.
+# OK rename required flag to `gate`
 # - rename multiple to 'many'
 # NO instead of combine and concat, use a single merge function? even possible?
 
@@ -85,6 +85,7 @@ export
     flt,
     flt32,
     flt64,
+    gate,
     i16,
     i32,
     i64,
@@ -97,7 +98,6 @@ export
     or,
     path,
     str,
-    switch,
     tryargparse,
     sequence,
     u16,

@@ -1,5 +1,5 @@
 @testset "should parse simple flag successfully" begin
-    parser = flag("-v")
+    parser = gate("-v")
     @test parse_ok(parser, ["-v"]) == true
 end
 
@@ -9,23 +9,23 @@ end
 end
 
 @testset "should parse simple flag successfully" begin
-    parser = flag("-v")
+    parser = gate("-v")
     err = parse_fail(parser, ["--help"])
-    @test err.domain == OptParse.ERR_ArgFlag
-    @test OptParse.FlagErrCode(err.code) == OptParse.FLAG_NoMatch
+    @test err.domain == OptParse.ERR_ArgGate
+    @test OptParse.GateErrCode(err.code) == OptParse.GATE_NoMatch
 end
 
 @testset "should handle empty arguments" begin
-    parser = flag("-v")
+    parser = gate("-v")
     err = parse_fail(parser, String[])
-    @test err.domain == OptParse.ERR_ArgFlag
-    @test OptParse.FlagErrCode(err.code) == OptParse.FLAG_EndOfInput
+    @test err.domain == OptParse.ERR_ArgGate
+    @test OptParse.GateErrCode(err.code) == OptParse.GATE_EndOfInput
 end
 
 @testset "should process all arguments" begin
     parser = object(
         (
-            verbose = flag("-v"),
+            verbose = gate("-v"),
             name = option("-n", str()),
         )
     )
@@ -38,7 +38,7 @@ end
 @testset "should handle option terminator" begin
     parser = object(
         (
-            verbose = flag("-v"),
+            verbose = gate("-v"),
         )
     )
     result = parse_ok(parser, ["-v", "--"])
@@ -50,7 +50,7 @@ end
         "Server", (
             port = option("-p", "--port", integer(min = 1, max = 25500)),
             host = option("-h", "--host", str(metavar = "HOST")),
-            verbose = flag("-v"),
+            verbose = gate("-v"),
         )
     )
 
@@ -58,7 +58,7 @@ end
         "Client", (
             connect = option("-c", "--connect", str(metavar = "URL")),
             timeout = option("-t", "--timeout", integer(min = 10)),
-            retry = default(flag("-r", "--retry"), false),
+            retry = default(gate("-r", "--retry"), false),
         )
     )
 
@@ -81,14 +81,14 @@ end
 
     group1 = object(
         "Group 1", (;
-            allow = flag("--allow"),
+            allow = gate("--allow"),
             value = option("-v", integer()),
         )
     )
 
     group2 = object(
         "Group 2", (;
-            foo = flag("--foo"),
+            foo = gate("--foo"),
             bar = option("--bar", str()),
         )
     )
@@ -104,9 +104,9 @@ end
 
     parser = object(
         (;
-            unixshort = flag("-u"),
-            unixlong = flag("--long"),
-            dosstyle = flag("--D"),
+            unixshort = gate("-u"),
+            unixlong = gate("--long"),
+            dosstyle = gate("--D"),
         )
     )
 
@@ -120,9 +120,9 @@ end
 
     parser = object(
         (;
-            u = flag("-u"),
-            v = flag("-v"),
-            e = flag("-e"),
+            u = gate("-u"),
+            v = gate("-v"),
+            e = gate("-e"),
         )
     )
 
@@ -137,7 +137,7 @@ end
         "Server", (
             port = option("-p", "--port", integer(min = 1000, max = 25500)),
             host = option("-h", "--host", str(pattern = r"^[a-zA-Z][a-zA-Z0-9_]*$")),
-            verbose = default(true)(flag("-v")),
+            verbose = default(true)(gate("-v")),
         )
     )
 
@@ -159,9 +159,9 @@ end
 end
 
 @testset "should handle three way mutually exclusive options" begin
-    modeA = object("Mode A", (; optionA = flag("-a")))
-    modeB = object("Mode B", (; optionB = flag("-b")))
-    modeC = object("Mode C", (; optionC = flag("-c")))
+    modeA = object("Mode A", (; optionA = gate("-a")))
+    modeB = object("Mode B", (; optionB = gate("-b")))
+    modeC = object("Mode C", (; optionC = gate("-c")))
 
     parser = or(modeA, modeB, modeC)
 
@@ -181,9 +181,9 @@ end
 end
 
 @testset "should handle nested or combinations" begin
-    innerOr = or(flag("-a"), flag("-b"))
+    innerOr = or(gate("-a"), gate("-b"))
 
-    outerOr = or(innerOr, flag("-c"))
+    outerOr = or(innerOr, gate("-c"))
 
     @test parse_ok(outerOr, ["-a"]) == true
     @test parse_ok(outerOr, ["-b"]) == true
@@ -194,7 +194,7 @@ end
 @testset "should handle edge cases with options terminator" begin
     parser = object(
         (
-            verbose = default(false)(flag("-v")),
+            verbose = default(false)(gate("-v")),
         )
     )
 
@@ -208,7 +208,7 @@ end
 @testset "should handle argument parsers in object combinations" begin
     parser = object(
         (
-            verbose = flag("-v"),
+            verbose = gate("-v"),
             output = option("-o", str(; metavar = "FILE")),
             input = arg(str(; metavar = "INPUT")),
         )
@@ -224,7 +224,7 @@ end
     group1 = object(
         "Group 1", (
             type = @constant(:group1),
-            allow = flag("-a", "--allow"),
+            allow = gate("-a", "--allow"),
             value = option("-v", "--value", integer()),
             arg = arg(str(; metavar = "ARG")),
         )
@@ -233,7 +233,7 @@ end
     group2 = object(
         "Group 2", (
             type = @constant(:group2),
-            foo = flag("-f", "--foo"),
+            foo = gate("-f", "--foo"),
             bar = option("-b", "--bar", str(; metavar = "VALUE")),
         )
     )

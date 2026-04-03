@@ -18,7 +18,7 @@ OptParse.ParseException
 ```@docs
 option
 flag
-switch
+gate
 arg
 cmd
 @constant

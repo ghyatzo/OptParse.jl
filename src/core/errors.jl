@@ -8,7 +8,7 @@ end
 @enum ErrorDomain::UInt8 begin
 	ERR_Main
 
-	ERR_ArgFlag
+	ERR_ArgGate
 	ERR_ArgArgument
 	ERR_ArgOption
 	ERR_ArgCommand
@@ -95,8 +95,8 @@ end
 function render_error_payload(io::IO, err::ParseError)
 	if err.domain == ERR_Main
 		main_render_error(io, MainErrCode(err.code), err)
-	elseif err.domain == ERR_ArgFlag
-		argflag_render_error(io, FlagErrCode(err.code), err)
+	elseif err.domain == ERR_ArgGate
+		arggate_render_error(io, GateErrCode(err.code), err)
 	elseif err.domain == ERR_ArgArgument
 		argargument_render_error(io, ArgumentErrCode(err.code), err)
 	elseif err.domain == ERR_ArgOption

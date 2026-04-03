@@ -3,7 +3,7 @@ using OptParse
 const parser = sequence(
     arg(str()),
     default(option("-n", "--num", integer()), 10),
-    optional(flag("-v", "--verbose")),
+    optional(gate("-v", "--verbose")),
     default(option("--mode", choice(["fast", "safe"])), "safe"),
 )
 

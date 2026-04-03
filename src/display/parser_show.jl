@@ -75,8 +75,8 @@ show_compact(io::IO, p::UUIDVal) = let
 	print(io, ")")
 end
 
-show_compact(io::IO, p::ArgFlag) = let
-	print(io, "flag(")
+show_compact(io::IO, p::ArgGate) = let
+	print(io, "gate(")
 	print(io, join(p.names, ", "))
 	print(io, ")")
 end
@@ -124,7 +124,21 @@ show_compact(io::IO, p::ConstrTuple) = let
 	print(io, " items)")
 end
 
+function _show_optional_flag(io::IO, p::ModWithDefault)
+	inner = unwrapunion(p.parser)
+	if p.default === false && inner isa ArgGate
+		print(io, "flag(")
+		print(io, join(inner.names, ", "))
+		print(io, ")")
+		return true
+	end
+	return false
+end
+
 show_compact(io::IO, p::ModWithDefault) = let
+	if _show_optional_flag(io, p)
+		return
+	end
 	print(io, "default(")
 	show_compact(io, p.parser)
 	print(io, ", ")
@@ -150,7 +164,7 @@ show_pretty(io::IO, p::IntegerVal, indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::FloatVal, indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::UUIDVal, indent::Int = 0) = show_compact(io, p)
 
-show_pretty(io::IO, p::ArgFlag, indent::Int = 0) = show_compact(io, p)
+show_pretty(io::IO, p::ArgGate, indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::ArgOption, indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::ArgConstant, indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::ArgArgument, indent::Int = 0) = show_compact(io, p)
