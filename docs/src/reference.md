@@ -19,8 +19,8 @@ OptParse.ParseException
 option
 flag
 switch
-argument
-command
+arg
+cmd
 @constant
 ```
 
@@ -48,7 +48,7 @@ path
 ### Modifiers
 
 ```@docs
-withDefault
+default
 optional
 multiple
 ```

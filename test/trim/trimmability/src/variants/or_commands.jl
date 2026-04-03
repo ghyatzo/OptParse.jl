@@ -1,19 +1,19 @@
 using OptParse
 
-const show_cmd = command(
+const show_cmd = cmd(
     "show",
     object((;
         kind = @constant(:show),
-        id = argument(str()),
+        id = arg(str()),
         verbose = optional(flag("-v", "--verbose")),
     ))
 )
 
-const edit_cmd = command(
+const edit_cmd = cmd(
     "edit",
     object((;
         kind = @constant(:edit),
-        id = argument(str()),
+        id = arg(str()),
         editor = optional(option("-e", "--editor", str())),
     ))
 )

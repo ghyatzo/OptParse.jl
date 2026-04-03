@@ -50,28 +50,28 @@ end
 
 # modifiers
 
-## WithDefault
+## Default
 
 """
-    withDefault(p::Parser, default)
-    withDefault(default)
+    default(p::Parser, value)
+    default(value)
 
 Modifier that provides a default value for a parser when it fails to match or is not present
 in the command-line arguments.
 
 # Arguments
 - `p::Parser`: The parser to apply the default value to
-- `default`: The default value to return if parsing fails (can be any type)
+- `value`: The default value to return if parsing fails (can be any type)
 
 # Returns
-A modified parser that returns `default` if the original parser fails to match.
+A modified parser that returns `value` if the original parser fails to match.
 
 # Examples
 ```jldoctest
 julia> using OptParse
 
 julia> # Parser with explicit default
-       p = withDefault(option("-p", "--port", integer()), 8080);
+       p = default(option("-p", "--port", integer()), 8080);
 
 julia> result = argparse(p, String[]);
 
@@ -84,7 +84,7 @@ julia> result
 3000
 
 julia> # Curried version for pipeline composition
-       p = option("-p", "--port", integer()) |> withDefault(8080);
+       p = option("-p", "--port", integer()) |> default(8080);
 
 julia> result = argparse(p, String[]);
 
@@ -95,10 +95,10 @@ julia> result
 # See Also
 - [`optional`](@ref): Convenience wrapper using `nothing` as default
 """
-function withDefault end
+function default end
 
-withDefault(p::Parser, default) = _parser(ModWithDefault(p, default))
-withDefault(default) = (p::Parser) -> withDefault(p, default)
+default(p::Parser, value) = _parser(ModWithDefault(p, value))
+default(value) = (p::Parser) -> default(p, value)
 
 ## Optional
 
@@ -108,7 +108,7 @@ withDefault(default) = (p::Parser) -> withDefault(p, default)
 Modifier that makes a parser optional, returning `nothing` if the parser fails to match.
 
 Transforms a parser returning type `T` into a parser returning `Union{Nothing, T}`.
-This is equivalent to `withDefault(p, nothing)` and is mainly provided as a convenience wrapper.
+This is equivalent to `default(p, nothing)` and is mainly provided as a convenience wrapper.
 
 # Arguments
 - `p::Parser`: The parser to make optional
@@ -148,12 +148,12 @@ julia> result
 ```
 
 # See Also
-- [`withDefault`](@ref): More general modifier with custom defaults
+- [`default`](@ref): More general modifier with custom defaults
 """
 function optional end
 
-optional(p::Parser) = withDefault(p, nothing)
-optional() = withDefault(nothing)
+optional(p::Parser) = default(p, nothing)
+optional() = default(nothing)
 
 ## Multiple
 
@@ -182,7 +182,7 @@ original parser.
 julia> using OptParse
 
 julia> # Multiple arguments (e.g., `add pkg1 pkg2 pkg3`)
-       packages = multiple(argument(str("PACKAGE")));
+       packages = multiple(arg(str("PACKAGE")));
 
 julia> result = argparse(packages, ["pkg1", "pkg2", "pkg3"]);
 
@@ -214,7 +214,7 @@ julia> result
 # Notes
 - Returns an empty vector if no matches are found (unless combined with other modifiers)
 - The order of matches is preserved
-- Can be combined with other modifiers like `withDefault`
+- Can be combined with other modifiers like `default`
 """
 function multiple end
 
@@ -234,7 +234,6 @@ Primitive parser that matches command-line options with associated values.
 Options can be specified in multiple formats:
 - Long form: `--option value` or `--option=value`
 - Short form: `-o value`
-- Windows style: `/O value` or `/O:value`
 
 # Arguments
 - `names`: One or more option names (strings). Typically includes short (`"-o"`) and/or
@@ -242,7 +241,7 @@ Options can be specified in multiple formats:
 - `valparser::ValueParser{T}`: Value parser that determines how to parse the option's value
 
 # Keywords
-- `desc::String`: Help text description for this option (used in help messages)
+- `help::String`: Stored help text metadata for this option
 
 # Returns
 A parser that matches the specified option patterns and returns a value of type `T`.
@@ -299,8 +298,8 @@ Release::Mode = 1
 
 # Notes
 - The first matching pattern is used
-- Values can be attached with `=` (long form) or directly (short form)
-- Option names should include their prefix (`-`, `--`, or `/`)
+- `=` attachment is supported for long options only
+- Option names should include their prefix (`-` or `--`)
 """
 function option end
 
@@ -324,14 +323,14 @@ Primitive parser that matches boolean flags without associated values.
 
 Flags represent on/off states and are used to activate features or modify behavior.
 When present in arguments, they indicate `true`; when absent, parsing fails (unless
-wrapped with modifiers like `optional` or `withDefault`).
+wrapped with modifiers like `optional` or `default`).
 
 # Arguments
 - `names...`: One or more flag names (strings). Can include short (`"-v"`) and/or
   long (`"--verbose"`) forms
 
 # Keywords
-- `desc::String`: Help text description for this option (used in help messages)
+- `help::String`: Stored help text metadata for this flag
 
 # Returns
 A parser that returns `true` when the flag is present.
@@ -393,14 +392,14 @@ flag(names...; kw...) = _parser(ArgFlag(names; kw...))
 
 Convenience function for an optional flag that defaults to `false`.
 
-This is equivalent to `withDefault(flag(names...; kw...), false)`. When the flag is
+This is equivalent to `default(flag(names...; kw...), false)`. When the flag is
 present in arguments, it returns `true`; when absent, it returns `false`.
 
 # Arguments
 - `names...`: One or more flag names (strings)
 
 # Keywords
-- `desc::String`: Help text description for this option (used in help messages)
+- `help::String`: Stored help text metadata for this flag
 
 # Returns
 A parser that returns `true` if the flag is present, `false` otherwise.
@@ -446,15 +445,15 @@ julia> result
 ```
 
 # Implementation Note
-This is implemented as: `withDefault(flag(names...; kw...), false)`
+This is implemented as: `default(flag(names...; kw...), false)`
 
 # See Also
 - [`flag`](@ref): Required flag that fails if absent
-- [`withDefault`](@ref): General modifier for default values
+- [`default`](@ref): General modifier for default values
 """
 function switch end
 
-switch(names...; kw...) = withDefault(flag(names...; kw...), false)
+switch(names...; kw...) = default(flag(names...; kw...), false)
 
 ## Constant
 
@@ -477,15 +476,15 @@ A parser that always succeeds and returns `val` without consuming any input.
 julia> using OptParse
 
 julia> # Tagging subcommands
-       addCmd = command("add", object((
+       addCmd = cmd("add", object((
            action = @constant(:add),
-           key = argument(str("KEY")),
-           value = argument(str("VALUE"))
+           key = arg(str("KEY")),
+           value = arg(str("VALUE"))
        )));
 
-julia> removeCmd = command("remove", object((
+julia> removeCmd = cmd("remove", object((
            action = @constant(:remove),
-           key = argument(str("KEY"))
+           key = arg(str("KEY"))
        )));
 
 julia> parser = or(addCmd, removeCmd);
@@ -504,7 +503,7 @@ julia> result.value
 julia> # Providing metadata
        parser2 = object((
            version = @constant(Symbol("1.0.0")),
-           name = argument(str())
+           name = arg(str())
        ));
 
 julia> result = argparse(parser2, ["myapp"]);
@@ -525,10 +524,10 @@ macro constant(val)
     return :(_parser(ArgConstant($val)))
 end
 
-## Argument
+## Arg
 
 """
-    argument(valparser::ValueParser{T}; kw...) where {T}
+    arg(valparser::ValueParser{T}; kw...) where {T}
 
 Primitive parser for positional arguments not associated with a flag or option.
 
@@ -539,7 +538,7 @@ in the order they're defined (though they can be interspersed with options).
 - `valparser::ValueParser{T}`: Value parser that determines how to parse the argument's value
 
 # Keywords
-- `desc::String`: Help text description for this option (used in help messages)
+- `help::String`: Stored help text metadata for this argument
 
 # Returns
 A parser that matches a positional argument and returns a value of type `T`.
@@ -549,7 +548,7 @@ A parser that matches a positional argument and returns a value of type `T`.
 julia> using OptParse
 
 julia> # Single argument
-       source = argument(str("SOURCE"));
+       source = arg(str("SOURCE"));
 
 julia> result = argparse(source, ["/path/to/file"]);
 
@@ -558,8 +557,8 @@ julia> result
 
 julia> # Multiple positional arguments
        parser = object((
-           source = argument(str("SOURCE")),
-           dest = argument(str("DEST"))
+           source = arg(str("SOURCE")),
+           dest = arg(str("DEST"))
        ));
 
 julia> result = argparse(parser, ["/from/here", "/to/here"]);
@@ -571,7 +570,7 @@ julia> result.dest
 "/to/here"
 
 julia> # Variable number of arguments
-       files = multiple(argument(str("FILE")));
+       files = multiple(arg(str("FILE")));
 
 julia> result = argparse(files, ["file1.txt", "file2.txt", "file3.txt"]);
 
@@ -582,7 +581,7 @@ julia> result
  "file3.txt"
 
 julia> # Arguments with type constraints
-       port = argument(integer(min=1000, max=65535));
+       port = arg(integer(min=1000, max=65535));
 
 julia> result = argparse(port, ["8080"]);
 
@@ -591,7 +590,7 @@ julia> result
 
 julia> # Mixed with options (order flexible)
        parser = object((
-           input = argument(str("INPUT")),
+           input = arg(str("INPUT")),
            output = option("-o", "--output", str()),
            verbose = switch("-v")
        ));
@@ -608,20 +607,21 @@ julia> result.input
 ```
 
 # Notes
-- Arguments must be present unless wrapped with `optional` or `withDefault`
-- The `metavar` in the value parser is used for help text generation
+- Arguments must be present unless wrapped with `optional` or `default`
+- The `metavar` in the value parser is used in diagnostics and usage/help metadata
 - Arguments are parsed in order but can be interspersed with options
 - After `--`, remaining tokens are treated as positional input
 """
-function argument end
+function arg end
 
-argument(valparser::ValueParser{T}; kw...) where {T} = _parser(ArgArgument(valparser; kw...))
-argument(; kw...) = (valp::ValueParser) -> argument(valp; kw...)
+arg(valparser::ValueParser{T}; kw...) where {T} = _parser(ArgArgument(valparser; kw...))
+arg(; kw...) = (valp::ValueParser) -> arg(valp; kw...)
 
-## command
+## cmd
 
 """
-    command(name::String, p::Parser; kw...)
+    cmd(name::String, p::Parser; kw...)
+    cmd(name::String, alias::String, p::Parser; kw...)
 
 Primitive parser that matches a subcommand and its associated arguments.
 
@@ -634,9 +634,9 @@ the primary way to implement subcommands in CLI applications.
 - `p::Parser`: The parser to use for arguments following the command
 
 # Keywords
-- `desc::String`: Help text description for this option (used in help messages)
-- `brief::String`: Extra Help text
-- `footer::String`: Extra help text
+- `help::String`: Stored help text metadata for this command
+- `brief::String`: Stored short help metadata for this command
+- `footer::String`: Stored footer metadata for this command
 
 # Returns
 A parser that matches the command name and then parses the remaining arguments
@@ -647,7 +647,7 @@ using the provided parser.
 julia> using OptParse
 
 julia> # Simple command
-       instantiate = command("instantiate", object((
+       instantiate = cmd("instantiate", object((
            verbose = switch("-v", "--verbose"),
            manifest = switch("-m", "--manifest")
        )));
@@ -658,14 +658,14 @@ julia> (result.verbose, result.manifest)
 (true, true)
 
 julia> # Multiple commands with or combinator
-       addCmd = command("add", object((
+       addCmd = cmd("add", object((
            action = @constant(:add),
-           packages = multiple(argument(str("PACKAGE")))
+           packages = multiple(arg(str("PACKAGE")))
        )));
 
-julia> removeCmd = command("remove", object((
+julia> removeCmd = cmd("remove", object((
            action = @constant(:remove),
-           packages = multiple(argument(str("PACKAGE")))
+           packages = multiple(arg(str("PACKAGE")))
        )));
 
 julia> pkgParser = or(addCmd, removeCmd);
@@ -695,13 +695,12 @@ julia> result.packages
 - Commands consume their name token from the input
 - Often combined with `or` to provide multiple subcommands
 - Can be nested to create hierarchical command structures
-- After `--`, commands are no longer recognized; remaining tokens are treated as positional input
 """
-function command end
+function cmd end
 
-command(names::Tuple{Vararg{String}}, p::Parser; kw...) = _parser(ArgCommand(names, p; kw...))
-command(name::String, p::Parser; kw...) = _parser(ArgCommand((name,), p; kw...))
-command(name::String, alias::String, p::Parser; kw...) = _parser(ArgCommand((name, alias), p; kw...))
+cmd(names::Tuple{Vararg{String}}, p::Parser; kw...) = _parser(ArgCommand(names, p; kw...))
+cmd(name::String, p::Parser; kw...) = _parser(ArgCommand((name,), p; kw...))
+cmd(name::String, alias::String, p::Parser; kw...) = _parser(ArgCommand((name, alias), p; kw...))
 
 
 # constructors
@@ -721,7 +720,7 @@ field names containing the parsed values.
 
 # Arguments
 - `obj::NamedTuple`: Named tuple where each field is a parser
-- `objlabel`: Optional label for the object (used in help text and error messages)
+- `objlabel`: Optional label used in diagnostics and stored as object metadata
 
 # Returns
 A parser that returns a named tuple with the same structure as `obj`, where each field
@@ -752,7 +751,7 @@ true
 julia> parser = object("config", (
            host = option("--host", str()),
            port = option("--port", integer())
-       )); # With label for better help messages
+       )); # With a label for clearer diagnostics
 
 julia> result = argparse(parser, ["--host", "localhost", "--port", "3000"]);
 
@@ -806,7 +805,7 @@ This is useful for composing parsers from reusable components or for organizing
 large parser definitions into logical groups.
 
 # Arguments
-- `label::String = ""`: Optional label for the merged object (used in help text)
+- `label::String = ""`: Optional label used in diagnostics and stored as object metadata
 - `objs...`: Multiple object parsers to merge
 
 
@@ -880,7 +879,7 @@ the primary way to implement subcommands or alternative parsing branches.
 
 `or(...)` is order-dependent: branches are tried in the order they are listed,
 and the first semantic match wins. Put broader positional parsers like
-`argument(...)` or `multiple(argument(...))` last.
+`arg(...)` or `multiple(arg(...))` last.
 
 # Arguments
 - `parsers...`: Variable number of parsers to try in order
@@ -893,14 +892,14 @@ A parser that returns the result of the first successfully matching parser.
 julia> using OptParse
 
 julia> # Subcommands
-       addCmd = command("add", object((
+       addCmd = cmd("add", object((
            action = @constant(:add),
-           packages = multiple(argument(str("PACKAGE")))
+           packages = multiple(arg(str("PACKAGE")))
        )));
 
-julia> removeCmd = command("remove", object((
+julia> removeCmd = cmd("remove", object((
            action = @constant(:remove),
-           packages = multiple(argument(str("PACKAGE")))
+           packages = multiple(arg(str("PACKAGE")))
        )));
 
 julia> parser = or(addCmd, removeCmd);
@@ -960,7 +959,7 @@ julia> result.file
 - All alternatives should typically be mutually exclusive for clarity
 
 # See Also
-- [`command`](@ref): Often used with `or` for subcommands
+- [`cmd`](@ref): Often used with `or` for subcommands
 - `@constant`: Useful for tagging branches
 """
 function or end
@@ -980,7 +979,7 @@ a named tuple. The order of results matches the order of parsers, even if comman
 arguments appear in a different order.
 
 # Arguments
-- `label::String`: Optional label for the tuple (used in help text)
+- `label::String`: Optional label used in diagnostics and stored as tuple metadata
 - `parsers...`: Variable number of parsers in desired result order
 
 # Returns
@@ -1015,7 +1014,7 @@ julia> result
 
 julia> # Mixed with arguments
        parser = tup(
-           argument(str("INPUT")),
+           arg(str("INPUT")),
            option("-o", str()),
            switch("-v")
        );
@@ -1067,7 +1066,7 @@ a single flat result structure.
 - `tups...`: Multiple tuple parsers to concatenate
 
 # Keywords
-- `label::String = ""`: Optional label for the concatenated tuple
+- `label::String = ""`: Optional label used in diagnostics and stored as tuple metadata
 
 # Returns
 A parser that combines all elements from the input tuples into a single flat tuple.

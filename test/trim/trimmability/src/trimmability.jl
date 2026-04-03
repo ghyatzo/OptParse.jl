@@ -4,7 +4,7 @@ using OptParse
 
 export @main
 
-const greet = command(
+const greet = cmd(
 	"greet",
 	object((;
 		cmd = @constant(:greet),
@@ -13,7 +13,7 @@ const greet = command(
 	))
 )
 
-const goodbye = command(
+const goodbye = cmd(
 	"bye",
 	object((;
 		cmd = @constant(:bye),
@@ -24,7 +24,7 @@ const goodbye = command(
 
 const simple = flag("-v")
 
-const multiarg = multiple(argument(str()))
+const multiarg = multiple(arg(str()))
 
 const opt = option("-d", "--depth", integer())
 

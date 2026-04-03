@@ -1,6 +1,6 @@
 @testset "should create a parser with same priority as wrapped parser" begin
     baseParser = flag("-v", "--verbose")
-    defaultParser = withDefault(baseParser, false)
+    defaultParser = default(baseParser, false)
 
     @test priority(defaultParser) == priority(baseParser)
     @test defaultParser.initialState === none(tstate(baseParser))
@@ -8,7 +8,7 @@ end
 
 @testset "should return wrapped parser value when it succeeds" begin
     baseParser = flag("-v", "--verbose")
-    defaultParser = withDefault(baseParser, false)
+    defaultParser = default(baseParser, false)
 
     buffer = ["-v"]
     state = defaultParser.initialState
@@ -25,7 +25,7 @@ end
 @testset "should return default value when parser doesn't match" begin
     baseParser = flag("-v", "--verbose")
     defaultValue = false
-    defaultParser = withDefault(baseParser, defaultValue)
+    defaultParser = default(baseParser, defaultValue)
 
     completeResult = splitcomplete(defaultParser, none(tstate(baseParser)))
     @test !is_error(completeResult)
@@ -40,7 +40,7 @@ end
 #     end
 
 #     baseParser = flag("-v", "--verbose")
-#     defaultParser = withDefault(baseParser, defaultFunction)
+#     defaultParser = default(baseParser, defaultFunction)
 
 #     # First call
 #     completeResult1 = splitcomplete(defaultParser, nothing)
@@ -59,7 +59,7 @@ end
 
 @testset "should propagate successful parse results correctly" begin
     baseParser = option(("--name", "-n"), str())
-    defaultParser = withDefault(baseParser, "anonymous")
+    defaultParser = default(baseParser, "anonymous")
 
     buffer = ["-n", "Alice"]
     state = defaultParser.initialState
@@ -78,7 +78,7 @@ end
 
 @testset "should return success with empty consumed when inner parser fails without consuming." begin
     baseParser = flag("-v", "--verbose")
-    defaultParser = withDefault(baseParser, false)
+    defaultParser = default(baseParser, false)
 
     buffer = ["--help"]
     state = defaultParser.initialState
@@ -98,8 +98,8 @@ end
     parser = object(
         (
             verbose = flag("-v", "--verbose"),
-            port = (withDefault(8080) ∘ option)(("--port", "-p"), integer()),
-            host = (withDefault("localhost") ∘ option)(("--host", "-h"), str()),
+            port = (default(8080) ∘ option)(("--port", "-p"), integer()),
+            host = (default("localhost") ∘ option)(("--host", "-h"), str()),
         )
     )
 
@@ -130,7 +130,7 @@ end
 
 @testset "should work with constant parsers" begin
     baseParser = @constant(:hello)
-    defaultParser = withDefault(baseParser, Val(:hello))
+    defaultParser = default(baseParser, Val(:hello))
 
     buffer = String[]
     state = defaultParser.initialState
@@ -145,10 +145,10 @@ end
 end
 
 @testset "should work with different value types" begin
-    stringParser = withDefault(option("-s", str()), "default-string")
-    numberParser = withDefault(option("-n", integer()), 42)
-    booleanParser = withDefault(flag("-b"), true)
-    arrayParser = withDefault(@constant((1, 2, 3)), Val((1, 2, 3)))
+    stringParser = default(option("-s", str()), "default-string")
+    numberParser = default(option("-n", integer()), 42)
+    booleanParser = default(flag("-b"), true)
+    arrayParser = default(@constant((1, 2, 3)), Val((1, 2, 3)))
 
     # Test string default
     stringResult = splitcomplete(stringParser, none(tstate(stringParser.parser)))
@@ -174,7 +174,7 @@ end
 
 @testset "should return error when the inner state fails to validate the matched input." begin
     baseParser = option(("--port", "-p"), integer(; min = 100))
-    defaultParser = withDefault(baseParser, 8080)
+    defaultParser = default(baseParser, 8080)
 
     err = parse_fail(defaultParser, ["-p", "10"])
     @test err.domain == OptParse.ERR_IntegerVal
@@ -183,7 +183,7 @@ end
 
 @testset "should handle state transitions correctly" begin
     baseParser = option(("-n", "--name"), str())
-    defaultParser = withDefault(baseParser, "anonymous")
+    defaultParser = default(baseParser, "anonymous")
 
     # Test with undefined initial state
     @test defaultParser.initialState === none(tstate(baseParser))
@@ -204,7 +204,7 @@ end
     parser = object(
         (
             verbose = flag("-v", "--verbose"),
-            file = withDefault(argument(str(; metavar = "FILE")), "input.txt"),
+            file = default(arg(str(; metavar = "FILE")), "input.txt"),
         )
     )
 
@@ -222,8 +222,8 @@ end
     parser = object(
         (
             command = option(("-c", "--command"), str()),
-            port = withDefault(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080),
-            debug = withDefault(flag("-d", "--debug"), false),
+            port = default(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080),
+            debug = default(flag("-d", "--debug"), false),
         )
     )
 
@@ -240,16 +240,16 @@ end
 
 
 @testset "should return default value when parsing empty input" begin
-    default = withDefault(option("-n", "--name", str()), "Bob")
+    parser = default(option("-n", "--name", str()), "Bob")
 
-    @test parse_ok(default, String[]) == "Bob"
+    @test parse_ok(parser, String[]) == "Bob"
 
-    defflag = withDefault(flag("-v"), false)
+    defflag = default(flag("-v"), false)
     @test parse_ok(defflag, String[]) == false
 end
 
 @testset "should propagate errors when inner parser partially consumes input" begin
-    optionalopt = withDefault(option("-n", str()), "Bob")
+    optionalopt = default(option("-n", str()), "Bob")
 
     err = parse_fail(optionalopt, ["-n"])
     @test err.domain == OptParse.ERR_ArgOption
@@ -257,7 +257,7 @@ end
 end
 
 @testset "should correctly handle -- edge cases" begin
-    def = withDefault(option("-n", "--name", str()), "bob")
+    def = default(option("-n", "--name", str()), "bob")
 
     err = parse_fail(def, ["--", "-n", "alice"])
     @test err.domain == OptParse.ERR_Main
@@ -281,14 +281,14 @@ end
 
 
 @testset "should be type stable" begin
-    @test_opt withDefault(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080)
-    @test_opt withDefault(flag("-d", "--debug"), false)
+    @test_opt default(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080)
+    @test_opt default(flag("-d", "--debug"), false)
 
     @test_opt object(
         (
             command = option(("-c", "--command"), str()),
-            port = withDefault(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080),
-            debug = withDefault(flag("-d", "--debug"), false),
+            port = default(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080),
+            debug = default(flag("-d", "--debug"), false),
         )
     )
 

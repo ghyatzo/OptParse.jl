@@ -29,7 +29,7 @@ to reflect if it succeded or not. This is the `parse` step.
 ## Missing Features:
 
 - [ ] automatic usage and help printing
-- [ ] more value parsers (like, dates, paths, uri...)
+- [ ] more value parsers (like dates, URIs, date-times...)
 - [ ] `map` modifier, unfortunately until julia has something like `TypedCallabe`s it's impossible to
 ensure type stability with arbitrary functions.
 - [ ] `longest-match` combinator
@@ -44,8 +44,8 @@ using OptParse
 
 # Define a parser
 parser = object((
-    name = option("-n", "--name", str()),
-    port = option("-p", "--port", integer(min=1000)),
+    name = option("-n", "--name", str("NAME")),
+    port = option("-p", "--port", integer("PORT"; min=1000)),
     verbose = switch("-v", "--verbose")
 ))
 
@@ -62,7 +62,7 @@ The style implemented in this library is the following:
 - short form names only accept single letters: `-n` is fine, `-run` will be treated as bundled `-r -u -n`.
 - short form options must separate the flag from the value: `-n name`. No gcc style `-L/usr/include`.
 - long form is represented with two dashes `--long`
-- `--` means: from that point on, stop recognizing flags, options, and commands. Everything after it is treated as positional input.
+- `--` means: from that point on, stop recognizing flags and options. Everything after it can be consumed by positional-style parsers.
 
 For the public entrypoints:
 
@@ -86,12 +86,12 @@ The fundamental parsers that match command-line tokens:
 
 - **`option`** - Matches key-value pairs: `--port 8080` or `-p 8080`
 - **`flag`** - Boolean flags like: `--verbose` or `-v`. A plain `flag` MUST be present. See `switch` for a flag that is false if not passed.
-- **`argument`** - Positional arguments: `cp source destination`
-- **`command`** - Subcommands: `git add file.txt`
+- **`arg`** - Positional arguments: `cp source destination`
+- **`cmd`** - Subcommands: `git add file.txt`
 
 ```julia
 # Options with different styles
-port = option("-p", "--port", integer())
+port = option("-p", "--port", integer("PORT"))
 result = argparse(port, ["--port=8080"])  # Long form with =
 result = argparse(port, ["-p", "8080"])   # Short form
 
@@ -113,12 +113,13 @@ Type-safe parsers that convert strings to values:
 - **`flt()`** / **`flt32()`**, **`flt64()`** - Floating point numbers
 - **`choice()`** - Enumerated values from a string list or `@enum` type
 - **`uuid()`** - UUID validation
+- **`path()`** - Existing filesystem paths
 
 ```julia
 # Type-safe parsing with constraints
-port = option("-p", integer("PORT", min=1000, max=65535))
+port = option("-p", integer("PORT"; min=1000, max=65535))
 level = option("-l", choice("LEVEL", ["debug", "info", "warn", "error"]))
-config = option("-c", str("FILE", pattern=r".*\.toml$"))
+config = option("-c", str("FILE"; pattern=r".*\.toml$"))
 
 @enum Mode begin
     Debug
@@ -136,19 +137,19 @@ but the positional form is the main API.
 
 Enhance parsers with additional behavior:
 
-- **`optional`** - Convenience wrapper for `withDefault(p, nothing)`
-- **`withDefault`** - Provides a fallback value
+- **`optional`** - Convenience wrapper for `default(p, nothing)`
+- **`default`** - Provides a fallback value
 - **`multiple`** - Allows repeated matches, returns a vector
 
 ```julia
 # Optional values
-email = optional(option("-e", "--email", str()))
+email = optional(option("-e", "--email", str("EMAIL")))
 
 # With defaults
-port = withDefault(option("-p", integer()), 8080)
+port = default(option("-p", integer("PORT")), 8080)
 
 # Multiple values
-packages = multiple(argument(str()))  # pkg add Package1 Package2 Package3
+packages = multiple(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
 
 # Verbosity levels
 verbosity = multiple(flag("-v"))  # -v -v -v or -vvv
@@ -163,25 +164,25 @@ Compose parsers into complex structures:
 - **`tup`** - Ordered tuple (preserves parser order)
 - **`objmerge`** / **`concat`** - Merge multiple parser groups
 
-`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `argument(...)` or `multiple(argument(...))` last.
+`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `arg(...)` or `multiple(arg(...))` last.
 
 ```julia
 # Object composition
 parser = object((
-    input = argument(str("INPUT")),
-    output = option("-o", "--output", str()),
+    input = arg(str("INPUT")),
+    output = option("-o", "--output", str("OUTPUT")),
     force = switch("-f", "--force")
 ))
 
 # Alternative commands with or
-addCmd = command("add", object((
+addCmd = cmd("add", object((
     action = @constant(:add),
-    packages = multiple(argument(str()))
+    packages = multiple(arg(str("PACKAGE")))
 )))
 
-removeCmd = command("remove", object((
+removeCmd = cmd("remove", object((
     action = @constant(:remove),
-    packages = multiple(argument(str()))
+    packages = multiple(arg(str("PACKAGE")))
 )))
 
 pkgParser = or(addCmd, removeCmd)
@@ -201,22 +202,22 @@ commonOpts = object((
 ))
 
 # Add command
-addCmd = command("add", objmerge(
+addCmd = cmd("add", objmerge(
     commonOpts,
-    object((packages = multiple(argument(str("PACKAGE"))),))
+    object((packages = multiple(arg(str("PACKAGE"))),))
 ))
 
 # Remove command
-removeCmd = command("remove", "rm", objmerge(
+removeCmd = cmd("remove", "rm", objmerge(
     commonOpts,
     object((
         all = switch("--all"),
-        packages = multiple(argument(str("PACKAGE")))
+        packages = multiple(arg(str("PACKAGE")))
     ))
 ))
 
 # Instantiate command
-instantiateCmd = command("instantiate", objmerge(
+instantiateCmd = cmd("instantiate", objmerge(
     commonOpts,
     object((
         manifest = switch("-m", "--manifest"),
@@ -243,11 +244,11 @@ parser = object((
     port = option("-p", integer())
 ))
 
-# Return type: @NamedTuple{name::String, port::Int64)}
+# Return type: @NamedTuple{name::String, port::Int64}
 
 parser = or(
-    object((mode = @constant(:a), value = argument(integer()))),
-    object((mode = @constant(:b), value = argument(str())))
+    object((mode = @constant(:a), value = arg(integer()))),
+    object((mode = @constant(:b), value = arg(str())))
 )
 
 # Return type: Union{@NamedTuple{mode::Val{:a}, ...}, @NamedTuple{mode::Val{:b}, ...}}

@@ -57,7 +57,7 @@ Current parsing conventions:
 - short option names are single-letter only
 - short options must separate the flag from the value: `-n value`
 - long options use the `--long` form
-- `--` means: from that point on, stop recognizing flags, options, and commands. Everything after it is treated as positional input
+- `--` means: from that point on, stop recognizing flags and options. Everything after it can be consumed by positional-style parsers
 
 For the public entrypoints:
 
@@ -82,8 +82,8 @@ The fundamental parsers that match command-line tokens:
 - [`option`](@ref) - Matches key-value pairs: `--port 8080` or `-p 8080`
 - [`flag`](@ref) - Mandatory boolean flags: `--verbose` or `-v`
 - [`switch`](@ref) - Optional boolean flags that default to `false`
-- [`argument`](@ref) - Positional arguments: `source destination`
-- [`command`](@ref) - Subcommands: `git add file.txt`
+- [`arg`](@ref) - Positional arguments: `source destination`
+- [`cmd`](@ref) - Subcommands: `git add file.txt`
 - [`@constant`](@ref) - Always returns a constant value
 
 ### Value Parsers
@@ -107,8 +107,8 @@ The full constructor reference for value parsers is listed in the [API reference
 
 Enhance parsers with additional behavior:
 
-- [`optional`](@ref) - Convenience wrapper for `withDefault(p, nothing)`
-- [`withDefault`](@ref) - Provides a fallback value
+- [`optional`](@ref) - Convenience wrapper for `default(p, nothing)`
+- [`default`](@ref) - Provides a fallback value
 - [`multiple`](@ref) - Allows repeated matches, returns a vector
 
 ### Constructors
@@ -120,7 +120,7 @@ Compose parsers into complex structures:
 - [`tup`](@ref) - Ordered tuple (preserves parser order)
 - [`objmerge`](@ref) / [`concat`](@ref) - Merge multiple parser groups
 
-`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `argument(...)` or `multiple(argument(...))` last.
+`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `arg(...)` or `multiple(arg(...))` last.
 
 ### Complete Application Example
 
@@ -136,22 +136,22 @@ commonOpts = object((
 ))
 
 # Add command
-addCmd = command("add", objmerge(
+addCmd = cmd("add", objmerge(
     commonOpts,
-    object((packages = multiple(argument(str("PACKAGE"))),))
+    object((packages = multiple(arg(str("PACKAGE"))),))
 ))
 
 # Remove command
-removeCmd = command("remove", "rm", objmerge(
+removeCmd = cmd("remove", "rm", objmerge(
     commonOpts,
     object((
         all = switch("--all"),
-        packages = multiple(argument(str("PACKAGE")))
+        packages = multiple(arg(str("PACKAGE")))
     ))
 ))
 
 # Instantiate command
-instantiateCmd = command("instantiate", objmerge(
+instantiateCmd = cmd("instantiate", objmerge(
     commonOpts,
     object((
         manifest = switch("-m", "--manifest"),

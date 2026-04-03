@@ -5,7 +5,7 @@
             option("-y", integer()),
         ),
         tup(
-            argument(str()),
+            arg(str()),
         ),
     )
 

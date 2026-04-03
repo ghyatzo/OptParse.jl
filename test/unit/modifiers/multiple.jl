@@ -28,7 +28,7 @@ end
 end
 
 @testset "should work with argument parsers" begin
-    baseParser = argument(str())
+    baseParser = arg(str())
     multipleParser = multiple(baseParser)
 
     val = parse_ok(multipleParser, ["file1.txt", "file2.txt", "file3.txt"])
@@ -46,7 +46,7 @@ end
 end
 
 @testset "should keep parsing positional repetitions after --" begin
-    parser = multiple(argument(str()); min = 1)
+    parser = multiple(arg(str()); min = 1)
 
     val = parse_ok(parser, ["--", "hello", "world"])
     @test val == ["hello", "world"]
@@ -65,7 +65,7 @@ end
 end
 
 @testset "should enforce maximum constraint" begin
-    baseParser = argument(str())
+    baseParser = arg(str())
     multipleParser = multiple(baseParser; max = 2)
 
     err = parse_fail(multipleParser, ["file1.txt", "file2.txt", "file3.txt"])
@@ -77,7 +77,7 @@ end
 end
 
 @testset "should enforce both min and max constraints" begin
-    baseParser = argument(str())
+    baseParser = arg(str())
     multipleParser = multiple(baseParser; min = 1, max = 3)
 
     # When used standalone, multiple() fails if it can't parse at least one occurrence
@@ -126,7 +126,7 @@ end
         (
             locales = multiple(option(("-l", "--locale"), str())),
             verbose = flag("-v", "--verbose"),
-            files = multiple(argument(str()); min = 1),
+            files = multiple(arg(str()); min = 1),
         )
     )
 
@@ -253,7 +253,7 @@ end
         (
             name = option("-n", "--name", str()),
             locales = multiple(option(("-l", "--locale"), str())),
-            id = argument(str()),
+            id = arg(str()),
         )
     )
     val1 = parse_ok(parser1, ["-n", "John", "-l", "en-US", "-l", "fr-FR", "user123"])
@@ -265,7 +265,7 @@ end
     parser2 = object(
         (
             title = option("-t", "--title", str()),
-            ids = multiple(argument(str()); min = 1, max = 3),
+            ids = multiple(arg(str()); min = 1, max = 3),
         )
     )
     val2 = parse_ok(parser2, ["-t", "My Title", "id1", "id2"])
@@ -282,7 +282,7 @@ end
     parser = object(
         (
             locales = multiple(option(("-l", "--locale"), str())),
-            args = multiple(argument(str())),
+            args = multiple(arg(str())),
         )
     )
 
@@ -292,7 +292,7 @@ end
 end
 
 @testset "should handle state transitions and updates correctly" begin
-    baseParser = argument(str())
+    baseParser = arg(str())
     multipleParser = multiple(baseParser)
 
     # Test initial state

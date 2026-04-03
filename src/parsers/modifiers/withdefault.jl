@@ -13,7 +13,7 @@ modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "", subject=
 
 function modwithdefault_render_error(io::IO, code::WithDefaultErrCode, err::ParseError)
     if code == WITHDEFAULT_DummyError
-        print(io, "withDefault internal error")
+        print(io, "default internal error")
     else
         print(io, "unreachable")
     end
@@ -86,7 +86,7 @@ function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDef
             error_with_context(result,
                 CompletePhase,
                 ERR_ModWithDefault,
-                "withDefault"
+                "default"
             )
         )
     end

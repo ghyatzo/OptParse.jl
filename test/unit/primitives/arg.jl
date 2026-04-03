@@ -1,12 +1,12 @@
 @testset "should create a parser that expects a single argument" begin
-    parser = argument(str(; metavar = "FILE"))
+    parser = arg(str(; metavar = "FILE"))
 
     @test priority(parser) == 5
     @test getproperty(unwrapunion(parser), :initialState) === none(OptParse.ParseResult{String})
 end
 
 @testset "should parse a string argument" begin
-    parser = argument(str(; metavar = "FILE"))
+    parser = arg(str(; metavar = "FILE"))
     state = parser.initialState
     buffer = ["myfile.txt"]
     ctx = Context(;buffer, state)
@@ -26,7 +26,7 @@ end
 end
 
 @testset "should parse an integer argument" begin
-    parser = argument(integer(; min = 0))
+    parser = arg(integer(; min = 0))
     state = parser.initialState
     buffer = ["42"]
     ctx = Context(;buffer, state)
@@ -46,7 +46,7 @@ end
 end
 
 @testset "should fail when buffer is empty" begin
-    parser = argument(str(; metavar = "FILE"))
+    parser = arg(str(; metavar = "FILE"))
     state = parser.initialState
     buffer = String[]
     ctx = Context(; buffer, state)
@@ -61,7 +61,7 @@ end
 end
 
 @testset "should propagate value parser failures" begin
-    parser = argument(integer(; min = 1, max = 100))
+    parser = arg(integer(; min = 1, max = 100))
     state = getproperty(unwrapunion(parser), :initialState)
     buffer = ["invalid"]
     ctx = Context(;buffer, state)
@@ -79,7 +79,7 @@ end
 end
 
 @testset "should complete successfully with valid state" begin
-    parser = argument(str(; metavar = "FILE"))
+    parser = arg(str(; metavar = "FILE"))
     validState = some(OptParse.ParseResult{String}(Ok("test.txt")))
 
     res = splitcomplete(parser, validState)
@@ -88,7 +88,7 @@ end
 end
 
 @testset "should fail completion with invalid state" begin
-    parser = argument(str(; pattern = r"^A+$", metavar = "FILE"))
+    parser = arg(str(; pattern = r"^A+$", metavar = "FILE"))
     invalidState = some(str(; pattern = r"^A+$")("bbb"))
 
     res = splitcomplete(parser, invalidState)
@@ -99,8 +99,8 @@ end
 end
 
 @testset "should work with different value parser constraints" begin
-    fileParser = argument(str(; pattern = r"\.(txt|md)$"))
-    portParser = argument(integer(; min = 1024, max = 0xffff))
+    fileParser = arg(str(; pattern = r"\.(txt|md)$"))
+    portParser = arg(integer(; min = 1024, max = 0xffff))
 
     # valid file
     @test parse_ok(fileParser, ["readme.txt"]) == "readme.txt"
@@ -114,7 +114,7 @@ end
 end
 
 @testset "should handle -- edge cases correctly" begin
-    parser = argument(str())
+    parser = arg(str())
 
     @test parse_ok(parser, ["--", "abc"]) == "abc"
 
@@ -134,10 +134,10 @@ end
 end
 
 @testset "should be type stable" begin
-    @test_opt argument(str(; pattern = r"\.(txt|md)$"))
-    fileParser = argument(str(; pattern = r"\.(txt|md)$"))
-    @test_opt argument(integer(; min = 1024, max = 0xffff))
-    portParser = argument(integer(; min = 1024, max = 0xffff))
+    @test_opt arg(str(; pattern = r"\.(txt|md)$"))
+    fileParser = arg(str(; pattern = r"\.(txt|md)$"))
+    @test_opt arg(integer(; min = 1024, max = 0xffff))
+    portParser = arg(integer(; min = 1024, max = 0xffff))
 
     @test_opt argparse(fileParser, ["readme.txt"])
     @test_opt argparse(portParser, ["8080"])

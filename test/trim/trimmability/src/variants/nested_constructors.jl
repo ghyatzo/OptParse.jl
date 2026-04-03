@@ -1,22 +1,22 @@
 using OptParse
 
-const sync_cmd = command(
+const sync_cmd = cmd(
     "sync",
     tup(
         object((;
             source = option("--src", str()),
             dest = option("--dst", str()),
-            force = withDefault(flag("-f", "--force"), false),
+            force = default(flag("-f", "--force"), false),
         )),
         optional(option("-t", "--threads", integer(; min = 1, max = 16))),
     )
 )
 
-const status_cmd = command(
+const status_cmd = cmd(
     "status",
     object((;
         long = optional(flag("-l", "--long")),
-        json = withDefault(flag("--json"), false),
+        json = default(flag("--json"), false),
     ))
 )
 

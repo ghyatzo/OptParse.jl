@@ -25,12 +25,12 @@ end
         include("unit/primitives/option.jl")
     end
 
-    @testset "Argument parser" begin
-        include("unit/primitives/argument.jl")
+    @testset "Arg parser" begin
+        include("unit/primitives/arg.jl")
     end
 
-    @testset "Command parser" begin
-        include("unit/primitives/command.jl")
+    @testset "Cmd parser" begin
+        include("unit/primitives/cmd.jl")
     end
 end
 
@@ -64,8 +64,8 @@ end
     #     include("unit/modifiers/optional.jl")
     # end
 
-    @testset "withDefault Modifier" begin
-        include("unit/modifiers/withDefault.jl")
+    @testset "Default Modifier" begin
+        include("unit/modifiers/default.jl")
     end
 
     @testset "Multiple Modifier" begin

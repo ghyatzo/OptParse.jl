@@ -103,7 +103,7 @@ end
             option = option("--host", str(; metavar = "HOST")),
             flag = flag("--verbose", "-v"),
             flag2 = flag("--test"),
-            arg = argument(str(; metavar = "TEST")),
+            arg = arg(str(; metavar = "TEST")),
         )
     )
 
@@ -131,7 +131,7 @@ end
         "test", (
             option = option("--host", str(; metavar = "HOST")),
             flag = optional(flag("--verbose", "-v")),
-            arg = argument(str(; metavar = "TEST")),
+            arg = arg(str(; metavar = "TEST")),
         )
     )
 
@@ -154,7 +154,7 @@ end
             option = option("--host", str(; metavar = "HOST")),
             flag = flag("--verbose", "-v"),
             flag2 = flag("--test"),
-            arg = argument(str(; metavar = "TEST")),
+            arg = arg(str(; metavar = "TEST")),
         )
     )
 
@@ -164,7 +164,7 @@ end
             option = option("--host", str(; metavar = "HOST")),
             flag = flag("--verbose", "-v"),
             flag2 = flag("--test"),
-            arg = argument(str(; metavar = "TEST")),
+            arg = arg(str(; metavar = "TEST")),
         )
     )
 

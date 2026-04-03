@@ -82,7 +82,7 @@ end
 @testset "Should handle control only matches correctly" begin
     parser = or(
         flag("-a"),
-        argument(str()),
+        arg(str()),
     )
 
     # A control-only success on `--` must not prevent later branches from
@@ -104,8 +104,8 @@ end
 
 @testset "should treat everything after -- as positional input rather than command syntax" begin
     parser = or(
-        command("test", object((opt = option("-v", integer()),))),
-        argument(str()),
+        cmd("test", object((opt = option("-v", integer()),))),
+        arg(str()),
     )
 
     @test parse_ok(parser, ["--", "test"]) == "test"
@@ -114,11 +114,11 @@ end
 
 @testset "should keep parsing the already selected branch after command match" begin
     parser = or(
-        command("bye", object((
+        cmd("bye", object((
             name = option("-n", str()),
             port = option("-p", integer()),
         ))),
-        multiple(argument(str())),
+        multiple(arg(str())),
     )
 
     # Once `bye` has selected the command branch, later tokens must stay inside

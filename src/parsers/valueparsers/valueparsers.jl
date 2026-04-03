@@ -55,17 +55,17 @@ julia> using OptParse
 
 julia> name = str("NAME");
 
-julia> argparse(argument(name), ["alice"])
+julia> argparse(arg(name), ["alice"])
 "alice"
 
 julia> txt = str("FILE"; pattern = r".*\\.(txt|md)\$");
 
-julia> argparse(argument(txt), ["readme.md"])
+julia> argparse(arg(txt), ["readme.md"])
 "readme.md"
 ```
 
 # See Also
-- [`argument`](@ref): consume a positional value using this parser
+- [`arg`](@ref): consume a positional value using this parser
 - [`option`](@ref): consume an option value using this parser
 """
 str(; kw...) = ValueParser{String}(StringVal{String}(; kw...))
@@ -92,14 +92,14 @@ julia> using OptParse
 
 julia> mode = choice("MODE", ["debug", "release"]);
 
-julia> argparse(argument(mode), ["DEBUG"])
+julia> argparse(arg(mode), ["DEBUG"])
 "DEBUG"
 
 julia> @enum LogLevel info warn error
 
 julia> level = choice("LEVEL", LogLevel);
 
-julia> argparse(argument(level), ["warn"])
+julia> argparse(arg(level), ["warn"])
 warn::LogLevel = 1
 ```
 """
@@ -131,12 +131,12 @@ julia> using OptParse
 
 julia> port = integer("PORT"; min = 1024, max = 65535);
 
-julia> argparse(argument(port), ["8080"])
+julia> argparse(arg(port), ["8080"])
 8080
 
 julia> small = integer("COUNT", Int8);
 
-julia> argparse(argument(small), ["12"])
+julia> argparse(arg(small), ["12"])
 12
 ```
 
@@ -250,12 +250,12 @@ julia> using OptParse
 
 julia> ratio = flt("RATIO"; min = 0.0, max = 1.0);
 
-julia> argparse(argument(ratio), ["0.25"])
+julia> argparse(arg(ratio), ["0.25"])
 0.25
 
 julia> x = flt("X", Float32);
 
-julia> typeof(argparse(argument(x), ["1.5"]))
+julia> typeof(argparse(arg(x), ["1.5"]))
 Float32
 ```
 
@@ -308,7 +308,7 @@ julia> using OptParse, UUIDs
 
 julia> id = uuid("ID");
 
-julia> val = argparse(argument(id), ["550e8400-e29b-41d4-a716-446655440000"]);
+julia> val = argparse(arg(id), ["550e8400-e29b-41d4-a716-446655440000"]);
 
 julia> typeof(val)
 UUID

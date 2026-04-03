@@ -44,7 +44,7 @@ using UUIDs:
 
 # modifying combinators: Transform existing Parsers adding additional behaviour on top of the core one
 #	OK optional()
-#	OK withDefault()
+#	OK default()
 #	OK multiple(min, max) (match multiple times, collect into an array.)
 #	X map() # probably impossible to make typstable until we have something like TypedCallables
 #	-
@@ -65,7 +65,7 @@ using UUIDs:
 # - Shell completions
 
 # API Changes TODO/IDEAS
-# - shorten names: object -> obj, argument -> arg, command -> cmd
+# - shorten names: object -> obj
 # OK make switch the default behaviour and call it flag.
 # NO rename flag to `gate`
 # - rename multiple to 'many'
@@ -74,11 +74,12 @@ using UUIDs:
 export
     @?,
     @constant,
+    arg,
     argparse,
-    argument,
     choice,
-    command,
     concat,
+    cmd,
+    default,
     flag,
     flt,
     flt32,
@@ -103,8 +104,7 @@ export
     u32,
     u64,
     u8,
-    uuid,
-    withDefault
+    uuid
 
 include("utils.jl")
 include("core/context.jl")

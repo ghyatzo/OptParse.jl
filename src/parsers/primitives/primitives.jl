@@ -2,5 +2,5 @@
 include("constant.jl")
 include("flag.jl")
 include("option.jl")
-include("argument.jl")
-include("command.jl")
+include("arg.jl")
+include("cmd.jl")

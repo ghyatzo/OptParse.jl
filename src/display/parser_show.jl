@@ -94,7 +94,7 @@ show_compact(io::IO, p::ArgConstant) = let
 	print(io, ")")
 end
 show_compact(io::IO, p::ArgArgument) = let
-	print(io, "argument(")
+	print(io, "arg(")
 	if !isempty(metavar(p.valparser))
 		print(io, metavar(p.valparser))
 	else
@@ -103,7 +103,7 @@ show_compact(io::IO, p::ArgArgument) = let
 	print(io, ")")
 end
 show_compact(io::IO, p::ArgCommand) = let
-	print(io, "command(")
+	print(io, "cmd(")
 	print(io, p.names[1])
 	print(io, ")")
 end
@@ -125,7 +125,7 @@ show_compact(io::IO, p::ConstrTuple) = let
 end
 
 show_compact(io::IO, p::ModWithDefault) = let
-	print(io, "withDefault(")
+	print(io, "default(")
 	show_compact(io, p.parser)
 	print(io, ", ")
 	show(io, p.default)

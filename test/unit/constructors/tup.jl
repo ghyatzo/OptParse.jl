@@ -53,7 +53,7 @@ end
 
 @testset "should work with arguments first, then options" begin
     parser = tup(
-        argument(str()),
+        arg(str()),
         flag("-v", "--verbose"),
         option(("-o", "--output"), str()),
     )
@@ -64,8 +64,8 @@ end
 
 @testset "should work with multiple arguments and options mixed" begin
     parser = tup(
-        argument(str()),
-        argument(str()),
+        arg(str()),
+        arg(str()),
         flag("-v", "--verbose"),
     )
 
@@ -75,9 +75,9 @@ end
 
 @testset "should handle argument-option-argument pattern" begin
     parser = tup(
-        argument(str()),
+        arg(str()),
         option(("-t", "--type"), str()),
-        argument(str()),
+        arg(str()),
     )
 
     val = parse_ok(parser, ["input.txt", "-t", "json", "output.txt"])
@@ -86,7 +86,7 @@ end
 
 @testset "should fail when argument parser cannot find expected argument" begin
     parser = tup(
-        argument(str()),
+        arg(str()),
         flag("-v", "--verbose"),
     )
 
@@ -97,11 +97,11 @@ end
 @testset "should work with complex argument and option combinations" begin
     # CLI pattern: command input_file --format json --verbose output_file
     parser = tup(
-        argument(str(; metavar = "COMMAND")),
-        argument(str(; metavar = "INPUT")),
+        arg(str(; metavar = "COMMAND")),
+        arg(str(; metavar = "INPUT")),
         option(("-f", "--format"), str()),
         flag("-v", "--verbose"),
-        argument(str(; metavar = "OUTPUT")),
+        arg(str(; metavar = "OUTPUT")),
     )
 
     val = parse_ok(parser, ["convert", "input.md", "-f", "json", "-v", "output.json"])
@@ -111,7 +111,7 @@ end
 @testset "should not let control-only consuming matches satisfy tuple elements" begin
     parser = tup(
         flag("-a"),
-        argument(str()),
+        arg(str()),
     )
 
     # `--` is consumed by the flag parser only to propagate option termination.
@@ -128,7 +128,7 @@ end
 @testset "should propagate control-only consumption to later tuple elements" begin
     parser = tup(
         optional(flag("-a")),
-        argument(str()),
+        arg(str()),
     )
 
     val = parse_ok(parser, ["--", "hello"])

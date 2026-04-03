@@ -1,10 +1,10 @@
 using OptParse
 
 const parser = tup(
-    argument(str()),
-    withDefault(option("-n", "--num", integer()), 10),
+    arg(str()),
+    default(option("-n", "--num", integer()), 10),
     optional(flag("-v", "--verbose")),
-    withDefault(option("--mode", choice(["fast", "safe"])), "safe"),
+    default(option("--mode", choice(["fast", "safe"])), "safe"),
 )
 
 function @main(args::Vector{String})::Cint

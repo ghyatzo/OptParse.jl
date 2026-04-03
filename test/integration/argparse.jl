@@ -58,7 +58,7 @@ end
         "Client", (
             connect = option("-c", "--connect", str(metavar = "URL")),
             timeout = option("-t", "--timeout", integer(min = 10)),
-            retry = withDefault(flag("-r", "--retry"), false),
+            retry = default(flag("-r", "--retry"), false),
         )
     )
 
@@ -137,7 +137,7 @@ end
         "Server", (
             port = option("-p", "--port", integer(min = 1000, max = 25500)),
             host = option("-h", "--host", str(pattern = r"^[a-zA-Z][a-zA-Z0-9_]*$")),
-            verbose = withDefault(true)(flag("-v")),
+            verbose = default(true)(flag("-v")),
         )
     )
 
@@ -194,7 +194,7 @@ end
 @testset "should handle edge cases with options terminator" begin
     parser = object(
         (
-            verbose = withDefault(false)(flag("-v")),
+            verbose = default(false)(flag("-v")),
         )
     )
 
@@ -210,7 +210,7 @@ end
         (
             verbose = flag("-v"),
             output = option("-o", str(; metavar = "FILE")),
-            input = argument(str(; metavar = "INPUT")),
+            input = arg(str(; metavar = "INPUT")),
         )
     )
 
@@ -226,7 +226,7 @@ end
             type = @constant(:group1),
             allow = flag("-a", "--allow"),
             value = option("-v", "--value", integer()),
-            arg = argument(str(; metavar = "ARG")),
+            arg = arg(str(; metavar = "ARG")),
         )
     )
 

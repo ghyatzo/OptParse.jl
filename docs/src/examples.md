@@ -26,10 +26,10 @@ result = argparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
 ### Options Terminator
 
 ```julia
-# After `--`, everything is treated as positional input
+# After `--`, flags and options stop being recognized
 parser = or(
-    command("test", object((opt = option("-v", integer("LEVEL")),))),
-    argument(str("ARG"))
+    cmd("test", object((opt = option("-v", integer("LEVEL")),))),
+    arg(str("ARG"))
 )
 
 result = argparse(parser, ["--", "test"])  # "test"
@@ -54,14 +54,14 @@ mode = option("--mode", choice("MODE", Mode))
 ### Optional and Default Values
 
 ```julia
-# Optional values (`optional(p)` is equivalent to `withDefault(p, nothing)`)
+# Optional values (`optional(p)` is equivalent to `default(p, nothing)`)
 email = optional(option("-e", "--email", str("EMAIL")))
 
 # With defaults
-port = withDefault(option("-p", integer("PORT")), 8080)
+port = default(option("-p", integer("PORT")), 8080)
 
 # Multiple values
-packages = multiple(argument(str("PACKAGE")))  # pkg add Package1 Package2 Package3
+packages = multiple(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
 
 # Verbosity levels
 verbosity = multiple(flag("-v"))  # -v -v -v or -vvv
@@ -71,7 +71,7 @@ verbosity = multiple(flag("-v"))  # -v -v -v or -vvv
 
 ```julia
 parser = object((
-    input = argument(str("INPUT")),
+    input = arg(str("INPUT")),
     output = option("-o", "--output", str("OUTPUT")),
     force = switch("-f", "--force")
 ))
@@ -83,14 +83,14 @@ result = argparse(parser, ["input.txt", "-o", "output.txt", "-f"])
 
 ```julia
 # Define commands
-addCmd = command("add", object((
+addCmd = cmd("add", object((
     action = @constant(:add),
-    packages = multiple(argument(str("PACKAGE")))
+    packages = multiple(arg(str("PACKAGE")))
 )))
 
-removeCmd = command("remove", object((
+removeCmd = cmd("remove", object((
     action = @constant(:remove),
-    packages = multiple(argument(str("PACKAGE")))
+    packages = multiple(arg(str("PACKAGE")))
 )))
 
 # Combine with or
@@ -98,6 +98,6 @@ pkgParser = or(addCmd, removeCmd)
 
 # Parse
 result = argparse(pkgParser, ["add", "DataFrames", "Plots"])
-@assert result.action == :add
+@assert result.action == Val(:add)
 @assert result.packages == ["DataFrames", "Plots"]
 ```
