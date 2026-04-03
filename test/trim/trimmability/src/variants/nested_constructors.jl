@@ -2,7 +2,7 @@ using OptParse
 
 const sync_cmd = cmd(
     "sync",
-    tup(
+    sequence(
         object((;
             source = option("--src", str()),
             dest = option("--dst", str()),

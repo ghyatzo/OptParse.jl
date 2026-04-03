@@ -36,8 +36,8 @@ end
 
 @testset "Constructors" failfast=true begin
 
-    @testset "Objmerge" begin
-        include("unit/constructors/merge.jl")
+    @testset "Combine" begin
+        include("unit/constructors/combine.jl")
     end
 
     @testset "Objects" begin
@@ -48,8 +48,8 @@ end
         include("unit/constructors/or.jl")
     end
 
-    @testset "Tup" begin
-        include("unit/constructors/tup.jl")
+    @testset "Sequence" begin
+        include("unit/constructors/sequence.jl")
     end
 
     @testset "Concat" begin

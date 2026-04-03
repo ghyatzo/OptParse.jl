@@ -57,8 +57,8 @@ multiple
 
 ```@docs
 object
-objmerge
+combine
 or
-tup
+sequence
 concat
 ```

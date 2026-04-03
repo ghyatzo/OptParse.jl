@@ -51,9 +51,9 @@ using UUIDs:
 
 # construct combinators: combine different parsers into new ones
 # 	OK object(), combines multiple named parsers into a single parser that produces a single object. Does not preserve order.
-#	OK tuple(), combines parsers to produce tuple of results. preserves order of the final result, but not necessarily the parsing order.
+#	OK sequence(), combines parsers to produce tuple of results. preserves order of the final result, but not necessarily the parsing order.
 #	OK or(), mutually exclusive alternatives
-#   OK(TEST?) merge(), takes two parsers and generate a new single parser combining both
+#   OK(TEST?) combine(), takes two parsers and generate a new single parser combining both
 #	OK(TEST?) concat(), appends tuple parsers
 #	- longest-match(), tries all parses and selects the one with the longest match.
 #	- group(), documentation only combinator, adds a group label to parsers inside. Ensure to make it work also for groups of options!
@@ -69,7 +69,7 @@ using UUIDs:
 # OK make switch the default behaviour and call it flag.
 # NO rename flag to `gate`
 # - rename multiple to 'many'
-# OK instead of objmerge and concat, use a single merge function? even possible?
+# NO instead of combine and concat, use a single merge function? even possible?
 
 export
     @?,
@@ -77,6 +77,7 @@ export
     arg,
     argparse,
     choice,
+    combine,
     concat,
     cmd,
     default,
@@ -91,7 +92,6 @@ export
     integer,
     multiple,
     object,
-    objmerge,
     option,
     optional,
     or,
@@ -99,7 +99,7 @@ export
     str,
     switch,
     tryargparse,
-    tup,
+    sequence,
     u16,
     u32,
     u64,

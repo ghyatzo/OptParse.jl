@@ -119,7 +119,7 @@ show_compact(io::IO, p::ConstrOr) = let
 	print(io, " branches)")
 end
 show_compact(io::IO, p::ConstrTuple) = let
-	print(io, "tup(")
+	print(io, "sequence(")
 	print(io, length(p.parsers))
 	print(io, " items)")
 end
@@ -187,7 +187,7 @@ function show_pretty(io::IO, p::ConstrOr, indent::Int = 0)
 end
 
 function show_pretty(io::IO, p::ConstrTuple, indent::Int = 0)
-	print(io, "tup")
+	print(io, "sequence")
 	for (i, child) in enumerate(p.parsers)
 		print(io, "\n")
 		_print_indent(io, indent + 1)

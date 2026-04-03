@@ -1,5 +1,5 @@
-@testset "should merge object parsers into a single parser" begin
-    parser = objmerge(
+@testset "should combine object parsers into a single parser" begin
+    parser = combine(
         object((
             verbose = flag("-v", "--verbose"),
         )),
@@ -17,8 +17,8 @@
     @test val.port == 8080
 end
 
-@testset "should work with labeled merged objects" begin
-    parser = objmerge(
+@testset "should work with labeled combined objects" begin
+    parser = combine(
         "network",
         object((
             host = option("--host", str()),
@@ -33,8 +33,8 @@ end
     @test val.port == 8080
 end
 
-@testset "should fail when merged objects have duplicate field names" begin
-    @test_throws Exception objmerge(
+@testset "should fail when combined objects have duplicate field names" begin
+    @test_throws Exception combine(
         object((name = option("--name", str()),)),
         object((name = option("--other-name", str()),)),
     )

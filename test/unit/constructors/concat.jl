@@ -1,10 +1,10 @@
 @testset "should concatenate tuple parsers into a flat tuple" begin
     parser = concat(
-        tup(
+        sequence(
             option("-x", integer()),
             option("-y", integer()),
         ),
-        tup(
+        sequence(
             arg(str()),
         ),
     )
@@ -15,8 +15,8 @@ end
 
 @testset "should work with labeled concatenated tuples" begin
     parser = concat(
-        tup(option("--host", str())),
-        tup(option("--port", integer())),
+        sequence(option("--host", str())),
+        sequence(option("--port", integer())),
         label = "connection",
     )
 
@@ -26,9 +26,9 @@ end
 
 @testset "should support concatenating more than two tuple parsers" begin
     parser = concat(
-        tup(option("-u", str())),
-        tup(option("-p", str())),
-        tup(flag("-v")),
+        sequence(option("-u", str())),
+        sequence(option("-p", str())),
+        sequence(flag("-v")),
     )
 
     val = parse_ok(parser, ["-u", "user", "-p", "pass", "-v"])

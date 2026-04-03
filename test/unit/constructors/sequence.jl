@@ -1,5 +1,5 @@
 @testset "should create a parser with array-based API" begin
-    parser = tup(
+    parser = sequence(
         flag("-v", "--verbose"),
         option(("-p", "--port"), integer()),
     )
@@ -11,7 +11,7 @@
 end
 
 @testset "should parse parsers sequentially in array order" begin
-    parser = tup(
+    parser = sequence(
         option(("-n", "--name"), str()),
         flag("-v", "--verbose"),
     )
@@ -20,8 +20,8 @@ end
     @test val == ("Alice", true)
 end
 
-@testset "should work with labeled tuples" begin
-    parser = tup("User Data",
+@testset "should work with labeled sequences" begin
+    parser = sequence("User Data",
         option(("-n", "--name"), str()),
         flag("-v", "--verbose"),
     )
@@ -30,15 +30,15 @@ end
     @test val == ("Bob", true)
 end
 
-@testset "should handle empty tuple" begin
-    parser = tup()  # empty tuple of parsers
+@testset "should handle empty sequence" begin
+    parser = sequence()  # empty sequence of parsers
 
     val = parse_ok(parser, String[])
     @test length(val) == 0
 end
 
 @testset "should work with optional parsers" begin
-    parser = tup(
+    parser = sequence(
         option(("-n", "--name"), str()),
         optional(option(("-a", "--age"), integer())),
         flag("-v", "--verbose"),
@@ -52,7 +52,7 @@ end
 end
 
 @testset "should work with arguments first, then options" begin
-    parser = tup(
+    parser = sequence(
         arg(str()),
         flag("-v", "--verbose"),
         option(("-o", "--output"), str()),
@@ -63,7 +63,7 @@ end
 end
 
 @testset "should work with multiple arguments and options mixed" begin
-    parser = tup(
+    parser = sequence(
         arg(str()),
         arg(str()),
         flag("-v", "--verbose"),
@@ -74,7 +74,7 @@ end
 end
 
 @testset "should handle argument-option-argument pattern" begin
-    parser = tup(
+    parser = sequence(
         arg(str()),
         option(("-t", "--type"), str()),
         arg(str()),
@@ -85,7 +85,7 @@ end
 end
 
 @testset "should fail when argument parser cannot find expected argument" begin
-    parser = tup(
+    parser = sequence(
         arg(str()),
         flag("-v", "--verbose"),
     )
@@ -96,7 +96,7 @@ end
 
 @testset "should work with complex argument and option combinations" begin
     # CLI pattern: command input_file --format json --verbose output_file
-    parser = tup(
+    parser = sequence(
         arg(str(; metavar = "COMMAND")),
         arg(str(; metavar = "INPUT")),
         option(("-f", "--format"), str()),
@@ -109,7 +109,7 @@ end
 end
 
 @testset "should not let control-only consuming matches satisfy tuple elements" begin
-    parser = tup(
+    parser = sequence(
         flag("-a"),
         arg(str()),
     )
@@ -126,7 +126,7 @@ end
 end
 
 @testset "should propagate control-only consumption to later tuple elements" begin
-    parser = tup(
+    parser = sequence(
         optional(flag("-a")),
         arg(str()),
     )

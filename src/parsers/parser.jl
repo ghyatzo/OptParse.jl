@@ -785,21 +785,21 @@ julia> result.timeout
 - Field names become the keys in the result
 
 # See Also
-- [`objmerge`](@ref): Merge multiple objects into one
-- [`tup`](@ref): Ordered tuple constructor
+- [`combine`](@ref): Combine multiple objects into one
+- [`sequence`](@ref): Ordered tuple constructor
 """
 function object end
 
 object(obj::NamedTuple) = _parser(_object(obj))
 object(objlabel, obj::NamedTuple) = _parser(_object(obj; label = objlabel))
 
-## Objmerge
+## Combine
 
 """
-    objmerge(objs...)
-    objmerge(label::String, objs...)
+    combine(objs...)
+    combine(label::String, objs...)
 
-Constructor that merges multiple object parsers into a single parser.
+Constructor that combines multiple object parsers into a single parser.
 
 This is useful for composing parsers from reusable components or for organizing
 large parser definitions into logical groups.
@@ -828,7 +828,7 @@ julia> networkOpts = object((
        ));
 
 julia> # Merge into single parser
-       parser = objmerge(commonOpts, networkOpts);
+       parser = combine(commonOpts, networkOpts);
 
 julia> result = argparse(parser, ["-v", "--host", "localhost", "--port", "8080"]);
 
@@ -842,7 +842,7 @@ julia> result.port
 8080
 
 julia> # With label
-       parser = objmerge("server_options", commonOpts, networkOpts);
+       parser = combine("server_options", commonOpts, networkOpts);
 
 julia> result = argparse(parser, ["--host", "127.0.0.1", "--port", "3000", "-v"]);
 
@@ -858,13 +858,13 @@ julia> result.host
 
 # See Also
 - [`object`](@ref): Create parser from single named tuple
-- [`concat`](@ref): Similar operation for tuple constructors
+- [`concat`](@ref): Similar operation for sequence constructors
 """
-function objmerge end
+function combine end
 
 
-objmerge(objs...) = _parser(_object(_merge(objs)))
-objmerge(label::String, objs...) = _parser(_object(_merge(objs); label))
+combine(objs...) = _parser(_object(_merge(objs)))
+combine(label::String, objs...) = _parser(_object(_merge(objs); label))
 
 ## Or
 
@@ -966,13 +966,13 @@ function or end
 
 or(parsers...) = _parser(ConstrOr(parsers))
 
-## Tup
+## Sequence
 
 """
-    tup(parsers...; kw...)
-    tup(label::String, parsers...; kw...)
+    sequence(parsers...; kw...)
+    sequence(label::String, parsers...; kw...)
 
-Constructor that creates an ordered tuple parser from multiple parsers.
+Constructor that creates an ordered sequence parser from multiple parsers.
 
 Similar to `object` but maintains argument order and returns a tuple instead of
 a named tuple. The order of results matches the order of parsers, even if command-line
@@ -990,7 +990,7 @@ A parser that returns a tuple of parsed values in the same order as the parsers.
 julia> using OptParse
 
 julia> # Basic tuple
-       parser = tup(
+       parser = sequence(
            option("-x", integer()),
            option("-y", integer())
        );
@@ -1001,7 +1001,7 @@ julia> result
 (10, 20)
 
 julia> # With label
-       parser = tup("coordinates",
+       parser = sequence("coordinates",
            option("-x", integer()),
            option("-y", integer()),
            option("-z", integer())
@@ -1013,7 +1013,7 @@ julia> result
 (10, 20, 30)
 
 julia> # Mixed with arguments
-       parser = tup(
+       parser = sequence(
            arg(str("INPUT")),
            option("-o", str()),
            switch("-v")
@@ -1045,25 +1045,25 @@ false
 
 # See Also
 - [`object`](@ref): Named tuple constructor (more flexible)
-- [`concat`](@ref): Concatenate multiple tuples
+- [`concat`](@ref): Concatenate multiple sequences
 """
-function tup end
+function sequence end
 
-tup(parsers...; kw...) = _parser(ConstrTuple(parsers; kw...))
-tup(label::String, parsers...; kw...) = _parser(ConstrTuple(parsers; label, kw...))
+sequence(parsers...; kw...) = _parser(ConstrTuple(parsers; kw...))
+sequence(label::String, parsers...; kw...) = _parser(ConstrTuple(parsers; label, kw...))
 
 ## Concat
 
 """
-    concat(tups...; label = "")
+    concat(seqs...; label = "")
 
-Constructor that concatenates multiple tuple parsers into a single flat tuple.
+Constructor that concatenates multiple sequence parsers into a single flat tuple.
 
-This is useful for composing parsers from reusable tuple components while maintaining
+This is useful for composing parsers from reusable sequence components while maintaining
 a single flat result structure.
 
 # Arguments
-- `tups...`: Multiple tuple parsers to concatenate
+- `seqs...`: Multiple sequence parsers to concatenate
 
 # Keywords
 - `label::String = ""`: Optional label used in diagnostics and stored as tuple metadata
@@ -1075,13 +1075,13 @@ A parser that combines all elements from the input tuples into a single flat tup
 ```jldoctest
 julia> using OptParse
 
-julia> # Reusable tuple components
-       positionArgs = tup(
+julia> # Reusable sequence components
+       positionArgs = sequence(
            option("-x", integer()),
            option("-y", integer())
        );
 
-julia> sizeArgs = tup(
+julia> sizeArgs = sequence(
            option("--width", integer()),
            option("--height", integer())
        );
@@ -1096,8 +1096,8 @@ julia> result
 
 julia> # With label
        parser = concat(
-           tup(option("--host", str())),
-           tup(option("--port", integer())),
+           sequence(option("--host", str())),
+           sequence(option("--port", integer())),
            label = "connection"
        );
 
@@ -1107,11 +1107,11 @@ julia> result
 ("localhost", 8080)
 
 julia> # Multiple concatenations
-       headerArgs = tup(option("-H", str()));
+       headerArgs = sequence(option("-H", str()));
 
-julia> bodyArgs = tup(option("-d", str()));
+julia> bodyArgs = sequence(option("-d", str()));
 
-julia> authArgs = tup(option("-u", str()), option("-p", str()));
+julia> authArgs = sequence(option("-u", str()), option("-p", str()));
 
 julia> httpParser = concat(headerArgs, bodyArgs, authArgs, label = "http_request");
 
@@ -1123,13 +1123,13 @@ julia> result
 
 # Notes
 - Results in a flat tuple, not nested tuples
-- Maintains order across all concatenated tuples
-- Useful for DRY principle with tuple-based parsers
+- Maintains order across all concatenated sequences
+- Useful for DRY principle with sequence-based parsers
 
 # See Also
-- [`tup`](@ref): Create individual tuples
-- [`objmerge`](@ref): Similar operation for object constructors
+- [`sequence`](@ref): Create individual sequences
+- [`combine`](@ref): Similar operation for object constructors
 """
 function concat end
 
-concat(tups...; label = "") = _parser(ConstrTuple(_concat(tups); label))
+concat(seqs...; label = "") = _parser(ConstrTuple(_concat(seqs); label))

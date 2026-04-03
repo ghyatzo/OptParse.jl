@@ -1,6 +1,6 @@
 using OptParse
 
-const parser = tup(
+const parser = sequence(
     arg(str()),
     default(option("-n", "--num", integer()), 10),
     optional(flag("-v", "--verbose")),

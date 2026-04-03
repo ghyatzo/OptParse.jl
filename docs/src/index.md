@@ -117,8 +117,8 @@ Compose parsers into complex structures:
 
 - [`object`](@ref) - Named tuple of parsers (most common)
 - [`or`](@ref) - Mutually exclusive alternatives (for subcommands)
-- [`tup`](@ref) - Ordered tuple (preserves parser order)
-- [`objmerge`](@ref) / [`concat`](@ref) - Merge multiple parser groups
+- [`sequence`](@ref) - Ordered sequence of parsers (returns a tuple)
+- [`combine`](@ref) / [`concat`](@ref) - Merge multiple parser groups
 
 `or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `arg(...)` or `multiple(arg(...))` last.
 
@@ -136,13 +136,13 @@ commonOpts = object((
 ))
 
 # Add command
-addCmd = cmd("add", objmerge(
+addCmd = cmd("add", combine(
     commonOpts,
     object((packages = multiple(arg(str("PACKAGE"))),))
 ))
 
 # Remove command
-removeCmd = cmd("remove", "rm", objmerge(
+removeCmd = cmd("remove", "rm", combine(
     commonOpts,
     object((
         all = switch("--all"),
@@ -151,7 +151,7 @@ removeCmd = cmd("remove", "rm", objmerge(
 ))
 
 # Instantiate command
-instantiateCmd = cmd("instantiate", objmerge(
+instantiateCmd = cmd("instantiate", combine(
     commonOpts,
     object((
         manifest = switch("-m", "--manifest"),
