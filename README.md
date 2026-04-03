@@ -1,4 +1,8 @@
-# OptParse
+<p align="center">
+  <img src="docs/src/assets/logo.svg" alt="OptParse logo" width="420">
+</p>
+
+# OptParse.jl
 
 A Type Stable Composable CLI Parser for Julia, inspired by [optparse-applicative](https://github.com/pcapriotti/optparse-applicative) and [Optique](https://optique.dev/).
 
@@ -35,7 +39,6 @@ ensure type stability with arbitrary functions.
 - [ ] `longest-match` combinator
 - [ ] `group` combinator: light simple parser useful only for enclosing multiple parsers together in the same category. mainly useful for help messages.
 - [ ] automatic suggestions / shell completions
-- [x] polish and stabilize the public error-reporting interface
 
 ## Quick Start
 

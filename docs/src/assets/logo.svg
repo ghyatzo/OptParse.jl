@@ -1,0 +1,12 @@
+<svg width="220" height="90" viewBox="12 12 150 68" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="65"
+        font-family="JetBrains Mono, Fira Code, monospace"
+        font-size="44"
+        fill="#bbbbbb">
+    &gt;_
+  </text>
+
+  <circle cx="88" cy="53" r="9" fill="#9558B2"/>
+  <circle cx="115" cy="53" r="9" fill="#389826"/>
+  <circle cx="142" cy="53" r="9" fill="#CB3C33"/>
+</svg>
