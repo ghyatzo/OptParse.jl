@@ -1024,17 +1024,6 @@ julia> result = argparse(parser, ["input.txt", "-v", "-o", "output.txt"]);
 julia> result
 ("input.txt", "output.txt", true)
 
-julia> # Accessing tuple elements
-       result = argparse(parser, ["file.txt", "-o", "out.txt"]);
-
-julia> result[1]
-"file.txt"
-
-julia> result[2]
-"out.txt"
-
-julia> result[3]
-false
 ```
 
 # Notes
