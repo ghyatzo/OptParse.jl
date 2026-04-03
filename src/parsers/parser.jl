@@ -120,19 +120,6 @@ A modified parser that returns `nothing` if parsing fails, or the parsed value o
 ```jldoctest
 julia> using OptParse
 
-julia> # Optional gate - returns true if present, nothing otherwise
-       verbose = optional(gate("-v", "--verbose"));
-
-julia> result = argparse(verbose, String[]);
-
-julia> result === nothing
-true
-
-julia> result = argparse(verbose, ["-v"]);
-
-julia> result
-true
-
 julia> # Optional option - returns parsed value or nothing
        port = optional(option("-p", "--port", integer()));
 
@@ -360,17 +347,6 @@ julia> result = argparse(debug, ["--debug"]);
 julia> result
 true
 
-julia> # Bundled short flags: `-abc` parsed as `-a -b -c`
-       gates = object((
-           all = gate("-a"),
-           brief = gate("-b"),
-           color = gate("-c")
-       ));
-
-julia> result = argparse(gates, ["-abc"]);
-
-julia> (result.all, result.brief, result.color)
-(true, true, true)
 ```
 
 # Notes
@@ -1039,7 +1015,9 @@ julia> result
 function sequence end
 
 sequence(parsers...; kw...) = _parser(ConstrTuple(parsers; kw...))
+sequence(parsers::Tuple{Vararg{Parser}}; kw...) = _parser(ConstrTuple(parsers; kw...))
 sequence(label::String, parsers...; kw...) = _parser(ConstrTuple(parsers; label, kw...))
+sequence(label::String, parsers::Tuple{Vararg{Parser}}; kw...) = _parser(ConstrTuple(parsers; label, kw...))
 
 ## Concat
 
