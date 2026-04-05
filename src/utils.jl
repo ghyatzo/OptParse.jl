@@ -118,3 +118,42 @@ function tupsortperm(v::Tup; lt=isless, by=identity, rev::Union{Bool,Nothing}=no
 
     perm
 end
+
+# # juliac-compatible print(::IO, ::VersionNumber) with explicitly `@inline`d `join` calls...
+# function print_vnum_juliac(io::IO, v::VersionNumber)
+#     v == typemax(VersionNumber) && return print(io, "∞")
+#     print(io, v.major)
+#     print(io, '.')
+#     print(io, v.minor)
+#     print(io, '.')
+#     print(io, v.patch)
+#     if !isempty(v.prerelease)
+#         print(io, '-')
+#         @inline join(io, v.prerelease, '.')
+#     end
+#     if !isempty(v.build)
+#         print(io, '+')
+#         @inline join(io, v.build, '.')
+#     end
+#     return
+# end
+
+# # juliac-compatible `Base.printstyled`
+# function printstyled_juliac(io::IO, str::String; bold = false, color::Symbol = :normal)
+#     # TODO: Base.printstyled splits on \n and prints each line separately
+#     @assert !occursin('\n', str)
+#     use_color = isatty(io)
+#     if use_color
+#         color === :red && write(io, "\e[31m")
+#         color === :green && write(io, "\e[32m")
+#         color === :blue && write(io, "\e[34m")
+#         color === :normal && write(io, "\e[0m")
+#         bold && write(io, "\e[1m")
+#     end
+#     print(io, str)
+#     if use_color
+#         bold && write(io, "\e[22m")
+#         color in (:red, :green, :blue) && write(io, "\e[39m")
+#     end
+#     return
+# end

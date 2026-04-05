@@ -85,9 +85,7 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
                         push!(matched_parsers, $i)
                         found_match = true
                         #= take the first (highest priority) match that consumes input =#
-                        @goto endloop_consumers #= it simulates a "break" by using @goto.
-                        # tecnically the @unroll macro also already uses a "loopend" label, but It seems that
-                        # these goto macros are expanded before the @unroll and therefore is not there yet. =#
+                        @goto endloop_consumers #= it simulates a "break" by using @goto. =#
                     else
                         #= the inner parser succeded and consumed but by consuming control tokens, not semantic ones
                         # so we update the context with the new information and keep going. =#
@@ -185,24 +183,47 @@ function parse(p::ConstrTuple{T, S}, ctx::Context{S})::InnerParseResult{S} where
 end
 
 
+@generated function _generated_tuple_complete(p::PTup, state::STup) where {PTup <: Tuple, STup <: Tuple}
+    Ps = PTup.parameters
+    Ss = STup.parameters
+    T = Tuple{map(tval, Ps)...}
+
+    ex = Expr(:block, :(output = ()))
+    for i in eachindex(Ps)
+        Ti = tval(Ps[i])
+        S = Ss[i]
+        push!(
+            ex.args, quote
+                child_state = state[$i]::$S
+                child_parser = p[$i]
+
+                result = (@unionsplit complete(child_parser, child_state))::ParseResult{$Ti}
+                if is_error(result)
+                    return false, ParseResult{$T}(typedErr(unwrap_error(result)))
+                end
+
+                output = insert(output, IndexLens($i), unwrap(result))
+            end
+        )
+    end
+    push!(ex.args, :(return true, output::$T))
+
+    return ex
+end
+
 function complete(p::ConstrTuple{T, TState}, st::TState)::ParseResult{T} where {T, TState <: Tuple}
-    out = ()
-    i = 0
-    @unroll 10 for parser in p.parsers
-        i += 1
-        result = complete(unwrapunion(parser), st[i])
-        if is_error(result)
-            subject = isempty(p.label) ? "tuple" : p.label
-            return typedErr(T,
-                error_with_context(result,
-                    CompletePhase,
-                    ERR_ConstrTuple,
-                    subject
-                )
+    cancomplete, _result = _generated_tuple_complete(p.parsers, st)
+
+    if !cancomplete
+        subject = isempty(p.label) ? "tuple" : p.label
+        return typedErr(T,
+            error_with_context(_result,
+                CompletePhase,
+                ERR_ConstrTuple,
+                subject
             )
-        end
-        out = insert(out, IndexLens(i), unwrap(result))
+        )
     end
 
-    return typedOk(T, out)
+    return typedOk(T, _result)
 end
