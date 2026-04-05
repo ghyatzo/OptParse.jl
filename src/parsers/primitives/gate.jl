@@ -58,7 +58,7 @@ end
 
 function parse(p::ArgGate{Bool, GateState}, ctx::Context{GateState})::InnerParseResult{GateState}
 
-    if ℒ_optterm(ctx)
+    if ctx_optterm(ctx)
         return innerErr(ctx, arggate_error(GATE_NoMoreOptions))
     elseif ctx_hasnone(ctx)
         return innerErr(ctx, arggate_error(GATE_EndOfInput))
@@ -68,13 +68,15 @@ function parse(p::ArgGate{Bool, GateState}, ctx::Context{GateState})::InnerParse
 
     #= When the input contains `--` stop parsing options =#
     if (tok === "--")
-        nextctx = ctx_with_options_terminated(consume(ctx, 1), true)
-        return innerOk(ctx, 1; nextctx, counts_as_match=false)
+        return innerOk(ctx, 1;
+            nextctx = ctx_with_options_terminated(consume(ctx, 1), true),
+            counts_as_match=false
+        )
     end
 
     if tok in p.names
 
-        if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx))
+        if !is_error(ctx_state(ctx)) && unwrap(ctx_state(ctx))
             return innerErr(ctx, arggate_error(GATE_Duplicate; token = tok); consumed = 1)
         end
 

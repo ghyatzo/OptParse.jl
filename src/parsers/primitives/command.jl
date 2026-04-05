@@ -41,7 +41,7 @@ end
 
 
 function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState{PState}})::InnerParseResult{CommandState{PState}} where {T, PState}
-    if is_error(ℒ_state(ctx))
+    if is_error(ctx_state(ctx))
         # command not yet matched
         # check if it starts with our command name
         if ctx_hasnone(ctx) || ctx_peek(ctx) ∉ p.names
@@ -59,7 +59,7 @@ function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState
         return innerOk(ctx, 1; nextctx)
 
     else
-        maybestate = base(unwrap(ℒ_state(ctx)))
+        maybestate = base(unwrap(ctx_state(ctx)))
         childstate = isnothing(maybestate) ? p.parser.initialState : @something maybestate
         childctx = widen_restate(tstate(p.parser), ctx, childstate)
 
@@ -70,13 +70,13 @@ function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState
 
             newctx = widen_restate(
                 CommandState{PState},
-                ℒ_nextctx(parse_ok),
+                res_nextctx(parse_ok),
                 some(some(ℒ_nextstate(parse_ok)))
             )
-            return innerOk(newctx, ℒ_consumed(parse_ok))
+            return innerOk(newctx, res_consumed(parse_ok))
 
         else
-            return innerErr(ctx, unwrap_error(result))
+            return innerErr(ctx, result)
         end
     end
 end

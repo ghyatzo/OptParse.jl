@@ -76,7 +76,7 @@ end
     @test is_error(res)
     pf = unwrap_error(res)
 
-    @test ℒ_nconsumed(pf) == 1
+    @test ℒ_consumed(pf) == 1
     @test pf.error.domain == OptParse.ERR_ArgOption
     @test OptParse.OptionErrCode(pf.error.code) == OptParse.OPTION_MissingValue
     @test pf.error.token == "--port"
@@ -122,7 +122,7 @@ end
     @test is_error(res)
     pf = unwrap_error(res)
 
-    @test ℒ_nconsumed(pf) == 0
+    @test ℒ_consumed(pf) == 0
     @test pf.error.domain == OptParse.ERR_ArgOption
     @test OptParse.OptionErrCode(pf.error.code) == OptParse.OPTION_NoMatch
     @test pf.error.token == "--help"

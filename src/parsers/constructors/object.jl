@@ -103,22 +103,22 @@ end
 
                 if is_error(result)
                     parse_err = unwrap_error(result)
-                    if ℒ_nconsumed(error) < ℒ_nconsumed(parse_err)
+                    if res_num_consumed(error) < res_num_consumed(parse_err)
                         error = parse_err
                     end
                 else
                     parse_ok = unwrap(result)
 
 
-                    if length(ℒ_consumed(parse_ok)) > 0
+                    if res_num_consumed(parse_ok) > 0
 
                         #= we update the current context state with the result from the parse=#
-                        newstate = set(ℒ_state(current_ctx), PropertyLens($(QuoteNode(field))), ℒ_nextstate(parse_ok))
+                        newstate = set(ctx_state(current_ctx), PropertyLens($(QuoteNode(field))), ℒ_nextstate(parse_ok))
 
                         #= then we continue the parse using the information from the parse result but with the new state=#
-                        newctx = widen_restate($S, ℒ_nextctx(parse_ok), newstate)
+                        newctx = widen_restate($S, res_nextctx(parse_ok), newstate)
 
-                        push!(allconsumed, ℒ_consumed(parse_ok))
+                        push!(allconsumed, res_consumed(parse_ok))
                         current_ctx = newctx
                         madeprogress = true
                         anysuccess = true
@@ -179,7 +179,7 @@ function parse(p::ConstrObject{NamedTuple{fields, Tup}, S}, ctx::Context)::Inner
 
     #= if buffer is empty check if all parsers can complete anyway =#
     if ctx_hasnone(ctx) == 0
-        all_can_complete, _ = _generated_object_complete(p.parsers, ℒ_state(ctx))
+        all_can_complete, _ = _generated_object_complete(p.parsers, ctx_state(ctx))
 
         if all_can_complete
             return innerOk(ctx, consumed_empty(ctx))

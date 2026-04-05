@@ -55,7 +55,7 @@ end
     @test is_error(res)
 
     err = unwrap_error(res)
-    @test ℒ_nconsumed(err) == 0
+    @test ℒ_consumed(err) == 0
     @test err.error.domain == OptParse.ERR_ArgArgument
     @test OptParse.ArgumentErrCode(err.error.code) == OptParse.ARGUMENT_EndOfInput
 end

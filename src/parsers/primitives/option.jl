@@ -67,7 +67,7 @@ end
 
 function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::InnerParseResult{OptionState{T}} where {T}
 
-    if ℒ_optterm(ctx)
+    if ctx_optterm(ctx)
         return innerErr(ctx, argoption_error(OPTION_NoMoreOptions))
     elseif ctx_hasnone(ctx)
         return innerErr(ctx, argoption_error(OPTION_EndOfInput))
@@ -77,15 +77,17 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
 
     # When the input contains `--` is a signal to stop parsing options
     if (tok === "--")
-        nextctx = ctx_with_options_terminated(consume(ctx, 1), true)
-        return innerOk(ctx, 1; nextctx, counts_as_match=false)
+        return innerOk(ctx, 1;
+            nextctx = ctx_with_options_terminated(consume(ctx, 1), true),
+            counts_as_match=false
+        )
     end
 
     # when options are of the form `--option value`
     if tok in p.names
 
         # st = @? ctx.state
-        if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx)) isa T
+        if !is_error(ctx_state(ctx)) && unwrap(ctx_state(ctx)) isa T
             return innerErr(ctx, argoption_error(OPTION_Duplicate; token = tok); consumed = 1)
         end
 
@@ -108,7 +110,7 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
     for prefix in prefixes
         startswith(tok, prefix) || continue
 
-        if !is_error(ℒ_state(ctx)) && unwrap(ℒ_state(ctx))
+        if !is_error(ctx_state(ctx)) && unwrap(ctx_state(ctx))
 
             return innerErr(ctx, argoption_error(OPTION_Duplicate; token = prefix[1:(end - 1)]); consumed = 1)
         end
@@ -116,7 +118,9 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
         value = tok[(length(prefix) + 1):end]
         result = p.valparser(value)::ParseResult{T}
 
-        return innerOk(ctx, 1; nextctx = ctx_with_state(consume(ctx, 1), result))
+        return innerOk(ctx, 1;
+            nextctx = ctx_with_state(consume(ctx, 1), result)
+        )
 
     end
 

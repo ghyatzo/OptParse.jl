@@ -118,7 +118,7 @@ end
 
         push!(unrolled_loop.args, quote
             parser = parsers[$i]::$child_parser_t
-            innerstate = ℒ_state(current_ctx)
+            innerstate = ctx_state(current_ctx)
             has_selection = !is_error(innerstate)
             selected_state = has_selection ? unwrapunion(unwrap(innerstate)) : nothing
 
@@ -144,20 +144,20 @@ end
                             #=We are already inside this same branch. Preserve that
                             selection while surfacing the control-side-effect.=#
                             new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
-                            newctx = widen_restate(OrState{$U}, ℒ_nextctx(parse_ok), new_innerstate)
-                            push!(allconsumed, ℒ_consumed(parse_ok))
+                            newctx = widen_restate(OrState{$U}, res_nextctx(parse_ok), new_innerstate)
+                            push!(allconsumed, res_consumed(parse_ok))
                             current_ctx = newctx
                         else
                             #=No branch has been selected yet. Propagate the updated
                             context, but leave the `or` state unselected so later
                             branches still get a chance to match semantically.=#
-                            push!(allconsumed, ℒ_consumed(parse_ok))
-                            current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), ℒ_state(current_ctx))
+                            push!(allconsumed, res_consumed(parse_ok))
+                            current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
                         end
                     else
                         new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
                         newctx = widen_restate(OrState{$U}, ℒ_nextctx(parse_ok), new_innerstate)
-                        push!(allconsumed, ℒ_consumed(parse_ok))
+                        push!(allconsumed, res_consumed(parse_ok))
                         return innerOk(newctx, merge(allconsumed))
                     end
                 elseif is_error(result)
@@ -168,13 +168,12 @@ end
                             ERR_ConstrOr,
                             "or"
                         )
-                    elseif ℒ_consumed(error) < ℒ_consumed(unwrap_error(result))
+                    elseif res_num_consumed(error) < res_num_consumed(result)
                         error = unwrap_error(result)
                     end
                 end
             end
         end)
-
     end
 
     epilogue = quote

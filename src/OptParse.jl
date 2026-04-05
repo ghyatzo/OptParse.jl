@@ -1,6 +1,6 @@
 module OptParse
 
-using Accessors: @optic, IndexLens, PropertyLens, insert, set
+using Accessors: @o, IndexLens, PropertyLens, insert, set
 
 using WrappedUnions: @unionsplit, @wrapped,
     #=conflicts with the unwrap from ErrorTypes.jl=#
@@ -178,7 +178,7 @@ function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
         result = unwrap(mayberesult)
 
         previous_buffer = ctx_remaining(ctx)
-        ctx = ℒ_nextctx(result)
+        ctx = res_nextctx(result)
 
         if (
                 ctx_length(ctx) > 0
@@ -192,7 +192,7 @@ function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
         ctx_length(ctx) > 0 || break
     end
 
-    state = ℒ_state(ctx)
+    state = ctx_state(ctx)
 
     return @unionsplit complete(pp, state)
 end

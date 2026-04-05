@@ -33,7 +33,7 @@ end
 
 function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefaultState{S}})::InnerParseResult{WithDefaultState{S}} where {T, S}
 
-    childstate = is_error(ℒ_state(ctx)) ? p.parser.initialState : unwrap(ℒ_state(ctx))
+    childstate = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))
     childctx = ctx_with_state(ctx, childstate)
 
     result = parse(unwrapunion(p.parser), childctx)::InnerParseResult{S}
@@ -41,7 +41,7 @@ function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefau
     if is_error(result)
         parse_err = unwrap_error(result)
         #=the inner parser failed without consuming any input, which means that it wasn't matched.=#
-        if parse_err.consumed == 0
+        if res_num_consumed(parse_err) == 0
             return innerOk(ctx, consumed_empty(ctx))
         else
             #=otherwise the parser failed midway, and that we should propagate.=#
@@ -50,16 +50,16 @@ function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefau
     end
 
     parse_ok = unwrap(result)
-    if ℒ_nextstate(parse_ok) != childstate || length(parse_ok.consumed) == 0
+    if ℒ_nextstate(parse_ok) != childstate || res_num_consumed(parse_ok) == 0
         #=Inner parser actually consumed something or changed its state=#
-        newctx = ctx_restate(ℒ_nextctx(parse_ok), some(ℒ_nextstate(parse_ok)))
+        newctx = ctx_restate(res_nextctx(parse_ok), some(ℒ_nextstate(parse_ok)))
     else
         #=Inner parser returned success but nothing changed while consuming input. (i.e. "--")
         Treat as unmatched, but still propagate side effects.=#
-        newctx = ctx_restate(ℒ_nextctx(parse_ok), ℒ_state(ctx))
+        newctx = ctx_restate(res_nextctx(parse_ok), ctx_state(ctx))
     end
 
-    return innerOk(newctx, ℒ_consumed(parse_ok))
+    return innerOk(newctx, res_consumed(parse_ok))
 
 end
 

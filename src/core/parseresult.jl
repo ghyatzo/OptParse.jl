@@ -38,7 +38,7 @@ Base.iterate(c::Consumed, st::Int=1) =
 
 Construct an empty consumption at position `pos` (range `pos:pos-1`).
 """
-@inline consumed_empty(ctx; pos=ℒ_pos(ctx)) = Consumed(ℒ_buffer(ctx), [pos:(pos-1)])
+@inline consumed_empty(ctx; pos=ℒ_pos(ctx)) = Consumed(ctx_buffer(ctx), [pos:(pos-1)])
 
 # Optional convenience materializers (allocate on demand)
 @inline as_vector(c::Consumed) = collect(c)
@@ -110,18 +110,31 @@ end
 const InnerParseResult{S} = Result{InnerParseSuccess{S}, InnerParseFailure}
 
 
-const ℒ_nextctx = @optic _.next
-const ℒ_consumed = @optic _.consumed
-const ℒ_nconsumed = @optic _.consumed
+const ℒ_nextctx = @o _.next
+const ℒ_matchcounts = @o _.counts_as_match
+const ℒ_consumed = @o _.consumed
 
-const ℒ_ranges = (@optic _.ranges) ∘ ℒ_consumed
-const ℒ_error = @optic _.error
+const ℒ_ranges = (@o _.ranges) ∘ ℒ_consumed
+const ℒ_error = @o _.error
 const ℒ_nextstate = ℒ_state ∘ ℒ_nextctx
+
+res_consumed(s::InnerParseSuccess) = ℒ_consumed(s)
+res_num_consumed(f::InnerParseFailure) = ℒ_consumed(f)
+res_num_consumed(s::InnerParseSuccess) = length(ℒ_consumed(s))
+res_num_consumed(r::InnerParseResult) =
+    is_error(r) ? res_num_consumed(unwrap_error(r)) : res_num_consumed(unwrap(r))
+    
+res_nextctx(s::InnerParseSuccess) = ℒ_nextctx(s)
+res_matchcounts(s::InnerParseSuccess) = ℒ_matchcounts(s)
+
+res_error(f::InnerParseFailure) = ℒ_error(f)
+res_error(r::InnerParseResult) = res_error(unwrap_error(r))
+
 
 
 @inline function innerOk(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n), counts_as_match=true)::InnerParseResult{S} where {S}
-    p = ℒ_pos(ctx)
-    consumed = Consumed(ℒ_buffer(ctx), [p:p+n-1])
+    p = ctx_pos(ctx)
+    consumed = Consumed(ctx_buffer(ctx), [p:p+n-1])
     return Ok(InnerParseSuccess{S}(consumed, nextctx, counts_as_match))
 end
 
@@ -135,6 +148,10 @@ end
 
 @inline function innerErr(_ctx::Context{S}, perr::InnerParseFailure)::InnerParseResult{S} where {S}
     return Err(InnerParseFailure(ℒ_consumed(perr), ℒ_error(perr)))
+end
+
+@inline function innerErr(ctx::Context{S}, res::InnerParseResult)::InnerParseResult{S} where {S}
+    return innerErr(ctx, unwrap_error(res))
 end
 
 
@@ -164,5 +181,5 @@ error_with_context(err::ParseResult, phase::ErrorPhase, domain::ErrorDomain, sub
     error_with_context(unwrap_error(err), phase, domain, subject)
 
 error_with_context(err::InnerParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String)=
-    error_with_context(ℒ_error(unwrap_error(err)), phase, domain, subject)
+    error_with_context(res_error(err), phase, domain, subject)
 

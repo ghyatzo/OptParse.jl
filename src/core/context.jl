@@ -19,21 +19,21 @@ Base.@kwdef struct Context{S}
     optionsTerminated::Bool = false
 end
 
-# -----------------------------------------------------------------------------
-# Custom optics (define once; use everywhere)
-# -----------------------------------------------------------------------------
+# Note: the ℒ is `\\scrL<TAB>`
 
-"""
-    ℒ_buffer, ℒ_pos, ℒ_state, ℒ_optterm
+const ℒ_buffer  = @o _.buffer
+const ℒ_pos     = @o _.pos
+const ℒ_state   = @o _.state
+const ℒ_optterm = @o _.optionsTerminated
 
-Stable optics for Context fields. Use these instead of `@optic _.field`
+ctx_buffer(ctx::Context) = ℒ_buffer(ctx)
+ctx_pos(ctx::Context) = ℒ_pos(ctx)
+ctx_optterm(ctx::Context) = ℒ_optterm(ctx)
+ctx_state(ctx::Context) = ℒ_state(ctx)
 
-Note: the ℒ is `\\scrL<TAB>`
-"""
-const ℒ_buffer  = @optic _.buffer
-const ℒ_pos     = @optic _.pos
-const ℒ_state   = @optic _.state
-const ℒ_optterm = @optic _.optionsTerminated
+@inline ctx_with_options_terminated(ctx::Context, flag::Bool) = set(ctx, ℒ_optterm, flag)
+@inline ctx_with_buffer(ctx::Context, buf::Vector{String}) = set(ctx, ℒ_buffer, buf)
+@inline ctx_with_pos(ctx::Context, pos::Int) = set(ctx, ℒ_pos, pos)
 
 # -----------------------------------------------------------------------------
 # Centralized "checkpoints" and state retagging
@@ -43,7 +43,7 @@ const ℒ_optterm = @optic _.optionsTerminated
     ctx_with_state(ctx, s::S) where S -> Context{S}
 
 Creates a new context with the same buffer/options flag but **forces** the
-context's state parameter to be `S`. This is the canonical "inference checkpoint".
+context's state parameter to be `S`.
 
 """
 @inline function ctx_with_state(ctx::Context, s::S) where {S}
@@ -54,7 +54,7 @@ end
     ctx_restate(ctx, s::S) where S -> Context{S}
 
 Creates a new context with the same buffer/options flag but **forces** the
-context's state parameter to be `S`. This is the canonical "inference checkpoint".
+context's state parameter to be `S`.
 The difference with ctx_with_state is purely semantic. This is better used to
 indicate that we're simply wrapping the state of the context, instead of "creating a new context."
 
@@ -94,48 +94,11 @@ Utility function that combines a new state while also widening it
     )
 end
 
-# -----------------------------------------------------------------------------
-# Convenience setters / transformers
-# -----------------------------------------------------------------------------
-
-"""
-    ctx_with_options_terminated(ctx, flag::Bool)
-
-Updates the optionsTerminated flag using optics.
-"""
-@inline ctx_with_options_terminated(ctx::Context, flag::Bool) =
-    set(ctx, ℒ_optterm, flag)
-
-"""
-    ctx_map_state(f, ctx)
-
-Applies `f` to the current state and returns a new context.
-Serves as a convenient place to hide state transformations.
-
-Note: inference usually succeeds if `f` is type-stable and concrete at call site.
-If hitting inference issues, prefer `ctx_with_state(ctx, f(state))` explicitly.
-"""
-@inline function ctx_map_state(f, ctx::Context)
-    s2 = f(ℒ_state(ctx))
-    return ctx_with_state(ctx, s2)   # keeps the checkpoint centralized
-end
-
-
-
 
 # -----------------------------------------------------------------------------
 # Buffer helpers
 # -----------------------------------------------------------------------------
 
-"""
-    ctx_buffer(ctx) -> Vector{String}
-    ctx_with_buffer(ctx, buf::Vector{String})
-
-Small wrappers around buffer access.
-"""
-
-
-@inline ctx_with_buffer(ctx::Context, buf::Vector{String}) = set(ctx, ℒ_buffer, buf)
 
 @inline ctx_hasmore(ctx::Context) = length(ℒ_buffer(ctx)) - (ℒ_pos(ctx) - 1) > 0
 @inline ctx_haslessthan(n::Int, ctx::Context) = length(ℒ_buffer(ctx)) - (ℒ_pos(ctx) - 1) < n

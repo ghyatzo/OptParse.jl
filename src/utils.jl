@@ -102,7 +102,7 @@ end
     end
 end
 
-function _sortperm(v::Tup; lt=isless, by=identity, rev::Union{Bool,Nothing}=nothing, order::Base.Ordering=Base.Forward)::NTuple{fieldcount(Tup), keytype(v)} where {Tup <: Tuple}
+function tupsortperm(v::Tup; lt=isless, by=identity, rev::Union{Bool,Nothing}=nothing, order::Base.Ordering=Base.Forward)::NTuple{fieldcount(Tup), keytype(v)} where {Tup <: Tuple}
     sortingkey = map(by, v)
     sortedkeys = sort(sortingkey; lt, rev, order, by=identity)
     perm = ntuple(i -> zero(keytype(v)), fieldcount(Tup))

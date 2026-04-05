@@ -50,7 +50,7 @@ end
 
     @test is_error(result)
     fail = unwrap_error(result)
-    @test ℒ_nconsumed(fail) == 1
+    @test ℒ_consumed(fail) == 1
     @test fail.error.domain == OptParse.ERR_ArgGate
     @test OptParse.GateErrCode(fail.error.code) == OptParse.GATE_Duplicate
     @test fail.error.token == "-v"
@@ -81,7 +81,7 @@ end
 
     @test is_error(result)
     fail = unwrap_error(result)
-    @test ℒ_nconsumed(fail) == 0
+    @test ℒ_consumed(fail) == 0
     @test fail.error.domain == OptParse.ERR_ArgGate
     @test OptParse.GateErrCode(fail.error.code) == OptParse.GATE_NoMoreOptions
 end
@@ -113,7 +113,7 @@ end
 
     @test is_error(result)
     fail = unwrap_error(result)
-    @test ℒ_nconsumed(fail) == 0
+    @test ℒ_consumed(fail) == 0
     @test fail.error.domain == OptParse.ERR_ArgGate
     @test OptParse.GateErrCode(fail.error.code) == OptParse.GATE_EndOfInput
 end

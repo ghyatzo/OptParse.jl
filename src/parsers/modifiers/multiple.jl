@@ -69,42 +69,42 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 	=#
 	current_ctx = ctx
 	allconsumed = Consumed[]
-	has_active = !isempty(ℒ_state(ctx))
+	has_active = !isempty(ctx_state(ctx))
 
 	#=First attempt:
 	continue the active repetition if one exists;
 	otherwise try to start the first repetition.=#
-	child_state = has_active ? ℒ_state(ctx)[end] : p.parser.initialState
+	child_state = has_active ? ctx_state(ctx)[end] : p.parser.initialState
 	child_ctx = widen_restate(S, current_ctx, child_state)
 	result = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
 
 	if !is_error(result)
 		parse_ok = unwrap(result)
-		push!(allconsumed, ℒ_consumed(parse_ok))
+		push!(allconsumed, res_consumed(parse_ok))
 
-		if parse_ok.counts_as_match
+		if res_matchcounts(parse_ok)
 			#=The child matched semantically.
 			This either updates the active repetition or creates the first one.=#
-			nextst = [s for s in ℒ_state(ctx)]
+			nextst = [s for s in ctx_state(ctx)]
 			if has_active
 				nextst[end] = ℒ_nextstate(parse_ok)
 			else
 				push!(nextst, ℒ_nextstate(parse_ok))
 			end
 
-			nextctx = widen_restate(MultipleState{S}, ℒ_nextctx(parse_ok), nextst)
+			nextctx = widen_restate(MultipleState{S}, res_nextctx(parse_ok), nextst)
 			return innerOk(nextctx, merge(allconsumed))
 		else
 			#=The child only propagated control state.
 			Carry the updated parsing context forward, but do not alter the
 			repetition structure yet.=#
-			current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), ℒ_state(current_ctx))
+			current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
 		end
 	elseif !has_active
 		#=If there is no active repetition yet, a real failure on the first attempt
 		is final: there is no existing repetition to close and no second chance
 		to reinterpret the same token as the start of a new repetition.=#
-		return innerErr(ctx, unwrap_error(result))
+		return innerErr(ctx, result)
 	end
 
 	#=Second attempt:
@@ -122,23 +122,23 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 			if !isempty(allconsumed)
 				return innerOk(current_ctx, merge(allconsumed), false)
 			end
-			return innerErr(ctx, unwrap_error(retry))
+			return innerErr(ctx, retry)
 		end
 
 		parse_ok = unwrap(retry)
-		push!(allconsumed, ℒ_consumed(parse_ok))
+		push!(allconsumed, res_consumed(parse_ok))
 
-		if parse_ok.counts_as_match
+		if  res_matchcounts(parse_ok)
 			#=A fresh repetition matched semantically. Append it to the state.=#
-			nextst = [s for s in ℒ_state(current_ctx)]
+			nextst = [s for s in ctx_state(current_ctx)]
 			push!(nextst, ℒ_nextstate(parse_ok))
 
-			nextctx = widen_restate(MultipleState{S}, ℒ_nextctx(parse_ok), nextst)
+			nextctx = widen_restate(MultipleState{S}, res_nextctx(parse_ok), nextst)
 			return innerOk(nextctx, merge(allconsumed))
 		else
 			#=A fresh parse attempt also only propagated control state.
 			Update context, but do not append a repetition.=#
-			current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), ℒ_state(current_ctx))
+			current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
 			return innerOk(current_ctx, merge(allconsumed), false)
 		end
 	end
@@ -167,9 +167,13 @@ function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleSta
 	end
 
 	if length(result) < p.min
-		return typedErr(T, modmultiple_error(MULTIPLE_TooFew; detail = "$(p.min),$(length(result))"))
+		return typedErr(T, modmultiple_error(
+			MULTIPLE_TooFew; detail = "$(p.min),$(length(result))"
+		))
 	elseif length(result) > p.max
-		return typedErr(T, modmultiple_error(MULTIPLE_TooMany; detail = "$(p.max),$(length(result))"))
+		return typedErr(T, modmultiple_error(
+			MULTIPLE_TooMany; detail = "$(p.max),$(length(result))"
+		))
 	end
 
 	return typedOk(T, result)

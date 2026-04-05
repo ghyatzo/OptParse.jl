@@ -38,7 +38,7 @@ ConstrTuple(parsers::PTup; label::String = "") where {PTup} = let
 end
 
 Base.@assume_effects :foldable function _sortperm_by_priority(p::PTup) where {PTup <: Tuple}
-    perm = _sortperm(p, rev = true, by = priority)
+    perm = tupsortperm(p, rev = true, by = priority)
     permp = ntuple(fieldcount(PTup)) do i
         @inbounds(p[perm[i]])
     end
@@ -77,8 +77,8 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
 
                     if parse_ok.counts_as_match
                         #= parser succeded and consumed input - match it =#
-                        newstate = set(ℒ_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
-                        current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), newstate)
+                        newstate = set(ctx_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
+                        current_ctx = ctx_with_state(res_nextctx(parse_ok), newstate)
 
                         push!(allconsumed, ℒ_consumed(parse_ok))
 
@@ -91,11 +91,11 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
                     else
                         #= the inner parser succeded and consumed but by consuming control tokens, not semantic ones
                         # so we update the context with the new information and keep going. =#
-                        current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), ℒ_state(current_ctx))
-                        push!(allconsumed, ℒ_consumed(parse_ok))
+                        current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
+                        push!(allconsumed, res_consumed(parse_ok))
                     end
 
-                elseif is_error(result) && error.consumed < unwrap_error(result).consumed
+                elseif is_error(result) && res_num_consumed(error) < res_num_consumed(result)
                     error = unwrap_error(result)
                 end
             end
@@ -115,14 +115,14 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
                     #=parser succeded without consuming - match it as success=#
                     parse_ok = unwrap(result)
 
-                    newstate = set(ℒ_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
-                    current_ctx = ctx_with_state(ℒ_nextctx(parse_ok), newstate)
+                    newstate = set(ctx_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
+                    current_ctx = ctx_with_state(res_nextctx(parse_ok), newstate)
 
                     push!(matched_parsers, $i)
                     found_match = true
                     #= take the first (highest priority) match that consumes input =#
                     @goto endloop_nonconsumers
-                elseif is_error(result) && unwrap_error(result).consumed < 1
+                elseif is_error(result) && res_num_consumed(result) < 1
                     #=parser failed without consuming input, this could be an optional
                     # parser that doesn't match.
                     # mark it as matched anyway.
@@ -135,7 +135,7 @@ sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
         end)
     end
 
-    return ex = quote
+    return quote
         current_ctx = ctx
         allconsumed = Consumed[consumed_empty(ctx)]
         matched_parsers = Set{Int}()

@@ -58,7 +58,7 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
     i = 0
 
     tok = ctx_peek(ctx)
-    options_terminated = ℒ_optterm(ctx)
+    options_terminated = ctx_optterm(ctx)
     if !options_terminated
         #=Options aren't "officially" terminated yet. Need to be careful.=#
         if tok == "--"
