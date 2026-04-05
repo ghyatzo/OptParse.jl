@@ -4,7 +4,7 @@
 
 - `argparse(parser, argv)` is the high-level convenience entrypoint
 - in normal Julia runtime usage, `argparse` returns the parsed value or throws `OptParse.ParseException`
-- when compiled while `Base.generating_output()` is true, `argparse` renders the error to `stderr` and returns `nothing` on failure instead of throwing
+- when `juliac` mode is enabled through the `juliac` preference, `argparse` renders the error to `stderr` and returns `nothing` on failure instead of throwing
 - `tryargparse(parser, argv)` is the lower-level entrypoint and returns a result object instead of throwing
 
 ```@docs

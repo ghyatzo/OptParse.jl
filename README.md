@@ -70,10 +70,11 @@ For the public entrypoints:
 - `tryargparse(parser, argv)` is the lower-level entrypoint and returns a result object instead of throwing
 - `resulttype(parser)` returns the final value type produced by a parser
 
-`argparse` currently has a build-time split:
+`argparse` has two modes controlled through the `juliac` key via
+`Preferences.jl` mechanisms:
 
 - in normal Julia runtime usage, it returns the parsed value or throws `OptParse.ParseException`
-- when compiled while `Base.generating_output()` is true (for example in the current trimming workflow), it renders the error to `stderr` and returns `nothing` on failure instead of throwing
+- when `juliac` mode is enabled, it renders the error to `stderr` and returns `nothing` on failure instead of throwing
 
 If you need stable non-throwing behavior across environments, use `tryargparse`.
 
