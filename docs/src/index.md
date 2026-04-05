@@ -1,9 +1,5 @@
 # OptParse.jl
 
-<p align="center">
-  <img src="assets/logo.svg" alt="OptParse logo" width="420">
-</p>
-
 *A Type Stable Composable CLI Parser for Julia*
 
 OptParse is a command-line argument parser that emphasizes composability, type stability, and clarity.
