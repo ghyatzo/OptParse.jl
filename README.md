@@ -307,7 +307,7 @@ end
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/ghyatzo/OptParse")
+Pkg.add("OptParse")
 ```
 
 ## Documentation
