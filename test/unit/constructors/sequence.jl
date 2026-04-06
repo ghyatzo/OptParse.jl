@@ -134,3 +134,17 @@ end
     val = parse_ok(parser, ["--", "hello"])
     @test val == (nothing, "hello")
 end
+
+@testset "should record tuple breadcrumbs in logical tuple order" begin
+    parser = sequence(
+        option(("-n", "--name"), str()),
+        flag("-v", "--verbose"),
+    )
+
+    ctx = Context(buffer=["-v", "-n", "Alice"], state=parser.initialState)
+    pres = splitparse(parser, ctx)
+    @test !is_error(pres)
+
+    succ = unwrap(pres)
+    @test ℒ_path(ℒ_nextctx(succ)) == [usage_tuple_child(2), usage_tuple_child(1)]
+end

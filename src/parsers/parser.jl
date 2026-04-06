@@ -53,6 +53,14 @@ include("primitives/primitives.jl")
 include("constructors/constructors.jl")
 include("modifiers/modifiers.jl")
 
+# Developer note:
+# `Parser` is a wrapped union over all parser families, so analysis tools like JET
+# may explore union arms that are impossible for a given concrete parser value. To
+# keep those impossible branches from introducing spurious runtime dispatch, each
+# parser family's `parse`/`complete` methods should constrain the state parameter
+# to the parser's real invariant state shape, rather than accepting an unconstrained
+# `S`. In practice this means using the parser-specific state aliases in method
+# signatures, even when looser signatures would happen to work at runtime.
 @wrapped struct Parser{T, S, p, P} <: AbstractParser{T, S, p, P}
     union::Union{
         ArgGate{T, S, p, P},
@@ -76,7 +84,7 @@ Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
 Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
 
 function complete(p::Parser{T, S}, st::S)::ParseResult{T} where {T, S}
-    complete(unwrapunion(p), st)
+    @unionsplit complete(p, st)
 end
 
 

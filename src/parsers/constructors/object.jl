@@ -133,7 +133,7 @@ end
         )
     end
 
-    return ex = quote
+    return quote
         #= if nothing inside the object can match our token, then it's "unexpected" =#
         error = ctx_hasmore(ctx) > 0 ?
             InnerParseFailure(0, constrobject_error(OBJECT_UnexpectedToken; token = ctx_peek(ctx))) :
