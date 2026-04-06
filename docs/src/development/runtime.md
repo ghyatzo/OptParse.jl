@@ -26,8 +26,8 @@ The high-level split in the source tree is:
 
 The central entrypoints live in `src/OptParse.jl`:
 
-- `tryargparse(parser, argv)`
-- `argparse(parser, argv)`
+- `tryoptparse(parser, argv)`
+- `optparse(parser, argv)`
 - `normalize_argv(argv)`
 
 ## `Parser{T,S,p,P}` Type Parameters
@@ -328,7 +328,7 @@ The core pieces are:
 - `ParseError`
   - structured error payload
 - `ParseException`
-  - thrown by `argparse` in non-generated runtime mode
+  - thrown by `optparse` in non-generated runtime mode
 
 Every parser family or value parser family should define:
 

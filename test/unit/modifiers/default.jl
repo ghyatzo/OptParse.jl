@@ -303,5 +303,5 @@ end
     @test_opt parse(unwrapunion(parser), Context(buffer=["-c", "start", "-p", "3000", "-d"], state=parser.initialState))
 
 
-    @test_opt argparse(parser, ["-c", "start", "-p", "3000", "-d"])
+    @test_opt optparse(parser, ["-c", "start", "-p", "3000", "-d"])
 end

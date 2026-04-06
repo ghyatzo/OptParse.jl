@@ -304,7 +304,7 @@ end
 #         arg(str()),
 #     ))
 
-#     res = argparse(tupleParser, ["start"])
+#     res = optparse(tupleParser, ["start"])
 #     @test is_error(res)
 #     err = unwrap_error(res)
 #     @test occursin("too few arguments", string(err))

@@ -15,7 +15,7 @@ When adding a parser family, add:
 
 - direct primitive or family tests
 - at least one `@test_opt` on the constructor itself
-- at least one `@test_opt` through `argparse(...)`
+- at least one `@test_opt` through `optparse(...)`
 
 ## Common Inference Traps
 

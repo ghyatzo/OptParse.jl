@@ -32,10 +32,10 @@ splitparse(p::Parser, ctx::Context) = @unionsplit parse(p, ctx)
 splitcomplete(p::Parser, st) = @unionsplit complete(p, st)
 val(::Val{x}) where {x} = x
 
-parse_ok(p, argv) = unwrap(tryargparse(p, argv))
+parse_ok(p, argv) = unwrap(tryoptparse(p, argv))
 
 function parse_fail(p, argv)
-    result = tryargparse(p, argv)
+    result = tryoptparse(p, argv)
     @test is_error(result)
     return unwrap_error(result)
 end

@@ -42,8 +42,8 @@ julia> Greet
 A common pattern is to define a stable alias once and dispatch on it later
 
 # See Also
-- [`argparse`](@ref)
-- [`tryargparse`](@ref)
+- [`optparse`](@ref)
+- [`tryoptparse`](@ref)
 """
 resulttype(::Type{<:AbstractParser{T}}) where {T} = T
 resulttype(::AbstractParser{T}) where {T} = T
@@ -106,12 +106,12 @@ julia> using OptParse
 julia> # Parser with explicit default
        p = default(option("-p", "--port", integer()), 8080);
 
-julia> result = argparse(p, String[]);
+julia> result = optparse(p, String[]);
 
 julia> result
 8080
 
-julia> result = argparse(p, ["--port", "3000"]);
+julia> result = optparse(p, ["--port", "3000"]);
 
 julia> result
 3000
@@ -119,7 +119,7 @@ julia> result
 julia> # Curried version for pipeline composition
        p = option("-p", "--port", integer()) |> default(8080);
 
-julia> result = argparse(p, String[]);
+julia> result = optparse(p, String[]);
 
 julia> result
 8080
@@ -156,12 +156,12 @@ julia> using OptParse
 julia> # Optional option - returns parsed value or nothing
        port = optional(option("-p", "--port", integer()));
 
-julia> result = argparse(port, String[]);
+julia> result = optparse(port, String[]);
 
 julia> result === nothing
 true
 
-julia> result = argparse(port, ["-p", "8080"]);
+julia> result = optparse(port, ["-p", "8080"]);
 
 julia> result
 8080
@@ -204,7 +204,7 @@ julia> using OptParse
 julia> # Multiple arguments (e.g., `add pkg1 pkg2 pkg3`)
        packages = multiple(arg(str("PACKAGE")));
 
-julia> result = argparse(packages, ["pkg1", "pkg2", "pkg3"]);
+julia> result = optparse(packages, ["pkg1", "pkg2", "pkg3"]);
 
 julia> result
 3-element Vector{String}:
@@ -215,7 +215,7 @@ julia> result
 julia> # Multiple gates for verbosity levels (e.g., `-v -v -v`)
        verbosity = multiple(gate("-v"));
 
-julia> result = argparse(verbosity, ["-v", "-v", "-v"]);
+julia> result = optparse(verbosity, ["-v", "-v", "-v"]);
 
 julia> length(result)
 3
@@ -223,7 +223,7 @@ julia> length(result)
 julia> # Multiple options
        includes = multiple(option("-I", str()));
 
-julia> result = argparse(includes, ["-I", "/usr/include", "-I", "/opt/include"]);
+julia> result = optparse(includes, ["-I", "/usr/include", "-I", "/opt/include"]);
 
 julia> result
 2-element Vector{String}:
@@ -273,7 +273,7 @@ julia> using OptParse
 julia> # Single long option
        port = option("--port", integer());
 
-julia> result = argparse(port, ["--port", "8080"]);
+julia> result = optparse(port, ["--port", "8080"]);
 
 julia> result
 8080
@@ -281,18 +281,18 @@ julia> result
 julia> # Short and long forms
        port = option("-p", "--port", integer());
 
-julia> result = argparse(port, ["-p", "3000"]);
+julia> result = optparse(port, ["-p", "3000"]);
 
 julia> result
 3000
 
-julia> result = argparse(port, ["--port", "3000"]);
+julia> result = optparse(port, ["--port", "3000"]);
 
 julia> result
 3000
 
 julia> # With equals sign
-       result = argparse(port, ["--port=3000"]);
+       result = optparse(port, ["--port=3000"]);
 
 julia> result
 3000
@@ -300,7 +300,7 @@ julia> result
 julia> # With constraints
        level = option("-l", "--level", choice(["debug", "info", "warn"]));
 
-julia> result = argparse(level, ["-l", "debug"]);
+julia> result = optparse(level, ["-l", "debug"]);
 
 julia> result
 "DEBUG"
@@ -312,7 +312,7 @@ julia> @enum Mode begin
 
 julia> mode = option("--mode", choice(Mode));
 
-julia> argparse(mode, ["--mode", "release"])
+julia> optparse(mode, ["--mode", "release"])
 Release::Mode = 1
 ```
 
@@ -362,7 +362,7 @@ julia> using OptParse
 julia> # Simple gate
        experimental = gate("--experimental");
 
-julia> result = argparse(experimental, ["--experimental"]);
+julia> result = optparse(experimental, ["--experimental"]);
 
 julia> result
 true
@@ -370,12 +370,12 @@ true
 julia> # Multiple names
        debug = gate("-d", "--debug");
 
-julia> result = argparse(debug, ["-d"]);
+julia> result = optparse(debug, ["-d"]);
 
 julia> result
 true
 
-julia> result = argparse(debug, ["--debug"]);
+julia> result = optparse(debug, ["--debug"]);
 
 julia> result
 true
@@ -420,12 +420,12 @@ julia> using OptParse
 julia> # Basic usage
        verbose = flag("-v", "--verbose");
 
-julia> result = argparse(verbose, String[]);
+julia> result = optparse(verbose, String[]);
 
 julia> result
 false
 
-julia> result = argparse(verbose, ["-v"]);
+julia> result = optparse(verbose, ["-v"]);
 
 julia> result
 true
@@ -437,14 +437,14 @@ julia> # In an object parser
            quiet = flag("-q", "--quiet")
        ));
 
-julia> result = argparse(parser, ["-h", "--version"]);
+julia> result = optparse(parser, ["-h", "--version"]);
 
 julia> (result.help, result.version, result.quiet)
 (true, true, false)
 
 julia> verbosity = multiple(gate("-v")); # Multiple verbosity levels using multiple
 
-julia> result = argparse(verbosity, ["-v", "-v", "-v"]);
+julia> result = optparse(verbosity, ["-v", "-v", "-v"]);
 
 julia> result
 3-element Vector{Bool}:
@@ -498,7 +498,7 @@ julia> removeCmd = command("remove", object((
 
 julia> parser = or(addCmd, removeCmd);
 
-julia> result = argparse(parser, ["add", "username", "alice"]);
+julia> result = optparse(parser, ["add", "username", "alice"]);
 
 julia> result.action
 Val{:add}()
@@ -515,7 +515,7 @@ julia> # Providing metadata
            name = arg(str())
        ));
 
-julia> result = argparse(parser2, ["myapp"]);
+julia> result = optparse(parser2, ["myapp"]);
 
 julia> result.version
 Val{Symbol("1.0.0")}()
@@ -559,7 +559,7 @@ julia> using OptParse
 julia> # Single argument
        source = arg(str("SOURCE"));
 
-julia> result = argparse(source, ["/path/to/file"]);
+julia> result = optparse(source, ["/path/to/file"]);
 
 julia> result
 "/path/to/file"
@@ -570,7 +570,7 @@ julia> # Multiple positional arguments
            dest = arg(str("DEST"))
        ));
 
-julia> result = argparse(parser, ["/from/here", "/to/here"]);
+julia> result = optparse(parser, ["/from/here", "/to/here"]);
 
 julia> result.source
 "/from/here"
@@ -581,7 +581,7 @@ julia> result.dest
 julia> # Variable number of arguments
        files = multiple(arg(str("FILE")));
 
-julia> result = argparse(files, ["file1.txt", "file2.txt", "file3.txt"]);
+julia> result = optparse(files, ["file1.txt", "file2.txt", "file3.txt"]);
 
 julia> result
 3-element Vector{String}:
@@ -592,7 +592,7 @@ julia> result
 julia> # Arguments with type constraints
        port = arg(integer(min=1000, max=65535));
 
-julia> result = argparse(port, ["8080"]);
+julia> result = optparse(port, ["8080"]);
 
 julia> result
 8080
@@ -604,12 +604,12 @@ julia> # Mixed with options (order flexible)
            verbose = flag("-v")
        ));
 
-julia> result = argparse(parser, ["input.txt", "-o", "output.txt", "-v"]);
+julia> result = optparse(parser, ["input.txt", "-o", "output.txt", "-v"]);
 
 julia> result.input
 "input.txt"
 
-julia> result = argparse(parser, ["-v", "input.txt", "-o", "output.txt"]);
+julia> result = optparse(parser, ["-v", "input.txt", "-o", "output.txt"]);
 
 julia> result.input
 "input.txt"
@@ -661,7 +661,7 @@ julia> # Simple command
            manifest = flag("-m", "--manifest")
        )));
 
-julia> result = argparse(instantiate, ["instantiate", "-v", "-m"]);
+julia> result = optparse(instantiate, ["instantiate", "-v", "-m"]);
 
 julia> (result.verbose, result.manifest)
 (true, true)
@@ -679,7 +679,7 @@ julia> removeCmd = command("remove", object((
 
 julia> pkgParser = or(addCmd, removeCmd);
 
-julia> result = argparse(pkgParser, ["add", "OptParse", "DataFrames"]);
+julia> result = optparse(pkgParser, ["add", "OptParse", "DataFrames"]);
 
 julia> result.action
 Val{:add}()
@@ -689,7 +689,7 @@ julia> result.packages
  "OptParse"
  "DataFrames"
 
-julia> result = argparse(pkgParser, ["remove", "OldPkg"]);
+julia> result = optparse(pkgParser, ["remove", "OldPkg"]);
 
 julia> result.action
 Val{:remove}()
@@ -746,7 +746,7 @@ julia> # Basic usage
            verbose = flag("-v")
        ));
 
-julia> result = argparse(parser, ["-n", "server", "-p", "8080", "-v"]);
+julia> result = optparse(parser, ["-n", "server", "-p", "8080", "-v"]);
 
 julia> result.name
 "server"
@@ -762,7 +762,7 @@ julia> parser = object("config", (
            port = option("--port", integer())
        )); # With a label for clearer diagnostics
 
-julia> result = argparse(parser, ["--host", "localhost", "--port", "3000"]);
+julia> result = optparse(parser, ["--host", "localhost", "--port", "3000"]);
 
 julia> result.host
 "localhost"
@@ -775,7 +775,7 @@ julia> parser = object((
            timeout = option("--timeout", integer())
        ));  # Nested objects
 
-julia> result = argparse(parser, ["--host", "localhost", "--port", "8080", "--timeout", "30"]);
+julia> result = optparse(parser, ["--host", "localhost", "--port", "8080", "--timeout", "30"]);
 
 julia> result.server.host
 "localhost"
@@ -839,7 +839,7 @@ julia> networkOpts = object((
 julia> # Merge into single parser
        parser = combine(commonOpts, networkOpts);
 
-julia> result = argparse(parser, ["-v", "--host", "localhost", "--port", "8080"]);
+julia> result = optparse(parser, ["-v", "--host", "localhost", "--port", "8080"]);
 
 julia> result.verbose
 true
@@ -853,7 +853,7 @@ julia> result.port
 julia> # With label
        parser = combine("server_options", commonOpts, networkOpts);
 
-julia> result = argparse(parser, ["--host", "127.0.0.1", "--port", "3000", "-v"]);
+julia> result = optparse(parser, ["--host", "127.0.0.1", "--port", "3000", "-v"]);
 
 julia> result.host
 "127.0.0.1"
@@ -913,7 +913,7 @@ julia> removeCmd = command("remove", object((
 
 julia> parser = or(addCmd, removeCmd);
 
-julia> result = argparse(parser, ["add", "Package1", "Package2"]);
+julia> result = optparse(parser, ["add", "Package1", "Package2"]);
 
 julia> result.action
 Val{:add}()
@@ -923,7 +923,7 @@ julia> result.packages
  "Package1"
  "Package2"
 
-julia> result = argparse(parser, ["remove", "OldPackage"]);
+julia> result = optparse(parser, ["remove", "OldPackage"]);
 
 julia> result.action
 Val{:remove}()
@@ -935,12 +935,12 @@ julia> # Alternative formats
            gate("-?")
        );
 
-julia> result = argparse(helpFormat, ["-h"]);
+julia> result = optparse(helpFormat, ["-h"]);
 
 julia> result
 true
 
-julia> result = argparse(helpFormat, ["--help"]);
+julia> result = optparse(helpFormat, ["--help"]);
 
 julia> result
 true
@@ -951,7 +951,7 @@ julia> # Different configuration modes
            object((mode = @constant(:inline), config = option("-c", str())))
        );
 
-julia> result = argparse(config, ["-f", "config.toml"]);
+julia> result = optparse(config, ["-f", "config.toml"]);
 
 julia> result.mode
 Val{:file}()
@@ -1004,7 +1004,7 @@ julia> # Basic tuple
            option("-y", integer())
        );
 
-julia> result = argparse(parser, ["-y", "20", "-x", "10"]);
+julia> result = optparse(parser, ["-y", "20", "-x", "10"]);
 
 julia> result
 (10, 20)
@@ -1016,7 +1016,7 @@ julia> # With label
            option("-z", integer())
        );
 
-julia> result = argparse(parser, ["-z", "30", "-x", "10", "-y", "20"]);
+julia> result = optparse(parser, ["-z", "30", "-x", "10", "-y", "20"]);
 
 julia> result
 (10, 20, 30)
@@ -1028,7 +1028,7 @@ julia> # Mixed with arguments
            gate("-v")
        );
 
-julia> result = argparse(parser, ["input.txt", "-v", "-o", "output.txt"]);
+julia> result = optparse(parser, ["input.txt", "-v", "-o", "output.txt"]);
 
 julia> result
 ("input.txt", "output.txt", true)
@@ -1089,7 +1089,7 @@ julia> sizeArgs = sequence(
 julia> # Concatenate into single tuple
        parser = concat(positionArgs, sizeArgs);
 
-julia> result = argparse(parser, ["-x", "10", "-y", "20", "--width", "100", "--height", "50"]);
+julia> result = optparse(parser, ["-x", "10", "-y", "20", "--width", "100", "--height", "50"]);
 
 julia> result
 (10, 20, 100, 50)
@@ -1101,7 +1101,7 @@ julia> # With label
            label = "connection"
        );
 
-julia> result = argparse(parser, ["--host", "localhost", "--port", "8080"]);
+julia> result = optparse(parser, ["--host", "localhost", "--port", "8080"]);
 
 julia> result
 ("localhost", 8080)
@@ -1115,7 +1115,7 @@ julia> authArgs = sequence(option("-u", str()), option("-p", str()));
 
 julia> httpParser = concat(headerArgs, bodyArgs, authArgs, label = "http_request");
 
-julia> result = argparse(httpParser, ["-H", "Content-Type: json", "-d", "data", "-u", "user", "-p", "pass"]);
+julia> result = optparse(httpParser, ["-H", "Content-Type: json", "-d", "data", "-u", "user", "-p", "pass"]);
 
 julia> result
 ("Content-Type: json", "data", "user", "pass")

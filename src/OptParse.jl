@@ -21,7 +21,7 @@ export
     @?,
     @constant,
     arg,
-    argparse,
+    optparse,
     choice,
     combine,
     concat,
@@ -45,7 +45,7 @@ export
     path,
     resulttype,
     str,
-    tryargparse,
+    tryoptparse,
     sequence,
     u16,
     u32,
@@ -104,14 +104,14 @@ end
 
 
 """
-    tryargparse(parser, argv)
+    tryoptparse(parser, argv)
 
 Lower-level parsing entrypoint.
 
 Returns a result object containing either the parsed value or a structured parse failure.
-Unlike [`argparse`](@ref), this function does not throw on parse failures.
+Unlike [`optparse`](@ref), this function does not throw on parse failures.
 """
-function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}
+function tryoptparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}
 
     canonical_argv, _ = normalize_argv(args)
     ctx = Context{S}(buffer=canonical_argv, state=pp.initialState)
@@ -145,7 +145,7 @@ function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
 end
 
 """
-    argparse(parser, argv)
+    optparse(parser, argv)
 
 High-level parsing entrypoint.
 
@@ -158,12 +158,12 @@ via `Preferences.jl`:
   `nothing` on failure instead of throwing
 
 If you need stable non-throwing behavior across environments, use
-[`tryargparse`](@ref) instead.
+[`tryoptparse`](@ref) instead.
 """
 @static if juliac
 
-    function argparse(pp::Parser{T}, args::Vector{String})::Union{T, Nothing} where {T}
-        mayberes = tryargparse(pp, args)::ParseResult{T}
+    function optparse(pp::Parser{T}, args::Vector{String})::Union{T, Nothing} where {T}
+        mayberes = tryoptparse(pp, args)::ParseResult{T}
 
         if is_error(mayberes)
             errmsg = sprint(showerror, ParseException(unwrap_error(mayberes)))
@@ -177,8 +177,8 @@ If you need stable non-throwing behavior across environments, use
 
 else
 
-    function argparse(pp::Parser{T}, args::Vector{String})::T where {T}
-        mayberes = tryargparse(pp, args)::ParseResult{T}
+    function optparse(pp::Parser{T}, args::Vector{String})::T where {T}
+        mayberes = tryoptparse(pp, args)::ParseResult{T}
 
         if is_error(mayberes)
             throw(ParseException(unwrap_error(mayberes)))

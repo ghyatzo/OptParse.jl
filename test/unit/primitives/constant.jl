@@ -45,5 +45,5 @@ end
     @test_opt @constant(true)
     @test_opt @constant((key = :value,))
 
-    @test_opt argparse(@constant(10), String[])
+    @test_opt optparse(@constant(10), String[])
 end

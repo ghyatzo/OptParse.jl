@@ -139,7 +139,7 @@ end
 """
     ParseException
 
-Exception thrown by [`argparse`](@ref) when parsing fails.
+Exception thrown by [`optparse`](@ref) when parsing fails.
 """
 struct ParseException <: Exception
 	err::ParseError

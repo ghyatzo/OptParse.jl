@@ -6,8 +6,8 @@
 # Options with different styles
 port = option("-p", "--port", integer("PORT"))
 
-result = argparse(port, ["--port=8080"])  # Long form with =
-result = argparse(port, ["-p", "8080"])   # Short form
+result = optparse(port, ["--port=8080"])  # Long form with =
+result = optparse(port, ["-p", "8080"])   # Short form
 ```
 
 ### Bundled Flags
@@ -20,7 +20,7 @@ parser = object((
     human = flag("-h")
 ))
 
-result = argparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
+result = optparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
 ```
 
 ### Options Terminator
@@ -32,7 +32,7 @@ parser = or(
     arg(str("ARG"))
 )
 
-result = argparse(parser, ["--", "test"])  # "test"
+result = optparse(parser, ["--", "test"])  # "test"
 ```
 
 ### Type Constraints
@@ -76,7 +76,7 @@ parser = object((
     force = flag("-f", "--force")
 ))
 
-result = argparse(parser, ["input.txt", "-o", "output.txt", "-f"])
+result = optparse(parser, ["input.txt", "-o", "output.txt", "-f"])
 ```
 
 ### Subcommands with or
@@ -97,7 +97,7 @@ removeCmd = command("remove", object((
 pkgParser = or(addCmd, removeCmd)
 
 # Parse
-result = argparse(pkgParser, ["add", "DataFrames", "Plots"])
+result = optparse(pkgParser, ["add", "DataFrames", "Plots"])
 @assert result.action == Val(:add)
 @assert result.packages == ["DataFrames", "Plots"]
 ```

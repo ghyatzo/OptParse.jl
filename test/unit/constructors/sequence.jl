@@ -91,7 +91,7 @@ end
     )
 
     # No arguments provided, should fail on first argument parser
-    @test is_error(tryargparse(parser, ["-v"]))
+    @test is_error(tryoptparse(parser, ["-v"]))
 end
 
 @testset "should work with complex argument and option combinations" begin

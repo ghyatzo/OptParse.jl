@@ -132,5 +132,5 @@ end
     @test_opt option("--port", integer())
     parser = option("--port", integer())
 
-    @test_opt argparse(parser, ["--port", "8080"])
+    @test_opt optparse(parser, ["--port", "8080"])
 end

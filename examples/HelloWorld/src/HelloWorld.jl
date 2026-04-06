@@ -27,7 +27,7 @@ using OptParse
  runaction(x::Goodbye) = println(Core.stdout, "Goodbye, $(x.name)!")
 
  function (@main)(args::Vector{String})::Cint
-     obj = argparse(parser, args)
+     obj = optparse(parser, args)
      isnothing(obj) && return 1
 
      runaction(obj)

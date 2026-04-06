@@ -139,6 +139,6 @@ end
     @test_opt arg(integer(; min = 1024, max = 0xffff))
     portParser = arg(integer(; min = 1024, max = 0xffff))
 
-    @test_opt argparse(fileParser, ["readme.txt"])
-    @test_opt argparse(portParser, ["8080"])
+    @test_opt optparse(fileParser, ["readme.txt"])
+    @test_opt optparse(portParser, ["8080"])
 end

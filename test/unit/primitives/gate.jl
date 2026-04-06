@@ -122,5 +122,5 @@ end
     @test_opt gate("-v")
     parser = gate("-v")
 
-    @test_opt argparse(parser, ["-v"])
+    @test_opt optparse(parser, ["-v"])
 end

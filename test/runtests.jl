@@ -81,7 +81,7 @@ end
 @testset "Integration Tests" failfast=true begin
 
     @testset "Argparse" begin
-        include("integration/argparse.jl")
+        include("integration/optparse.jl")
     end
 
     @testset "Argv Normalization" begin

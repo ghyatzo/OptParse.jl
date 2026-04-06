@@ -140,5 +140,5 @@ end
         object((verify = gate("-v"),)),
     )
 
-    @test_opt argparse(parser, ["-v"])
+    @test_opt optparse(parser, ["-v"])
 end
