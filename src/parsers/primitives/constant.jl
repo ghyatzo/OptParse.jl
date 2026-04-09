@@ -14,6 +14,8 @@ ArgConstant(val::T) where {T} = let
     end
 end
 
+usage(p::ArgConstant) = UsageHidden(UsageEmpty())
+
 function parse(::ArgConstant{Val{val}, ConstantState{val}}, ctx::Context{ConstantState{val}})::InnerParseResult{ConstantState{val}} where {val}
     return innerOk(ctx, consumed_empty(ctx))
 end

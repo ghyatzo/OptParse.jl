@@ -63,6 +63,8 @@ struct UsageHidden{Child <: AbstractUsageNode} <: AbstractUsageNode
     child::Child
 end
 
+struct UsageEmpty <: AbstractUsageNode end
+
 UsageFlag(names::Vararg{String}) = UsageFlag(names)
 
 UsageOption(names::Tuple{Vararg{String}}, metavar::AbstractString) =
@@ -138,6 +140,7 @@ function _usage_primary_name(names::Tuple{Vararg{String}})
 end
 
 _usage_renders_empty(::UsageHidden) = true
+_usage_renders_empty(::UsageEmpty) = true
 _usage_renders_empty(node::UsageOptional) = _usage_renders_empty(node.child)
 _usage_renders_empty(node::UsageRepeat) = _usage_renders_empty(node.child)
 _usage_renders_empty(node::UsageAlternative) = _tuple_renders_empty(node.branches)

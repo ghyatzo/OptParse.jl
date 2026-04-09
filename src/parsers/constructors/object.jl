@@ -84,6 +84,7 @@ let
     ConstrObject{parsers_obj_tval}(init_state, sparsers_obj, label)
 end
 
+usage(p::ConstrObject) = UsageObject(map(usage, fieldtypes(p.parsers)))
 
 @generated function _generated_object_parse(p::NamedTuple{labels}, ctx::Context{S}) where {labels, S}
 

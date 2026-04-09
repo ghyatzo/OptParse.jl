@@ -65,6 +65,7 @@ ConstrOr(parsers::PTup) where {PTup <: Tuple} = let
     }(none(InnerOrState{innerstate_U}), parsers)
 end
 
+usage(p::ConstrOr) = UsageAlternative(map(usage, p.parsers))
 
 @generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}) where {PTup <: Tuple, U}
     #=

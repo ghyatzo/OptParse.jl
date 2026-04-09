@@ -37,6 +37,8 @@ ConstrTuple(parsers::PTup; label::String = "") where {PTup} = let
     }(map(p -> p.initialState, parsers), parsers, label)
 end
 
+usage(p::ConstrTuple) = UsageTuple(map(usage, p.parsers))
+
 Base.@assume_effects :foldable function _sortperm_by_priority(p::PTup) where {PTup <: Tuple}
     perm = tupsortperm(p, rev = true, by = priority)
     permp = ntuple(fieldcount(PTup)) do i

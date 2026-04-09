@@ -39,6 +39,7 @@ struct ArgCommand{T, S, _p, P} <: AbstractParser{T, S, _p, P}
         new{tval(P), CommandState{tstate(P)}, 15, P}(none(Option{tstate(P)}), parser, [names...], brief, help, footer)
 end
 
+usage(p::ArgCommand) = UsageCommand(usage(p.parser), p.names...)
 
 function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState{PState}})::InnerParseResult{CommandState{PState}} where {T, PState}
     if is_error(ctx_state(ctx))

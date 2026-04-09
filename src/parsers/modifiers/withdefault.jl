@@ -31,6 +31,8 @@ struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
     end
 end
 
+usage(p::ModWithDefault) = UsageOptional(p.parser)
+
 function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefaultState{S}})::InnerParseResult{WithDefaultState{S}} where {T, S}
 
     childstate = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))

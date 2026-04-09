@@ -64,6 +64,7 @@ struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
     end
 end
 
+usage(p::ArgOption) = UsageOption(trymetavar(p.valparser), p.names...)
 
 function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::InnerParseResult{OptionState{T}} where {T}
 

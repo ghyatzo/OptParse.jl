@@ -45,6 +45,8 @@ struct ArgArgument{T, S, p, P} <: AbstractParser{T, S, p, P}
         new{T, ArgumentState{T}, 5, Nothing}(none(ParseResult{T}), nothing, valparser, help)
 end
 
+usage(p::ArgArgument) = UsageArgument(trymetavar(p.valparser))
+
 function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S}})::InnerParseResult{ArgumentState{S}} where {T, S}
     optpattern = r"^--?[a-z0-9-]+$"i
 
