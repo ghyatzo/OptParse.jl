@@ -32,14 +32,23 @@ struct ConstrObject{T, S, p, P} <: AbstractParser{T, S, p, P}
     label::String
 end
 
-ConstrObject{T}(initialState::TState, parsers, label) where {T, TState} =
-    ConstrObject{
-        T,
-        TState,
-        mapreduce(p -> priority(p), max, parsers),
-        typeof(parsers)
-    }(initialState, parsers, label)
+function ConstrObject(parsers_obj::NamedTuple; label = "")
+    labels = keys(parsers_obj)
+    parsers_t = fieldtypes(typeof(parsers_obj))
+    parsers = values(parsers_obj)
+    parsers_tvals = map(tval, parsers_t)
+    parsers_tstates = map(tstate, parsers_t)
 
+    parsers_obj_tval = NamedTuple{labels, Tuple{parsers_tvals...}}
+    init_state = NamedTuple{labels, Tuple{parsers_tstates...}}(map(p -> p.initialState, parsers))
+
+    ConstrObject{
+        parsers_obj_tval,
+        typeof(init_state),
+        mapreduce(p -> priority(p), max, parsers_obj),
+        typeof(parsers_obj)
+    }(init_state, parsers_obj, label)
+end
 #=
     This is does the same thing but in a different way.
     The difference is that the generated function approach
@@ -60,38 +69,20 @@ Base.@assume_effects :foldable function _sort_obj_labels(
         labels, ::Type{PTup}
     ) where {PTup <: Tuple}
 
-    perm = sortperm(collect(fieldtypes(PTup)); by = priority, rev = true)
-    return labels[perm]
-end
-
-function _sort_obj(obj::NamedTuple{labels, PTup}) where {labels, PTup <: Tuple}
-    slabels = _sort_obj_labels(labels, PTup)
-    return obj[slabels]
-end
-
-_object(parsers_obj::NamedTuple; label = "") =
-let
-    sparsers_obj = _sort_obj(parsers_obj)
-    labels = keys(sparsers_obj)
-    parsers_t = fieldtypes(typeof(sparsers_obj))
-    parsers = values(sparsers_obj)
-    parsers_tvals = map(tval, parsers_t)
-    parsers_tstates = map(tstate, parsers_t)
-
-    parsers_obj_tval = NamedTuple{labels, Tuple{parsers_tvals...}}
-    init_state = NamedTuple{labels, Tuple{parsers_tstates...}}(map(p -> p.initialState, parsers))
-
-    ConstrObject{parsers_obj_tval}(init_state, sparsers_obj, label)
+    perm = tupsortperm(fieldtypes(PTup); by = priority, rev = true)
+    return ntuple(fieldcount(PTup)) do i
+        @inbounds(labels[perm[i]])
+    end
 end
 
 usage(p::ConstrObject) = UsageObject(map(usage, fieldtypes(p.parsers)))
 
-@generated function _generated_object_parse(p::NamedTuple{labels}, ctx::Context{S}) where {labels, S}
+@generated function _generated_object_parse(p::NamedTuple{labels, PTup}, ctx::Context{S}) where {labels, PTup <: Tuple, S}
 
-
+    sorted_labels = _sort_obj_labels(labels, PTup)
     whilebody = Expr(:block)
 
-    for field in labels
+    for field in sorted_labels
         push!(
             whilebody.args, quote
                 child_state_lens = PropertyLens($(QuoteNode(field))) ∘ ℒ_state

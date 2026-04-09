@@ -808,8 +808,8 @@ julia> result.timeout
 """
 function object end
 
-object(obj::NamedTuple) = _parser(_object(obj))
-object(objlabel, obj::NamedTuple) = _parser(_object(obj; label = objlabel))
+object(obj::NamedTuple) = _parser(ConstrObject(obj))
+object(objlabel, obj::NamedTuple) = _parser(ConstrObject(obj; label = objlabel))
 
 ## Combine
 
@@ -881,8 +881,8 @@ julia> result.host
 function combine end
 
 
-combine(objs...) = _parser(_object(_merge(objs)))
-combine(label::String, objs...) = _parser(_object(_merge(objs); label))
+combine(objs...) = _parser(ConstrObject(_merge(objs)))
+combine(label::String, objs...) = _parser(ConstrObject(_merge(objs); label))
 
 ## Or
 

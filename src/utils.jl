@@ -119,6 +119,16 @@ function tupsortperm(v::Tup; lt=isless, by=identity, rev::Union{Bool,Nothing}=no
     perm
 end
 
+Base.@assume_effects :foldable function _sortperm_by_priority(p::PTup) where {PTup <: Tuple}
+    perm = tupsortperm(p, rev = true, by = priority)
+    permp = ntuple(fieldcount(PTup)) do i
+        @inbounds(p[perm[i]])
+    end
+    return perm, permp
+end
+
+sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
+
 # # juliac-compatible print(::IO, ::VersionNumber) with explicitly `@inline`d `join` calls...
 # function print_vnum_juliac(io::IO, v::VersionNumber)
 #     v == typemax(VersionNumber) && return print(io, "∞")
