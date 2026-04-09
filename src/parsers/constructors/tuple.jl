@@ -37,15 +37,15 @@ ConstrTuple(parsers::PTup; label::String = "") where {PTup} = let
     }(map(p -> p.initialState, parsers), parsers, label)
 end
 
-Base.@assume_effects :foldable function _sortperm_by_priority(p::PTup) where {PTup <: Tuple}
-    perm = tupsortperm(p, rev = true, by = priority)
-    permp = ntuple(fieldcount(PTup)) do i
-        @inbounds(p[perm[i]])
-    end
-    return perm, permp
-end
+# Base.@assume_effects :foldable function _sortperm_by_priority(p::PTup) where {PTup <: Tuple}
+#     perm = tupsortperm(p, rev = true, by = priority)
+#     permp = ntuple(fieldcount(PTup)) do i
+#         @inbounds(p[perm[i]])
+#     end
+#     return perm, permp
+# end
 
-sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
+# sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
 
 
 @generated function _generated_tup_parse(parsers::PTup, ctx::Context{S}) where {PTup <: Tuple, S <: Tuple}
