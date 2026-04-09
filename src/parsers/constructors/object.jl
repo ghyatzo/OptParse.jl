@@ -163,7 +163,7 @@ end
     end
 end
 
-function parse(p::ConstrObject{NamedTuple{fields, Tup}, S}, ctx::Context)::InnerParseResult{S} where {fields, Tup, S}
+function parse(p::ConstrObject{T, ObjectState}, ctx::Context{ObjectState})::InnerParseResult{ObjectState} where {T}
 
     # TODO: check for duplicates
 
@@ -225,7 +225,7 @@ end
 end
 
 
-function complete(p::ConstrObject{T}, st::NamedTuple)::ParseResult{T} where {T}
+function complete(p::ConstrObject{T}, st::ObjectState)::ParseResult{T} where {T}
 
     cancomplete, _result = _generated_object_complete(p.parsers, st)
 

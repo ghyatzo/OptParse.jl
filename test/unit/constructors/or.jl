@@ -147,7 +147,7 @@ end
             name = option("-n", str()),
             port = option("-p", integer()),
         ))),
-        multiple(argument(str())),
+        multiple(arg(str())),
     )
 
     ctx1 = Context(buffer=["bye", "-n", "alice"], state=parser.initialState)

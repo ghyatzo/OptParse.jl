@@ -84,7 +84,7 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
         consumed = i)
     end
 
-    if !is_error(ℒ_state(ctx))
+    if !is_error(ctx_state(ctx))
         #=The state is a some, so this parser matched already with something.
         Add one to the consumed since we're technically consuming this duplicate=#
         return innerErr(ctx, argargument_error(

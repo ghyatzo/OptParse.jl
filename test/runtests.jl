@@ -84,6 +84,8 @@ include("helpers.jl")
         include("integration/optparse.jl")
     end
 
+end
+
 @testset "Usage" failfast=true begin
     @testset "Tuple AST" begin
         include("unit/usage/usage2.jl")
