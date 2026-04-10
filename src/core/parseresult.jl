@@ -142,12 +142,14 @@ end
     return Ok(InnerParseSuccess{S}(cons, next, counts_as_match))
 end
 
-@inline function innerErr(_ctx::Context{S}, e::ParseError; consumed::Int=0)::InnerParseResult{S} where {S}
-    return Err(InnerParseFailure(consumed, e))
+@inline function innerErr(ctx::Context{S}, e::ParseError; consumed::Int=0)::InnerParseResult{S} where {S}
+    # Parse-phase failures have access to the live parsing cursor, so this is the
+    # central place where missing cursors get stamped onto errors.
+    return Err(InnerParseFailure(consumed, err_with_cursor(e, ctx)))
 end
 
-@inline function innerErr(_ctx::Context{S}, perr::InnerParseFailure)::InnerParseResult{S} where {S}
-    return Err(InnerParseFailure(ℒ_consumed(perr), ℒ_error(perr)))
+@inline function innerErr(ctx::Context{S}, perr::InnerParseFailure)::InnerParseResult{S} where {S}
+    return Err(InnerParseFailure(ℒ_consumed(perr), err_with_cursor(ℒ_error(perr), ctx)))
 end
 
 @inline function innerErr(ctx::Context{S}, res::InnerParseResult)::InnerParseResult{S} where {S}
@@ -171,15 +173,14 @@ end
 @inline typedOk(x) = Ok(x)
 @inline typedErr(x) = Err(x)
 
-error_with_context(perr::ParseError, phase::ErrorPhase, domain::ErrorDomain, subject::String) = let
+error_with_trace(perr::ParseError, phase::ErrorPhase, domain::ErrorDomain, subject::String) = let
     errsite = ErrorSite(phase, domain, subject)
-    push!(perr.context, errsite)
+    push!(perr.trace, errsite)
     return perr
 end
 
-error_with_context(err::ParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String) =
-    error_with_context(unwrap_error(err), phase, domain, subject)
+error_with_trace(err::ParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String) =
+    error_with_trace(unwrap_error(err), phase, domain, subject)
 
-error_with_context(err::InnerParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String)=
-    error_with_context(res_error(err), phase, domain, subject)
-
+error_with_trace(err::InnerParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String)=
+    error_with_trace(res_error(err), phase, domain, subject)

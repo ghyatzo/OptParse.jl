@@ -9,7 +9,7 @@ modmultiple_error(code::MultipleErrCode; token = "", detail = "", subject="") =
 	mkerror(CompletePhase, ERR_ModMultiple, UInt8(code);
 		token,
 		detail,
-		context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModMultiple, subject)]
+		trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModMultiple, subject)]
 	)
 
 function modmultiple_render_error(io::IO, code::MultipleErrCode, err::ParseError)
@@ -157,7 +157,7 @@ function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleSta
 		val = complete(unwrapunion(p.parser), s)::ParseResult{tval(p.parser)}
 		if is_error(val)
 			return typedErr(T,
-				error_with_context(val,
+				error_with_trace(val,
 					CompletePhase,
 					ERR_ModMultiple,
 					"multiple"

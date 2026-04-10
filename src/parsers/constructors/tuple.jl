@@ -13,7 +13,7 @@ constrtuple_error(code::TupleErrCode; token = "", detail = "", subject="") =
     mkerror(ParsePhase, ERR_ConstrTuple, UInt8(code);
         token,
         detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrTuple, subject)]
+        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrTuple, subject)]
     )
 
 function constrtuple_render_error(io::IO, code::TupleErrCode, err::ParseError)
@@ -216,7 +216,7 @@ function complete(p::ConstrTuple{T, TState}, st::TState)::ParseResult{T} where {
     if !cancomplete
         subject = isempty(p.label) ? "tuple" : p.label
         return typedErr(T,
-            error_with_context(_result,
+            error_with_trace(_result,
                 CompletePhase,
                 ERR_ConstrTuple,
                 subject

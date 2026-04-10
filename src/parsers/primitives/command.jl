@@ -10,7 +10,7 @@ argcommand_error(code::CommandErrCode; token = "", detail = "", subject="") =
     mkerror(ParsePhase, ERR_ArgCommand, UInt8(code);
         token,
         detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgCommand, subject)]
+        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgCommand, subject)]
     )
 
 function argcommand_render_error(io::IO, code::CommandErrCode, err::ParseError)
@@ -96,7 +96,7 @@ function complete(p::ArgCommand{T, CommandState{PState}}, maybemaybestate::Comma
             complete(unwrapunion(p.parser), unwrap(maybestate))
         end
         return !is_error(result) ? result : typedErr(
-            error_with_context(result,
+            error_with_trace(result,
                 CompletePhase,
                 ERR_ArgCommand,
                 p.names[1]

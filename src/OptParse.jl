@@ -56,9 +56,9 @@ export
 include("utils.jl")
 include("core/breadcrumbs.jl")
 include("core/context.jl")
+include("usage/usage.jl")
 include("core/errors.jl")
 include("core/parseresult.jl")
-include("usage/usage.jl")
 include("parsers/parser.jl")
 include("display/parser_show.jl")
 
@@ -122,6 +122,7 @@ function tryoptparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
         mayberesult::InnerParseResult{S} = @unionsplit parse(pp, ctx)
 
         if is_error(mayberesult)
+            # Parse-phase errors are expected to already be cursor-stamped by `innerErr`.
             return typedErr(unwrap_error(mayberesult).error)
         end
         result = unwrap(mayberesult)
@@ -135,7 +136,7 @@ function tryoptparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
                     && ctx_remaining(ctx) == previous_buffer
             )
             # Top-level progress guard: a parser must not report success while leaving argv unchanged.
-            return typedErr(main_error(MAIN_NoProgress; token = ctx_peek(ctx)))
+            return typedErr(T, err_with_cursor(main_error(MAIN_NoProgress; token = ctx_peek(ctx)), ctx))
         end
 
         ctx_length(ctx) > 0 || break
@@ -143,7 +144,14 @@ function tryoptparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
 
     state = ctx_state(ctx)
 
-    return @unionsplit complete(pp, state)
+    ret = @unionsplit complete(pp, state)
+    if is_error(ret)
+        # Complete/value-phase errors are created without a live parse context.
+        # At this point parsing has finished, so we fill any missing cursor from
+        # the final top-level context before surfacing the failure.
+        return typedErr(T, err_with_cursor(unwrap_error(ret), ctx))
+    end
+    return ret
 end
 
 """

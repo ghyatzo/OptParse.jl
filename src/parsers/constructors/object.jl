@@ -10,7 +10,7 @@ constrobject_error(code::ObjectErrCode; token = "", detail = "", subject="") =
     mkerror(ParsePhase, ERR_ConstrObject, UInt8(code);
         token,
         detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrObject, subject)]
+        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrObject, subject)]
     )
 
 function constrobject_render_error(io::IO, code::ObjectErrCode, err::ParseError)
@@ -155,7 +155,7 @@ usage(p::ConstrObject) = UsageObject(map(usage, fieldtypes(p.parsers)))
     end
 end
 
-function parse(p::ConstrObject{T, ObjectState}, ctx::Context{ObjectState})::InnerParseResult{ObjectState} where {T}
+function parse(p::ConstrObject{T, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: ObjectState}
 
     # TODO: check for duplicates
 
@@ -224,7 +224,7 @@ function complete(p::ConstrObject{T}, st::ObjectState)::ParseResult{T} where {T}
     if !cancomplete
         subject = isempty(p.label) ? "object" : p.label
         return typedErr(T,
-            error_with_context(_result,
+            error_with_trace(_result,
                 CompletePhase,
                 ERR_ConstrObject,
                 subject

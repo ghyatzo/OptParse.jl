@@ -11,7 +11,7 @@ argargument_error(code::ArgumentErrCode; token = "", detail = "", subject="") =
     mkerror(ParsePhase, ERR_ArgArgument, UInt8(code);
         token,
         detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgArgument, subject)]
+        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgArgument, subject)]
     )
 
 function argargument_render_error(io::IO, code::ArgumentErrCode, err::ParseError)
@@ -112,7 +112,7 @@ function complete(p::ArgArgument{T, <:ArgumentState}, maybest::TState)::ParseRes
     st = unwrap(maybest)
     #=The parser matched but there was a parsing error.=#
     is_error(st) && return typedErr(
-        error_with_context(st,
+        error_with_trace(st,
             CompletePhase,
             ERR_ArgArgument,
             trymetavar(p.valparser)

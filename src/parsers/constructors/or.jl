@@ -20,7 +20,7 @@ constror_error(code::OrErrCode; token = "", detail = "", subject="") =
     mkerror(ParsePhase, ERR_ConstrOr, UInt8(code);
         token,
         detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrOr, subject)]
+        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrOr, subject)]
     )
 
 function constror_render_error(io::IO, code::OrErrCode, err::ParseError)
@@ -167,7 +167,7 @@ usage(p::ConstrOr) = UsageAlternative(map(usage, p.parsers))
                 elseif is_error(result)
                     if has_selection
                         #= the child parser has encountered an error, we should resurface that error instead of the generic =#
-                        error = error_with_context(result,
+                        error = error_with_trace(result,
                             ParsePhase,
                             ERR_ConstrOr,
                             "or"
@@ -227,7 +227,7 @@ end
                 child_result = complete(p.parsers[$i], ℒ_nextstate(selected.success))::ParseResult{$out_t}
                 if is_error(child_result)
                     return typedErr(T,
-                        error_with_context(child_result,
+                        error_with_trace(child_result,
                             CompletePhase,
                             ERR_ConstrOr,
                             "or"

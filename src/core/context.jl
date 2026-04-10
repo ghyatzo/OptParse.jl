@@ -1,3 +1,10 @@
+@kwdef struct ParseCursor
+    path::Vector{Breadcrumb} = Breadcrumb[]
+    optionsTerminated::Bool = false
+end
+
+const ℒ_optterm = @o _.optionsTerminated
+const ℒ_path    = @o _.path
 
 # -----------------------------------------------------------------------------
 # Context & state aliases
@@ -12,34 +19,35 @@ Parsing context carrying:
 - `state`: parser state accumulator.
 - `optionsTerminated`: whether `--` or equivalent was encountered
 """
-Base.@kwdef struct Context{S}
+@kwdef struct Context{S}
     buffer::Vector{String}
     pos::Int = 1
     state::S
-    optionsTerminated::Bool = false
-    path::Vector{Breadcrumb} = Breadcrumb[]
+    cursor::ParseCursor = ParseCursor()
 end
 
 # Note: the ℒ is `\\scrL<TAB>`
 const ℒ_buffer  = @o _.buffer
 const ℒ_pos     = @o _.pos
 const ℒ_state   = @o _.state
-const ℒ_optterm = @o _.optionsTerminated
-const ℒ_path    = @o _.path
+const ℒ_cursor  = @o _.cursor
 
 ctx_buffer(ctx::Context) = ℒ_buffer(ctx)
 ctx_pos(ctx::Context) = ℒ_pos(ctx)
-ctx_optterm(ctx::Context) = ℒ_optterm(ctx)
 ctx_state(ctx::Context) = ℒ_state(ctx)
+ctx_cursor(ctx::Context) = ℒ_cursor(ctx)
+ctx_optterm(ctx::Context) = (ℒ_optterm ∘ ℒ_cursor)(ctx)
+ctx_path(ctx::Context) = (ℒ_path∘ ℒ_cursor)(ctx)
+snapshot_cursor(ctx::Context) = ctx_cursor(ctx)
 
-@inline ctx_with_options_terminated(ctx::Context, flag::Bool) = set(ctx, ℒ_optterm, flag)
+@inline ctx_with_options_terminated(ctx::Context, flag::Bool) = set(ctx, ℒ_optterm ∘ ℒ_cursor, flag)
 @inline ctx_with_buffer(ctx::Context, buf::Vector{String}) = set(ctx, ℒ_buffer, buf)
 @inline ctx_with_pos(ctx::Context, pos::Int) = set(ctx, ℒ_pos, pos)
-@inline ctx_with_path(ctx::Context, path::Vector{Breadcrumb}) = set(ctx, ℒ_path, path)
+@inline ctx_with_path(ctx::Context, path::Vector{Breadcrumb}) = set(ctx, ℒ_path ∘ ℒ_cursor, path)
 @inline ctx_push_breadcrumb(ctx::Context, bc::Breadcrumb) = let
-    newpath = Breadcrumb[b for b in ℒ_path(ctx)]
+    newpath = Breadcrumb[b for b in ctx_path(ctx)]
     push!(newpath, bc)
-    set(ctx, ℒ_path, newpath)
+    ctx_with_path(ctx, newpath)
 end
 # -----------------------------------------------------------------------------
 # Centralized "checkpoints" and state retagging
@@ -54,11 +62,10 @@ context's state parameter to be `S`.
 """
 @inline function ctx_with_state(ctx::Context, s::S) where {S}
     return Context{S}(
-        ctx.buffer,
-        ctx.pos,
+        ℒ_buffer(ctx),
+        ℒ_pos(ctx),
         s,
-        ctx.optionsTerminated,
-        ctx.path
+        ℒ_cursor(ctx),
     )
 end
 
@@ -87,8 +94,7 @@ in a type-stable way (as long as `B` is a compile-time type known value).
         ℒ_buffer(ctx),
         ℒ_pos(ctx),
         convert(U, ℒ_state(ctx)),
-        ℒ_optterm(ctx),
-        ℒ_path(ctx)
+        ℒ_cursor(ctx),
     )
 end
 
@@ -103,8 +109,7 @@ Utility function that combines a new state while also widening it
         ℒ_buffer(ctx),
         ℒ_pos(ctx),
         convert(U, s),
-        ℒ_optterm(ctx),
-        ℒ_path(ctx)
+        ℒ_cursor(ctx),
     )
 end
 

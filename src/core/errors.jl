@@ -40,19 +40,25 @@ struct ParseError
 	code::UInt8
 	token::String
 	detail::String
-	context::Vector{ErrorSite}
+	trace::Vector{ErrorSite}
+	cursor::Union{Nothing, ParseCursor}
 end
 
 mkerror(
 	phase::ErrorPhase,
 	domain::ErrorDomain,
-	code::UInt8
+	code::UInt8,
 	;
 	token::String = "",
 	detail::String = "",
-	context::Vector{ErrorSite} = ErrorSite[]
-) = ParseError(phase, domain, code, token, detail, context)
+	trace::Vector{ErrorSite} = ErrorSite[]
+) = ParseError(phase, domain, code, token, detail, trace, nothing)
 
+err_with_cursor(err::ParseError, ctx::Context) =
+	isnothing(err.cursor) ? restamp_error(err, ctx) : err
+
+restamp_error(err::ParseError, ctx::Context) =
+	set(err, ℒ_cursor, snapshot_cursor(ctx))
 
 @enum MainErrCode::UInt8 begin
     MAIN_NoProgress
@@ -62,7 +68,7 @@ main_error(code::MainErrCode; token="", detail="", subject="") =
     mkerror(ParsePhase, ERR_Main, UInt8(code);
         token,
         detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_Main, subject)]
+        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_Main, subject)]
     )
 
 function main_render_error(io::IO, code::MainErrCode, err::ParseError)
@@ -86,8 +92,8 @@ function render_error(io::IO, err::ParseError)
 end
 
 function render_error_subject(io::IO, err::ParseError)
-	if !isempty(err.context)
-		print(io, last(err.context).subject)
+	if !isempty(err.trace)
+		print(io, last(err.trace).subject)
 		print(io, ": ")
 	end
 end

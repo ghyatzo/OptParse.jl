@@ -13,7 +13,7 @@ stringval_error(code::StringErrCode; token = "", detail ="", subject="") =
     mkerror(ValuePhase, ERR_StringVal, UInt8(code);
         token,
         detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_StringVal, subject)]
+        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_StringVal, subject)]
     )
 
 function stringval_render_error(io::IO, code::StringErrCode, err::ParseError)
