@@ -69,6 +69,9 @@ but not a second mutable usage tree.
 The current implementation lives in:
 
 - [src/usage/usage.jl](src/usage/usage.jl)
+- [src/usage/nodes.jl](src/usage/nodes.jl)
+- [src/usage/traits.jl](src/usage/traits.jl)
+- [src/usage/render.jl](src/usage/render.jl)
 
 The usage tree is intentionally represented as a **tuple-based concrete AST**,
 not as `Vector{AbstractUsageNode}`.
@@ -153,12 +156,22 @@ Compact mode applies presentation policies such as:
 - keep positional arguments explicit
 - keep required options explicit
 
+Typical compact shapes should look like:
+
+- `[OPTIONS] <FILE>`
+- `<SRC> <DST>`
+- `(<FILE> | <DIR>)`
+- `<COMMAND> [ARGS...]`
+
 ### Expanded Usage
 
 Expanded usage is still only usage, but is allowed to show more structure.
 
 The current implementation mostly keeps the same syntax tree but uses a more
 explicit layout where needed.
+
+Typical expanded shapes should still preserve the same core syntax, but may
+spell out object children instead of collapsing them behind `[OPTIONS]`.
 
 ## Alternative Rendering Policy
 
