@@ -172,25 +172,25 @@ end
     multipleParser = multiple(baseParser)
 
     state = multipleParser.initialState
-    ctx1 = Context(buffer=["-l", "en", "-l", "fr"], state=state)
+    ctx1 = mkctx(["-l", "en", "-l", "fr"], state)
 
     parseRes1 = splitparse(multipleParser, ctx1)
     @test !is_error(parseRes1)
     succ1 = unwrap(parseRes1)
 
-    @test as_tuple(ℒ_consumed(succ1)) == ("-l", "en")
-    @test length(ℒ_nextstate(succ1)) == 1
+    @test as_tuple(res_consumed(succ1)) == ("-l", "en")
+    @test length(res_nextstate(succ1)) == 1
 
     # Parse next occurrence with updated buffer and carried state
-    nextState1 = ℒ_nextstate(succ1)
-    ctx2 = Context(buffer=["-l", "fr"], state=nextState1)
+    nextState1 = res_nextstate(succ1)
+    ctx2 = mkctx(["-l", "fr"], nextState1)
 
     parseRes2 = splitparse(multipleParser, ctx2)
     @test !is_error(parseRes2)
     succ2 = unwrap(parseRes2)
 
-    @test as_tuple(ℒ_consumed(succ2)) == ("-l", "fr")
-    @test length(ℒ_nextstate(succ2)) == 2
+    @test as_tuple(res_consumed(succ2)) == ("-l", "fr")
+    @test length(res_nextstate(succ2)) == 2
 end
 
 @testset "should complete with proper value array" begin
@@ -298,21 +298,21 @@ end
     # Test initial state
     @test multipleParser.initialState == tval(baseParser)[]
 
-    ctx1 = Context(buffer=["arg1"], state=multipleParser.initialState)
+    ctx1 = mkctx(["arg1"], multipleParser.initialState)
     parseRes1 = splitparse(multipleParser, ctx1)
     @test !is_error(parseRes1)
     succ1 = unwrap(parseRes1)
-    @test length(ℒ_state(succ1.next)) == 1
-    @test as_tuple(ℒ_consumed(succ1)) == ("arg1",)
+    @test length(res_nextstate(succ1)) == 1
+    @test as_tuple(res_consumed(succ1)) == ("arg1",)
 
     # Next context with carried state but new buffer
-    carried = ℒ_state(succ1.next)
-    ctx2 = widen_state(tstate(multipleParser), Context(buffer=["arg2"], state=carried))
+    carried = res_nextstate(succ1)
+    ctx2 = widen_state(tstate(multipleParser), mkctx(["arg2"], carried))
     parseRes2 = @unionsplit  parse(multipleParser, ctx2)
     @test !is_error(parseRes2)
     succ2 = unwrap(parseRes2)
-    @test length(ℒ_state(succ2.next)) == 2
-    @test as_tuple(ℒ_consumed(succ2)) == ("arg2",)
+    @test length(res_nextstate(succ2)) == 2
+    @test as_tuple(res_consumed(succ2)) == ("arg2",)
 end
 
 @testset "should work with complex value parsers" begin

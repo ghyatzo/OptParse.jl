@@ -121,8 +121,8 @@ end
     err = parse_fail(parser, ["--", "hello"])
     @test err.domain == OptParse.ERR_ArgGate
     @test OptParse.GateErrCode(err.code) == OptParse.GATE_Missing
-    @test !isempty(err.context)
-    @test last(err.context).domain == OptParse.ERR_ConstrTuple
+    @test !isempty(err.trace)
+    @test last(err.trace).domain == OptParse.ERR_ConstrTuple
 end
 
 @testset "should propagate control-only consumption to later tuple elements" begin
@@ -141,10 +141,10 @@ end
         flag("-v", "--verbose"),
     )
 
-    ctx = Context(buffer=["-v", "-n", "Alice"], state=parser.initialState)
+    ctx = mkctx(["-v", "-n", "Alice"], parser.initialState)
     pres = splitparse(parser, ctx)
     @test !is_error(pres)
 
     succ = unwrap(pres)
-    @test ℒ_path(ℒ_nextctx(succ)) == [usage_tuple_child(2), usage_tuple_child(1)]
+    @test ctx_path(res_nextctx(succ)) == [usage_tuple_child(2), usage_tuple_child(1)]
 end

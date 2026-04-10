@@ -7,24 +7,24 @@ using OptParse:
     as_vector,
     complete,
     consumed_empty,
+    ctx_optterm,
+    ctx_path,
     ctx_remaining,
+    ctx_state,
+    ctx_with_options_terminated,
+    ctx_with_path,
     metavar,
     parse,
     priority,
+    res_consumed,
+    res_nextctx,
+    res_num_consumed,
     tstate,
     tval,
     usage_alternative_branch,
     usage_command_boundary,
     usage_tuple_child,
-    widen_state,
-    ℒ_buffer,
-    ℒ_consumed,
-    ℒ_nextctx,
-    ℒ_nextstate,
-    ℒ_optterm,
-    ℒ_path,
-    ℒ_pos,
-    ℒ_state
+    widen_state
 
 
 using ErrorTypes
@@ -35,6 +35,13 @@ using UUIDs
 # define it here for ease of use
 splitparse(p::Parser, ctx::Context) = @unionsplit parse(p, ctx)
 splitcomplete(p::Parser, st) = @unionsplit complete(p, st)
+function mkctx(buffer::Vector{String}, state; options_terminated::Bool=false, path=nothing)
+    ctx = Context(; buffer, state)
+    options_terminated && (ctx = ctx_with_options_terminated(ctx, true))
+    !isnothing(path) && (ctx = ctx_with_path(ctx, path))
+    return ctx
+end
+res_nextstate(succ) = ctx_state(res_nextctx(succ))
 val(::Val{x}) where {x} = x
 
 parse_ok(p, argv) = unwrap(tryoptparse(p, argv))

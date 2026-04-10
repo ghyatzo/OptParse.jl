@@ -12,11 +12,11 @@ end
 
     buffer = ["-v"]
     state = defaultParser.initialState
-    ctx = Context(;buffer, state)
+    ctx = mkctx(buffer, state)
 
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
-    next_state = ℒ_nextstate(unwrap(parseResult))
+    next_state = res_nextstate(unwrap(parseResult))
     completeResult = splitcomplete(defaultParser, next_state)
     @test !is_error(completeResult)
     @test unwrap(completeResult) === true
@@ -63,15 +63,15 @@ end
 
     buffer = ["-n", "Alice"]
     state = defaultParser.initialState
-    ctx = Context(;buffer, state)
+    ctx = mkctx(buffer, state)
 
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
     ps = unwrap(parseResult)
-    @test ctx_remaining(ℒ_nextctx(ps)) == String[]
-    @test as_tuple(ℒ_consumed(ps)) == ("-n", "Alice")
+    @test ctx_remaining(res_nextctx(ps)) == String[]
+    @test as_tuple(res_consumed(ps)) == ("-n", "Alice")
 
-    completeResult = splitcomplete(defaultParser, ℒ_state(ps.next))
+    completeResult = splitcomplete(defaultParser, res_nextstate(ps))
     @test !is_error(completeResult)
     @test unwrap(completeResult) == "Alice"
 end
@@ -82,7 +82,7 @@ end
 
     buffer = ["--help"]
     state = defaultParser.initialState
-    ctx = Context(;buffer, state)
+    ctx = mkctx(buffer, state)
 
     parseResult = splitparse(defaultParser, ctx)
 
@@ -90,8 +90,8 @@ end
 
     @test !is_error(parseResult)
     pf = unwrap(parseResult)
-    @test length(ℒ_consumed(pf)) == 0
-    @test ctx_remaining(pf.next) == ["--help"]
+    @test length(res_consumed(pf)) == 0
+    @test ctx_remaining(res_nextctx(pf)) == ["--help"]
 end
 
 @testset "should work in object combinations - main use case" begin
@@ -105,11 +105,11 @@ end
 
     # Defaults case
     argv_defaults = ["-v"]
-    ctx_defaults = Context(buffer=argv_defaults, state=parser.initialState)
+    ctx_defaults = mkctx(argv_defaults, parser.initialState)
     res_defaults = splitparse(parser, ctx_defaults)
     @test !is_error(res_defaults)
     if !is_error(res_defaults)
-        st = ℒ_nextstate(unwrap(res_defaults))
+        st = res_nextstate(unwrap(res_defaults))
         @test (@? getfield(st, :verbose)) == true
         @test (@? getfield(st, :port)) == 8080
         @test (@? getfield(st, :host)) == "localhost"
@@ -117,11 +117,11 @@ end
 
     # Provided values case
     argv_values = ["-v", "-p", "3000", "-h", "example.com"]
-    ctx_values = Context(buffer=argv_values, state=parser.initialState)
+    ctx_values = mkctx(argv_values, parser.initialState)
     res_values = splitparse(parser, ctx_values)
     @test !is_error(res_values)
     if !is_error(res_values)
-        st = ℒ_nextstate(unwrap(res_values))
+        st = res_nextstate(unwrap(res_values))
         @test (@? getfield(st, :verbose)) == true
         @test (@? getfield(st, :port)) == 3000
         @test (@? getfield(st, :host)) == "example.com"
@@ -134,11 +134,11 @@ end
 
     buffer = String[]
     state = defaultParser.initialState
-    ctx = Context(; buffer, state)
+    ctx = mkctx(buffer, state)
 
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
-    next_state = ℒ_nextstate(unwrap(parseResult))
+    next_state = res_nextstate(unwrap(parseResult))
     completeResult = splitcomplete(defaultParser, next_state)
     @test !is_error(completeResult)
     @test unwrap(completeResult) == Val(:hello)
@@ -190,12 +190,12 @@ end
 
     # Test state wrapping during successful parse
     buffer = ["-n", "test"]
-    ctx = Context(buffer=buffer, state=none(tstate(baseParser)))
+    ctx = mkctx(buffer, none(tstate(baseParser)))
     parseResult = splitparse(defaultParser, ctx)
 
     @test !is_error(parseResult)
     ps = unwrap(parseResult)
-    st = ℒ_nextstate(ps)
+    st = res_nextstate(ps)
     @test !is_error(st)
     @test unwrap(unwrap(st)) == "test"
 end
@@ -269,13 +269,13 @@ end
     @test parse_ok(def, ["--"]) == "bob"
 
     # should also correctly propagate the side effects properly optionsTerminated state.
-    ctx = Context(buffer=["--", "arg"], state=def.initialState)
+    ctx = mkctx(["--", "arg"], def.initialState)
     pres = splitparse(def, ctx)
     @test !is_error(pres)
     pok = unwrap(pres)
-    @test as_tuple(ℒ_consumed(pok)) == ("--",)
-    @test ℒ_optterm(ℒ_nextctx(pok)) == true
-    @test ctx_remaining(ℒ_nextctx(pok)) == ["arg"]
+    @test as_tuple(res_consumed(pok)) == ("--",)
+    @test ctx_optterm(res_nextctx(pok)) == true
+    @test ctx_remaining(res_nextctx(pok)) == ["arg"]
 
 end
 
@@ -300,7 +300,7 @@ end
         )
     )
 
-    @test_opt parse(unwrapunion(parser), Context(buffer=["-c", "start", "-p", "3000", "-d"], state=parser.initialState))
+    @test_opt parse(unwrapunion(parser), mkctx(["-c", "start", "-p", "3000", "-d"], parser.initialState))
 
 
     @test_opt optparse(parser, ["-c", "start", "-p", "3000", "-d"])

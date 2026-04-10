@@ -133,12 +133,12 @@ end
         flag("-b"),
     )
 
-    ctx = Context(buffer=["-b"], state=parser.initialState)
+    ctx = mkctx(["-b"], parser.initialState)
     pres = splitparse(parser, ctx)
     @test !is_error(pres)
 
     succ = unwrap(pres)
-    @test ℒ_path(ℒ_nextctx(succ)) == [usage_alternative_branch(2)]
+    @test ctx_path(res_nextctx(succ)) == [usage_alternative_branch(2)]
 end
 
 @testset "should not duplicate alternative breadcrumbs after branch selection" begin
@@ -150,21 +150,17 @@ end
         multiple(arg(str())),
     )
 
-    ctx1 = Context(buffer=["bye", "-n", "alice"], state=parser.initialState)
+    ctx1 = mkctx(["bye", "-n", "alice"], parser.initialState)
     pres1 = splitparse(parser, ctx1)
     @test !is_error(pres1)
     succ1 = unwrap(pres1)
-    @test ℒ_path(ℒ_nextctx(succ1)) == [usage_alternative_branch(1)]
+    @test ctx_path(res_nextctx(succ1)) == [usage_alternative_branch(1)]
 
-    ctx2 = Context(
-        buffer=["-p", "8080"],
-        state=ℒ_state(ℒ_nextctx(succ1)),
-        path=ℒ_path(ℒ_nextctx(succ1)),
-    )
+    ctx2 = mkctx(["-p", "8080"], ctx_state(res_nextctx(succ1)); path=ctx_path(res_nextctx(succ1)))
     pres2 = splitparse(parser, ctx2)
     @test !is_error(pres2)
     succ2 = unwrap(pres2)
-    @test ℒ_path(ℒ_nextctx(succ2)) == [usage_alternative_branch(1)]
+    @test ctx_path(res_nextctx(succ2)) == [usage_alternative_branch(1)]
 end
 
 @testset "should be type stable" begin
