@@ -4,6 +4,14 @@ abstract type AbstractUsageRenderStyle end
 struct UsageCompactStyle <: AbstractUsageRenderStyle end
 struct UsageExpandedStyle <: AbstractUsageRenderStyle end
 
+UsageStyle(::Val{:compact}) = UsageCompactStyle()
+UsageStyle(::Val{:expanded}) = UsageExpandedStyle()
+UsageStyle(style::Symbol) =
+    style === :compact ? UsageCompactStyle() :
+    style === :expanded ? UsageExpandedStyle() :
+    throw(ArgumentError("Unknown usage render style: $(style)"))
+
+
 Base.@kwdef struct UsageRenderState
     # Prefix to repeat when a child renderer decides to spill onto later lines.
     continuation_prefix::String = ""
@@ -11,23 +19,29 @@ Base.@kwdef struct UsageRenderState
     allow_multiline::Bool = true
 end
 
-_usage_style(::UsageCompactStyle) = UsageCompactStyle()
-_usage_style(::UsageExpandedStyle) = UsageExpandedStyle()
-_usage_style(::Val{:compact}) = UsageCompactStyle()
-_usage_style(::Val{:expanded}) = UsageExpandedStyle()
-_usage_style(style::Symbol) =
-    style === :compact ? UsageCompactStyle() :
-    style === :expanded ? UsageExpandedStyle() :
-    throw(ArgumentError("Unknown usage render style: $(style)"))
+@inline function _usage_alternative_layout(branches::Vector{UsageNode}, state::UsageRenderState)
+    # Command-only alternatives are summarized structurally instead of spelling
+    # out every subcommand in compact usage.
+    if _tuple_all_visible_are_commands(branches)
+        return :commands
+    end
 
-function render_usage(node::AbstractUsageNode; style::Union{Symbol, Val, AbstractUsageRenderStyle} = :compact, progname::AbstractString = "")
+    nvisible = _tuple_nvisible(branches)
+    if nvisible <= 2
+        return :inline
+    end
+
+    return state.allow_multiline ? :stacked : :inline_elided
+end
+
+function render_usage(node::UsageNode; style::Symbol = :compact, progname::AbstractString = "")
     io = IOBuffer()
     render_usage(io, node; style, progname)
     return String(take!(io))
 end
 
-function render_usage(io::IO, node::AbstractUsageNode; style::Union{Symbol, Val, AbstractUsageRenderStyle} = :compact, progname::AbstractString = "")
-    resolved_style = _usage_style(style)
+function render_usage(io::IO, node::UsageNode; style::Symbol = :compact, progname::AbstractString = "")
+    resolved_style = UsageStyle(style)
     state = UsageRenderState()
 
     if !isempty(progname)
@@ -50,7 +64,7 @@ end
         allow_multiline = state.allow_multiline,
     )
 
-function _render_usage_inline_string(node::AbstractUsageNode, style::AbstractUsageRenderStyle)
+function _render_usage_inline_string(node::UsageNode, style::AbstractUsageRenderStyle)
     io = IOBuffer()
     # Inline renders intentionally forbid multiline so wrappers such as `[ ... ]`
     # and parenthesized groups stay on one logical segment.
@@ -58,7 +72,7 @@ function _render_usage_inline_string(node::AbstractUsageNode, style::AbstractUsa
     return String(take!(io))
 end
 
-function _render_wrapped_usage(io::IO, node::AbstractUsageNode, style::AbstractUsageRenderStyle)
+function _render_wrapped_usage(io::IO, node::UsageNode, style::AbstractUsageRenderStyle)
     if _usage_needs_grouping(node)
         print(io, '(')
         print(io, _render_usage_inline_string(node, style))
@@ -72,165 +86,174 @@ end
 
 
 
+function _render_usage(io::IO, node::UsageNode, style::AbstractUsageRenderStyle, state::UsageRenderState)
+
+    ##=----------------------------=##
+    #   leaf rendering
+    ##=----------------------------=##
+    if node.kind == USAGE_Flag
+        print(io, _usage_primary_name(node.names))
+    elseif node.kind == USAGE_Option
+        print(io, _usage_primary_name(node.names))
+        print(io, " <")
+        print(io, _usage_metavar(node.metavar))
+        print(io, '>')
+    elseif node.kind == USAGE_Argument
+        print(io, '<')
+        print(io, _usage_metavar(node.metavar))
+        print(io, '>')
+
+    elseif node.king == USAGE_Command
+        cmdname = first(node.names)
+        childnode = first(node.children)
+        print(io, cmdname)
+        _usage_renders_empty(childnode) && return nothing
+        print(io, ' ')
+        # Once a command token has been emitted, continuations inside the command
+        # branch should repeat that already-rendered command path.
+        child_state = _usage_continue_with(state, cmdname * " ")
+        _render_usage(io, childnode, style, child_state)
 
 
+    elseif (node.kind == USAGE_Object || node.kind == USAGE_Tuple)
+        _render_usage_sequence(io, node.children, style, state)
+    elseif node.kind == USAGE_Alternative
+
+        layout = _usage_alternative_layout(node.children, state)
+
+        if layout === :commands
+            print(io, "<COMMAND> [ARGS...]")
+        elseif layout === :stacked
+            _render_usage_alternatives_stacked(io, node.children, style, state)
+        elseif layout === :inline_elided
+            _render_usage_alternatives_inline(io, node.children, style, true)
+        else
+            _render_usage_alternatives_inline(io, node.children, style, false)
+        end
+    elseif node.kind == USAGE_Optional
+        print(io, '[')
+        _render_wrapped_usage(io, first(node.children), style)
+        print(io, ']')
+    elseif node.kind == USAGE_Repeat
+        min = node.min
+        max = node.max
+        childnode = first(node.children)
+        max < min && throw(ArgumentError("UsageRepeat requires max >= min"))
 
 
+        if min == 0 && max == 1
+            print(io, '[')
+            _render_wrapped_usage(io, childnode, style)
+            print(io, ']')
+            return nothing
+        end
 
-##=----------------------------=##
-#   leaf rendering
-##=----------------------------=##
+        if max == typemax(Int)
+            if min == 0
+                print(io, '[')
+                _render_wrapped_usage(io, childnode, style)
+                print(io, "]...")
+            elseif min == 1
+                _render_wrapped_usage(io, childnode, style)
+                print(io, "...")
+            end
 
-function _render_usage(io::IO, node::UsageFlag, ::AbstractUsageRenderStyle, ::UsageRenderState)
-    print(io, _usage_primary_name(node.names))
-end
+            return nothing
+        end
 
-function _render_usage(io::IO, node::UsageOption, ::AbstractUsageRenderStyle, ::UsageRenderState)
-    print(io, _usage_primary_name(node.names))
-    print(io, " <")
-    print(io, _usage_metavar(node.metavar))
-    print(io, '>')
-end
+        _render_repeat_items(io, childnode, min, max, style)
+    else
+        return nothing
+    end
 
-function _render_usage(io::IO, node::UsageArgument, ::AbstractUsageRenderStyle, ::UsageRenderState)
-    print(io, '<')
-    print(io, _usage_metavar(node.metavar))
-    print(io, '>')
-end
-
-_render_usage(::IO, ::UsageHidden, ::AbstractUsageRenderStyle, ::UsageRenderState) = nothing
-
-function _render_usage(io::IO, node::UsageCommand, style::AbstractUsageRenderStyle, state::UsageRenderState)
-    print(io, node.names[1])
-    _usage_renders_empty(node.child) && return nothing
-    print(io, ' ')
-
-    # Once a command token has been emitted, continuations inside the command
-    # branch should repeat that already-rendered command path.
-    child_state = _usage_continue_with(state, node.names[1] * " ")
-    _render_usage(io, node.child, style, child_state)
     return nothing
 end
-
-
-
-
-
-
-
-
-
-
 
 
 ##=----------------------------=##
 #   sequence / product rendering
 ##=----------------------------=##
+function _render_usage_sequence(
+    io::IO,
+    nodes::Vector{UsageNode},
+    style::AbstractUsageRenderStyle,
+    state::UsageRenderState,
+    nvisible = _tuple_nvisible(nodes)
+)
 
-function _render_usage(io::IO, node::UsageTuple, style::AbstractUsageRenderStyle, state::UsageRenderState)
-    _render_usage_sequence(io, node.items, style, state)
-end
+    iszero(nvisible) && return nothing
 
-function _render_usage(io::IO, node::UsageObject, style::UsageExpandedStyle, state::UsageRenderState)
-    _render_usage_sequence(io, node.items, style, state)
-end
+    curr_visible = nvisible
+    curr_state = state
+    for node in nodes
+        _usage_renders_empty(node) && continue
 
-_render_usage_sequence(io::IO, items::Tuple, style::AbstractUsageRenderStyle, state::UsageRenderState) =
-    _render_usage_sequence(io, items, style, state, _tuple_nvisible(items))
+        if curr_visible == 1
+            _render_usage(io, node, style, curr_state)
+            return nothing
+        end
 
-_render_usage_sequence(::IO, ::Tuple{}, ::AbstractUsageRenderStyle, ::UsageRenderState, ::Int) = nothing
-function _render_usage_sequence(io::IO, items::Tuple, style::AbstractUsageRenderStyle, state::UsageRenderState, nvisible::Int)
-    nvisible == 0 && return nothing
+        chunk = _render_usage_inline_string(node, style)
+        if !isempty(chunk)
+            print(io, chunk)
+            print(io, ' ')
 
-    head = first(items)
-    tail = Base.tail(items)
-
-    if _usage_renders_empty(head)
-        return _render_usage_sequence(io, tail, style, state, nvisible)
-    end
-
-    if nvisible == 1
-        _render_usage(io, head, style, state)
-        return nothing
-    end
-
-    # All but the final visible segment are rendered inline first. This lets us
-    # extend the continuation prefix with the exact text already emitted, so a
-    # later multiline child can repeat the full left-hand context verbatim.
-    chunk = _render_usage_inline_string(head, style)
-    if !isempty(chunk)
-        print(io, chunk)
-        print(io, ' ')
-
-        next_state = _usage_continue_with(state, chunk * " ")
-        _render_usage_sequence(io, tail, style, next_state, nvisible - 1)
+            curr_state = _usage_continue_with(curr_state, chunk * " ")
+            curr_visible -= 1
+        end
     end
 
     return nothing
 end
-
-
-
-
-
-
-
 
 
 ##=----------------------------=##
 #   compact object rendering
 ##=----------------------------=##
 
-function _render_usage(io::IO, node::UsageObject, style::UsageCompactStyle, state::UsageRenderState)
-    _render_usage_object_compact(io, node.items, style, state)
-end
+function _render_usage_sequence(
+    io::IO,
+    nodes::Vector{UsageNode},
+    ::UsageCompactStyle,
+    state::UsageRenderState,
+    nsegments = _tuple_ncompact_segments(nodes)
+)
+    iszero(nsegments) && return nothing
 
-_render_usage_object_compact(io::IO, items::Tuple, style::UsageCompactStyle, state::UsageRenderState) =
-    _render_usage_object_compact(io, items, style, state, false, _tuple_ncompact_segments(items))
+    curr_segments = nsegments
+    curr_state = state
+    for node in nodes
+        _usage_renders_empty(node) && continue
 
-_render_usage_object_compact(::IO, ::Tuple{}, ::UsageCompactStyle, ::UsageRenderState, ::Bool, ::Int) = nothing
-function _render_usage_object_compact(io::IO, items::Tuple, style::UsageCompactStyle, state::UsageRenderState, wrote_optional_options::Bool, nsegments::Int)
-    nsegments == 0 && return nothing
+        if _usage_should_collapse_optional_option(node)
+            if curr_segments == 1
+                print(io, "[OPTIONS]")
+                return nothing
+            end
 
-    head = first(items)
-    tail = Base.tail(items)
+            # Compact object rendering coalesces any number of optional option-like
+            # entries into a single `[OPTIONS]` segment.
 
-    if _usage_should_collapse_optional_option(head)
-        if wrote_optional_options
-            return _render_usage_object_compact(io, tail, style, state, true, nsegments)
+            print(io, "[OPTIONS]")
+            curr_state = _usage_continue_with(curr_state, "[OPTIONS] ")
+            curr_segments -= 1
         end
 
-        if nsegments == 1
-            print(io, "[OPTIONS]")
+        if curr_segments == 1
+            _render_usage(io, node, style, curr_state)
             return nothing
         end
 
-        # Compact object rendering coalesces any number of optional option-like
-        # entries into a single `[OPTIONS]` segment.
-        print(io, "[OPTIONS] ")
-        next_state = _usage_continue_with(state, "[OPTIONS] ")
-        return _render_usage_object_compact(io, tail, style, next_state, true, nsegments - 1)
+        chunk = _render_usage_inline_string(head, style)
+        print(io, chunk)
+        print(io, ' ')
+
+        curr_state = _usage_continue_with(curr_state, chunk * " ")
+        curr_segments -= 1
     end
 
-    if _usage_renders_empty(head)
-        return _render_usage_object_compact(io, tail, style, state, wrote_optional_options, nsegments)
-    end
-
-    if nsegments == 1
-        _render_usage(io, head, style, state)
-        return nothing
-    end
-
-    chunk = _render_usage_inline_string(head, style)
-    print(io, chunk)
-    print(io, ' ')
-
-    next_state = _usage_continue_with(state, chunk * " ")
-    return _render_usage_object_compact(io, tail, style, next_state, wrote_optional_options, nsegments - 1)
+    return nothing
 end
-
-
-
 
 
 
@@ -243,58 +266,62 @@ end
 #   alternative rendering
 ##=----------------------------=##
 
-function _render_usage(io::IO, node::UsageAlternative, style::AbstractUsageRenderStyle, state::UsageRenderState)
-    layout = _usage_alternative_layout(node.branches, state)
+function _render_usage_alternatives_inline(
+    io::IO,
+    nodes::Vector{UsageNode},
+    style::AbstractUsageRenderStyle,
+    elide::Bool,
+    rendered = 0
+)
+    isempty(nodes) && return nothing
 
-    if layout === :commands
-        print(io, "<COMMAND> [ARGS...]")
-    elseif layout === :stacked
-        _render_usage_alternatives_stacked(io, node.branches, style, state)
-    elseif layout === :inline_elided
-        _render_usage_alternatives_inline(io, node.branches, style, true)
-    else
-        _render_usage_alternatives_inline(io, node.branches, style, false)
+    print(io, '(')
+
+    for (i, node) in enumerate(nodes)
+        rendered >= 2 && break
+        _usage_renders_empty(node) && continue
+
+        rendered > 0 && print(io, " | ")
+        print(io, _render_usage_inline_string(node, style))
+        rendered += 1
+
+        if elide && rendered >= 2 && _tuple_nvisible(nodes[i:end]) > 1
+            print(io, " | ...")
+            break
+        end
     end
 
-    return nothing
-end
-
-function _render_usage_alternatives_inline(io::IO, branches::Tuple, style::AbstractUsageRenderStyle, elide::Bool)
-    print(io, '(')
-    _render_usage_alternatives_inline(io, branches, style, 0, elide)
     print(io, ')')
     return nothing
 end
 
-_render_usage_alternatives_inline(::IO, ::Tuple{}, ::AbstractUsageRenderStyle, ::Int, ::Bool) = nothing
-function _render_usage_alternatives_inline(io::IO, branches::Tuple, style::AbstractUsageRenderStyle, rendered::Int, elide::Bool)
-    rendered >= 2 && return nothing
 
-    head = first(branches)
-    tail = Base.tail(branches)
+function _render_usage_alternatives_stacked(
+    io::IO,
+    nodes::Vector{UsageNode},
+    style::AbstractUsageRenderStyle,
+    state::UsageRenderState,
+    rendered = 0
+)
+    isempty(nodes) && return nothing
 
-    if _usage_renders_empty(head)
-        return _render_usage_alternatives_inline(io, tail, style, rendered, elide)
+    for node in nodes
+        rendered >= 2 && break
+        _usage_renders_empty(node) && continue
+
+        if rendered > 0
+            print(io, '\n')
+            print(io, state.continuation_prefix)
+        end
+
+        _render_usage(io, node, style, state)
+        rendered += 1
     end
 
-    rendered > 0 && print(io, " | ")
-    print(io, _render_usage_inline_string(head, style))
-    rendered += 1
-
-    if elide && rendered >= 2 && _tuple_nvisible(tail) > 0
-        print(io, " | ...")
-        return nothing
-    end
-
-    return _render_usage_alternatives_inline(io, tail, style, rendered, elide)
-end
-
-function _render_usage_alternatives_stacked(io::IO, branches::Tuple, style::AbstractUsageRenderStyle, state::UsageRenderState)
-    _render_usage_alternatives_stacked(io, branches, style, state, 0)
 
     # Keep compact stacked alternatives bounded: two concrete lines plus one
     # ellipsis line if more branches remain.
-    if _tuple_nvisible(branches) > 2
+    if _tuple_nvisible(nodes) > 2
         print(io, '\n')
         print(io, state.continuation_prefix)
         print(io, "...")
@@ -303,81 +330,16 @@ function _render_usage_alternatives_stacked(io::IO, branches::Tuple, style::Abst
     return nothing
 end
 
-_render_usage_alternatives_stacked(::IO, ::Tuple{}, ::AbstractUsageRenderStyle, ::UsageRenderState, ::Int) = nothing
-function _render_usage_alternatives_stacked(io::IO, branches::Tuple, style::AbstractUsageRenderStyle, state::UsageRenderState, rendered::Int)
-    rendered >= 2 && return nothing
-
-    head = first(branches)
-    tail = Base.tail(branches)
-
-    if _usage_renders_empty(head)
-        return _render_usage_alternatives_stacked(io, tail, style, state, rendered)
-    end
-
-    if rendered > 0
-        print(io, '\n')
-        print(io, state.continuation_prefix)
-    end
-
-    _render_usage(io, head, style, state)
-    return _render_usage_alternatives_stacked(io, tail, style, state, rendered + 1)
-end
-
-
-
-
-
-
-
-
-
 
 
 
 
 ##=----------------------------=##
-#   wrappers
+#   repeated
 ##=----------------------------=##
 
-function _render_usage(io::IO, node::UsageOptional, style::AbstractUsageRenderStyle, ::UsageRenderState)
-    print(io, '[')
-    _render_wrapped_usage(io, node.child, style)
-    print(io, ']')
-    return nothing
-end
 
-function _render_usage(io::IO, node::UsageRepeat, style::AbstractUsageRenderStyle, ::UsageRenderState)
-    _render_repeat(io, node.child, node.min, node.max, style)
-end
-
-function _render_repeat(io::IO, child::AbstractUsageNode, min::Int, max::Int, style::AbstractUsageRenderStyle)
-    max < min && throw(ArgumentError("UsageRepeat requires max >= min"))
-
-    if min == 0 && max == 1
-        print(io, '[')
-        _render_wrapped_usage(io, child, style)
-        print(io, ']')
-        return nothing
-    end
-
-    if max == typemax(Int)
-        if min == 0
-            print(io, '[')
-            _render_wrapped_usage(io, child, style)
-            print(io, "]...")
-            return nothing
-        elseif min == 1
-            _render_wrapped_usage(io, child, style)
-            print(io, "...")
-            return nothing
-        end
-    end
-
-    _render_repeat_items(io, child, min, max, style)
-    return nothing
-end
-
-function _render_repeat_items(io::IO, child::AbstractUsageNode, min::Int, max::Int, style::AbstractUsageRenderStyle)
+function _render_repeat_items(io::IO, child::UsageNode, min::Int, max::Int, style::AbstractUsageRenderStyle)
     first_item = true
 
     for _ in 1:min

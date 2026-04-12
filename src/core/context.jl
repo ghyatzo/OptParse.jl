@@ -3,7 +3,7 @@
     optionsTerminated::Bool = false
 end
 
-const ℒ_optterm = @o _.optionsTerminated
+
 const ℒ_path    = @o _.path
 
 # -----------------------------------------------------------------------------
@@ -23,14 +23,16 @@ Parsing context carrying:
     buffer::Vector{String}
     pos::Int = 1
     state::S
-    cursor::ParseCursor = ParseCursor()
+    usage::UsageNode = UsageNode()
+    optionsTerminated::Bool = false
 end
 
 # Note: the ℒ is `\\scrL<TAB>`
 const ℒ_buffer  = @o _.buffer
 const ℒ_pos     = @o _.pos
 const ℒ_state   = @o _.state
-const ℒ_cursor  = @o _.cursor
+const ℒ_usage  = @o _.usage
+const ℒ_optterm = @o _.optionsTerminated
 
 ctx_buffer(ctx::Context) = ℒ_buffer(ctx)
 ctx_pos(ctx::Context) = ℒ_pos(ctx)
