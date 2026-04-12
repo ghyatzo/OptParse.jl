@@ -37,7 +37,7 @@ ConstrTuple(parsers::PTup; label::String = "") where {PTup} = let
     }(map(p -> p.initialState, parsers), parsers, label)
 end
 
-usage(p::ConstrTuple) = UsageTuple(map(usage, p.parsers))
+@inline usage(p::ConstrTuple) = UsageTuple(_usage_children(p.parsers))
 
 @generated function _generated_tup_parse(parsers::PTup, ctx::Context{S}) where {PTup <: Tuple, S <: Tuple}
 
@@ -70,10 +70,6 @@ usage(p::ConstrTuple) = UsageTuple(map(usage, p.parsers))
                         #= parser succeded and consumed input - match it =#
                         newstate = set(ctx_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
                         current_ctx = ctx_with_state(res_nextctx(parse_ok), newstate)
-                        current_ctx = ctx_push_breadcrumb(
-                            ctx_with_state(res_nextctx(parse_ok), newstate),
-                            usage_tuple_child($(perm[i]))
-                        )
 
                         push!(allconsumed, ℒ_consumed(parse_ok))
 
@@ -110,10 +106,6 @@ usage(p::ConstrTuple) = UsageTuple(map(usage, p.parsers))
 
                     newstate = set(ctx_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
                     current_ctx = ctx_with_state(res_nextctx(parse_ok), newstate)
-                    current_ctx = ctx_push_breadcrumb(
-                        ctx_with_state(res_nextctx(parse_ok), newstate),
-                        usage_tuple_child($(perm[i]))
-                    )
 
                     push!(matched_parsers, $i)
                     found_match = true

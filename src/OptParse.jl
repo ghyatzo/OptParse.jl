@@ -54,9 +54,8 @@ export
     uuid
 
 include("utils.jl")
-include("core/breadcrumbs.jl")
-include("core/context.jl")
 include("usage/usage.jl")
+include("core/context.jl")
 include("core/errors.jl")
 include("core/parseresult.jl")
 include("parsers/parser.jl")
@@ -116,13 +115,12 @@ Unlike [`optparse`](@ref), this function does not throw on parse failures.
 function tryoptparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}
 
     canonical_argv, _ = normalize_argv(args)
-    ctx = Context{S}(buffer=canonical_argv, state=pp.initialState)
+    ctx = Context{S}(buffer=canonical_argv, state=pp.initialState, usage=@unionsplit usage(pp))
 
     while true
         mayberesult::InnerParseResult{S} = @unionsplit parse(pp, ctx)
 
         if is_error(mayberesult)
-            # Parse-phase errors are expected to already be cursor-stamped by `innerErr`.
             return typedErr(unwrap_error(mayberesult).error)
         end
         result = unwrap(mayberesult)
@@ -136,7 +134,7 @@ function tryoptparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
                     && ctx_remaining(ctx) == previous_buffer
             )
             # Top-level progress guard: a parser must not report success while leaving argv unchanged.
-            return typedErr(T, err_with_cursor(main_error(MAIN_NoProgress; token = ctx_peek(ctx)), ctx))
+            return typedErr(T, main_error(MAIN_NoProgress; token = ctx_peek(ctx)))
         end
 
         ctx_length(ctx) > 0 || break
@@ -145,12 +143,6 @@ function tryoptparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
     state = ctx_state(ctx)
 
     ret = @unionsplit complete(pp, state)
-    if is_error(ret)
-        # Complete/value-phase errors are created without a live parse context.
-        # At this point parsing has finished, so we fill any missing cursor from
-        # the final top-level context before surfacing the failure.
-        return typedErr(T, err_with_cursor(unwrap_error(ret), ctx))
-    end
     return ret
 end
 

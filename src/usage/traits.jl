@@ -36,7 +36,7 @@ end
 
 function _tuple_nvisible(nodes::Vector{UsageNode})
     isempty(nodes) && return 0
-    count(_usage_renders_empty, nodes)
+    count(!_usage_renders_empty(node) for node in nodes)
 end
 
 @inline _tuple_has_multiple_visible(nodes::Vector{UsageNode}) = _tuple_nvisible(nodes) > 1
@@ -80,14 +80,24 @@ function _usage_is_optionlike(node::UsageNode)
     end
 end
 
-function _tuple_ncompact_segments(nodes::UsageNode)
+function _tuple_ncompact_segments(nodes::Vector{UsageNode})
     isempty(nodes) && return 0
 
     compact_segments = 0
+    wrote_optional_options = false
     for node in nodes
         _usage_renders_empty(node) && continue
-        _usage_should_collapse_optional_option(node) && (compact_segments += 1)
+        if _usage_should_collapse_optional_option(node)
+            if !wrote_optional_options
+                compact_segments += 1
+                wrote_optional_options = true
+            end
+        else
+            compact_segments += 1
+        end
     end
+
+    return compact_segments
 end
 
 
@@ -101,3 +111,17 @@ function _usage_needs_grouping(node::UsageNode)
         _tuple_has_multiple_visible(node.children) : false
 end
 
+@inline function _usage_alternative_layout(branches::Vector{UsageNode}, state::UsageRenderState)
+    # Command-only alternatives are summarized structurally instead of spelling
+    # out every subcommand in compact usage.
+    if _all_visible_are_commands(branches)
+        return :commands
+    end
+
+    nvisible = _tuple_nvisible(branches)
+    if nvisible <= 2
+        return :inline
+    end
+
+    return state.allow_multiline ? :stacked : :inline_elided
+end

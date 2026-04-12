@@ -41,7 +41,6 @@ struct ParseError
 	token::String
 	detail::String
 	trace::Vector{ErrorSite}
-	cursor::Union{Nothing, ParseCursor}
 end
 
 mkerror(
@@ -52,13 +51,8 @@ mkerror(
 	token::String = "",
 	detail::String = "",
 	trace::Vector{ErrorSite} = ErrorSite[]
-) = ParseError(phase, domain, code, token, detail, trace, nothing)
+) = ParseError(phase, domain, code, token, detail, trace)
 
-err_with_cursor(err::ParseError, ctx::Context) =
-	isnothing(err.cursor) ? restamp_error(err, ctx) : err
-
-restamp_error(err::ParseError, ctx::Context) =
-	set(err, ℒ_cursor, snapshot_cursor(ctx))
 
 @enum MainErrCode::UInt8 begin
     MAIN_NoProgress

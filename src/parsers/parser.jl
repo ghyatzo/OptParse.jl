@@ -87,7 +87,7 @@ function complete(p::Parser{T, S}, st::S)::ParseResult{T} where {T, S}
     @unionsplit complete(p, st)
 end
 
-usage(p::Parser) = @unionsplit usage(p)
+usage(p::Parser)::UsageNode = @unionsplit usage(p)::UsageNode
 
 
 # modifiers

@@ -1,38 +1,10 @@
 
-abstract type AbstractUsageRenderStyle end
-
-struct UsageCompactStyle <: AbstractUsageRenderStyle end
-struct UsageExpandedStyle <: AbstractUsageRenderStyle end
-
 UsageStyle(::Val{:compact}) = UsageCompactStyle()
 UsageStyle(::Val{:expanded}) = UsageExpandedStyle()
 UsageStyle(style::Symbol) =
     style === :compact ? UsageCompactStyle() :
     style === :expanded ? UsageExpandedStyle() :
     throw(ArgumentError("Unknown usage render style: $(style)"))
-
-
-Base.@kwdef struct UsageRenderState
-    # Prefix to repeat when a child renderer decides to spill onto later lines.
-    continuation_prefix::String = ""
-    # Inline subrenders disable multiline to avoid nested stacked layouts inside wrappers.
-    allow_multiline::Bool = true
-end
-
-@inline function _usage_alternative_layout(branches::Vector{UsageNode}, state::UsageRenderState)
-    # Command-only alternatives are summarized structurally instead of spelling
-    # out every subcommand in compact usage.
-    if _tuple_all_visible_are_commands(branches)
-        return :commands
-    end
-
-    nvisible = _tuple_nvisible(branches)
-    if nvisible <= 2
-        return :inline
-    end
-
-    return state.allow_multiline ? :stacked : :inline_elided
-end
 
 function render_usage(node::UsageNode; style::Symbol = :compact, progname::AbstractString = "")
     io = IOBuffer()
@@ -103,7 +75,7 @@ function _render_usage(io::IO, node::UsageNode, style::AbstractUsageRenderStyle,
         print(io, _usage_metavar(node.metavar))
         print(io, '>')
 
-    elseif node.king == USAGE_Command
+    elseif node.kind == USAGE_Command
         cmdname = first(node.names)
         childnode = first(node.children)
         print(io, cmdname)
@@ -115,6 +87,8 @@ function _render_usage(io::IO, node::UsageNode, style::AbstractUsageRenderStyle,
         _render_usage(io, childnode, style, child_state)
 
 
+    elseif node.kind == USAGE_Object && style isa UsageCompactStyle
+        _render_usage_object_compact(io, node.children, style, state)
     elseif (node.kind == USAGE_Object || node.kind == USAGE_Tuple)
         _render_usage_sequence(io, node.children, style, state)
     elseif node.kind == USAGE_Alternative
@@ -211,22 +185,24 @@ end
 #   compact object rendering
 ##=----------------------------=##
 
-function _render_usage_sequence(
+function _render_usage_object_compact(
     io::IO,
     nodes::Vector{UsageNode},
-    ::UsageCompactStyle,
+    style::UsageCompactStyle,
     state::UsageRenderState,
     nsegments = _tuple_ncompact_segments(nodes)
 )
     iszero(nsegments) && return nothing
 
-    curr_segments = nsegments
     curr_state = state
+    wrote_optional_options = false
     for node in nodes
         _usage_renders_empty(node) && continue
 
         if _usage_should_collapse_optional_option(node)
-            if curr_segments == 1
+            wrote_optional_options && continue
+
+            if nsegments == 1
                 print(io, "[OPTIONS]")
                 return nothing
             end
@@ -234,22 +210,24 @@ function _render_usage_sequence(
             # Compact object rendering coalesces any number of optional option-like
             # entries into a single `[OPTIONS]` segment.
 
-            print(io, "[OPTIONS]")
+            print(io, "[OPTIONS] ")
             curr_state = _usage_continue_with(curr_state, "[OPTIONS] ")
-            curr_segments -= 1
+            nsegments -= 1
+            wrote_optional_options = true
+            continue
         end
 
-        if curr_segments == 1
+        if nsegments == 1
             _render_usage(io, node, style, curr_state)
             return nothing
         end
 
-        chunk = _render_usage_inline_string(head, style)
+        chunk = _render_usage_inline_string(node, style)
         print(io, chunk)
         print(io, ' ')
 
         curr_state = _usage_continue_with(curr_state, chunk * " ")
-        curr_segments -= 1
+        nsegments -= 1
     end
 
     return nothing

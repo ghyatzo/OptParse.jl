@@ -143,13 +143,11 @@ end
 end
 
 @inline function innerErr(ctx::Context{S}, e::ParseError; consumed::Int=0)::InnerParseResult{S} where {S}
-    # Parse-phase failures have access to the live parsing cursor, so this is the
-    # central place where missing cursors get stamped onto errors.
-    return Err(InnerParseFailure(consumed, err_with_cursor(e, ctx)))
+    return Err(InnerParseFailure(consumed, e))
 end
 
 @inline function innerErr(ctx::Context{S}, perr::InnerParseFailure)::InnerParseResult{S} where {S}
-    return Err(InnerParseFailure(ℒ_consumed(perr), err_with_cursor(ℒ_error(perr), ctx)))
+    return Err(InnerParseFailure(ℒ_consumed(perr), ℒ_error(perr)))
 end
 
 @inline function innerErr(ctx::Context{S}, res::InnerParseResult)::InnerParseResult{S} where {S}

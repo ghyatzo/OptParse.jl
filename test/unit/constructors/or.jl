@@ -127,21 +127,7 @@ end
     @test err.domain == OptParse.ERR_ConstrObject
 end
 
-@testset "should append a single breadcrumb when an alternative branch is selected" begin
-    parser = or(
-        flag("-a"),
-        flag("-b"),
-    )
-
-    ctx = mkctx(["-b"], parser.initialState)
-    pres = splitparse(parser, ctx)
-    @test !is_error(pres)
-
-    succ = unwrap(pres)
-    @test ctx_path(res_nextctx(succ)) == [usage_alternative_branch(2)]
-end
-
-@testset "should not duplicate alternative breadcrumbs after branch selection" begin
+@testset "should keep parsing selected alternative state after branch selection" begin
     parser = or(
         command("bye", object((
             name = option("-n", str()),
@@ -154,13 +140,10 @@ end
     pres1 = splitparse(parser, ctx1)
     @test !is_error(pres1)
     succ1 = unwrap(pres1)
-    @test ctx_path(res_nextctx(succ1)) == [usage_alternative_branch(1)]
 
-    ctx2 = mkctx(["-p", "8080"], ctx_state(res_nextctx(succ1)); path=ctx_path(res_nextctx(succ1)))
+    ctx2 = mkctx(["-p", "8080"], ctx_state(res_nextctx(succ1)))
     pres2 = splitparse(parser, ctx2)
     @test !is_error(pres2)
-    succ2 = unwrap(pres2)
-    @test ctx_path(res_nextctx(succ2)) == [usage_alternative_branch(1)]
 end
 
 @testset "should be type stable" begin

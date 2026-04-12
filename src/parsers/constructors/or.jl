@@ -65,7 +65,7 @@ ConstrOr(parsers::PTup) where {PTup <: Tuple} = let
     }(none(InnerOrState{innerstate_U}), parsers)
 end
 
-usage(p::ConstrOr) = UsageAlternative(map(usage, p.parsers))
+@inline usage(p::ConstrOr) = UsageAlternative(_usage_children(p.parsers))
 
 @generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}) where {PTup <: Tuple, U}
     #=
@@ -158,9 +158,6 @@ usage(p::ConstrOr) = UsageAlternative(map(usage, p.parsers))
                     else
                         new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
                         newctx = widen_restate(OrState{$U}, ℒ_nextctx(parse_ok), new_innerstate)
-                        if !has_selection
-                            newctx = ctx_push_breadcrumb(newctx, usage_alternative_branch($i))
-                        end
                         push!(allconsumed, res_consumed(parse_ok))
                         return innerOk(newctx, merge(allconsumed))
                     end

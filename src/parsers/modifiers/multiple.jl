@@ -41,7 +41,7 @@ ModMultiple(parser::P; min::Integer = 0, max::Integer = typemax(Int)) where {P <
 	}(tstate(P)[], parser, min, max)
 end
 
-usage(p::ModMultiple) = UsageRepeat(usage(p.parser), p.min, p.max)
+usage(p::ModMultiple) = UsageRepeat(usage(p.parser)::UsageNode, p.min, p.max)
 
 function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}})::InnerParseResult{MultipleState{S}} where {T, S}
 

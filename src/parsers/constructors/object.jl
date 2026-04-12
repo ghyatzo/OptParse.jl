@@ -75,7 +75,7 @@ Base.@assume_effects :foldable function _sort_obj_labels(
     end
 end
 
-usage(p::ConstrObject) = UsageObject(map(usage, fieldtypes(p.parsers)))
+@inline usage(p::ConstrObject) = UsageObject(_usage_children(values(p.parsers)))
 
 @generated function _generated_object_parse(p::NamedTuple{labels, PTup}, ctx::Context{S}) where {labels, PTup <: Tuple, S}
 

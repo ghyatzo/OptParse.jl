@@ -55,7 +55,7 @@ struct ArgGate{T, S, p, P} <: AbstractParser{T, S, p, P}
     end
 end
 
-usage(p::ArgGate) = UsageFlag(p.names...)
+usage(p::ArgGate) = UsageFlag(p.names)
 
 function parse(p::ArgGate{Bool, GateState}, ctx::Context{GateState})::InnerParseResult{GateState}
 
