@@ -2,382 +2,308 @@
 
 This file collects the current direction for OptParse usage and help generation.
 
-It is not meant to be a frozen spec yet. The goal is to preserve the design
-decisions already made, the constraints that led to them, and the current rough
-plan for the next steps.
+It is not a frozen spec. It exists so the current design constraints and next
+steps can be picked up again later without reconstructing the whole discussion.
 
 ## Scope
 
-There are three related but distinct things:
+There are three related but distinct layers:
 
 - **usage**
-  - a synopsis of how to invoke the parser
-  - primarily a syntax summary
-- **quick help**
-  - a branch-specific help page, typically shown by `--help`
-  - usage plus short sections such as options / arguments / commands
-- **full help**
-  - a richer report, closer to a man page
-  - usage plus longer descriptions, examples, footer, etc.
+  - a compact synopsis of accepted command-line syntax
+  - represented by `UsageNode`
+  - rendered by `render_usage`
+- **help**
+  - a semantic help document for one parser scope
+  - should contain usage plus descriptions, sections, entries, footers, and
+    examples
+- **help policy**
+  - decides when help is requested and which scope it should describe
+  - examples: parse error, `--help`, help subcommand
 
-The current implementation work is focused on **usage** first.
+The current implementation work is focused on usage first, but the design
+should leave room for help to become a richer object instead of overloading the
+usage renderer.
 
-The intended split is:
-
-- build one usage model
-- reuse it in different render modes
-- layer quick help and full help on top later
-
-## General Principles
-
-### 1. Usage should be derived from the parser tree
+## Current Direction
 
 The parser tree is the source of truth.
 
-Usage should not be hand-written separately, and parsing should not mutate a
-second parallel usage tree at runtime.
+Usage should be generated from parsers on demand:
 
-Instead:
+```julia
+usage(parser)::UsageNode
+```
 
-- each parser owns a usage subtree
-- parent parsers build their usage subtree from their children
-- rendering walks that static tree
+Each parser family owns the lowering from its parser structure to the usage AST:
 
-### 2. Usage and help are not the same
-
-The one-line or compact usage shown on errors should stay compact.
-
-The larger help views should reuse the same synopsis renderer, but add their own
-sections on top.
-
-So the design should keep these concepts separate:
-
-- usage rendering
-- help rendering
-- help triggers / dispatch policy
-
-### 3. Context-sensitive usage must come from parser progress, not a second parser
-
-If the parser fails deep inside a selected command / branch, usage should be
-able to render the active branch path, not only the whole root parser.
-
-That means the system needs some runtime notion of the currently selected path,
-but not a second mutable usage tree.
-
-## Current Usage AST Direction
-
-The current implementation lives in:
-
-- [src/usage/usage.jl](src/usage/usage.jl)
-- [src/usage/nodes.jl](src/usage/nodes.jl)
-- [src/usage/traits.jl](src/usage/traits.jl)
-- [src/usage/render.jl](src/usage/render.jl)
-
-The usage tree is intentionally represented as a **tuple-based concrete AST**,
-not as `Vector{AbstractUsageNode}`.
-
-This matters for inference and compilation on current Julia versions:
-
-- abstract containers would introduce dynamic dispatch
-- wrapped unions are awkward for recursive self-referential trees
-- Julia 1.12 does not yet solve that cleanly
-
-So the usage tree uses concrete parametric nodes with tuple children.
-
-Current node families:
-
-- `UsageFlag`
-- `UsageOption`
-- `UsageArgument`
-- `UsageCommand`
-- `UsageObject`
-- `UsageTuple`
-- `UsageAlternative`
-- `UsageOptional`
-- `UsageRepeat`
-- `UsageHidden`
-
-This is a **syntax AST**, not a full help document model.
-
-It deliberately does not currently try to encode:
-
-- help prose
-- examples
-- section headers
-- trigger policy
-
-Those belong in higher layers later.
-
-## Lowering Model
-
-The intended lowering is:
-
-- leaf parser -> leaf usage node
-- wrapper / constructor parser -> usage node built from child usage nodes
-
-Rough mapping:
-
-- `flag(...)` -> `UsageFlag`
+- `gate(...)` / `flag(...)` -> `UsageFlag`
 - `option(...)` -> `UsageOption`
 - `arg(...)` -> `UsageArgument`
 - `command(...)` -> `UsageCommand`
 - `object(...)` -> `UsageObject`
 - `sequence(...)` -> `UsageTuple`
 - `or(...)` -> `UsageAlternative`
-- `optional(...)` / `default(...)` -> `UsageOptional` in syntax terms
+- `optional(...)` / `default(...)` -> `UsageOptional`
 - `multiple(...)` -> `UsageRepeat`
 - `@constant(...)` -> `UsageHidden`
 
-`UsageHidden` exists because some parsers are semantically important but should
+`UsageHidden` exists for parser nodes that are semantically important but should
 not appear in usage output.
 
-## Rendering Modes
+## Usage AST
 
-The current renderer already distinguishes between:
+The current usage AST is a single concrete node type:
 
-- compact usage
-- expanded usage
+```julia
+struct UsageNode
+    kind::UsageKind
+    names::Vector{String}
+    metavar::String
+    children::Vector{UsageNode}
+    min::Int
+    max::Int
+end
+```
 
-These are usage layout modes, not full help modes.
+This is intentionally a syntax AST, not a full help document model.
 
-### Compact Usage
+It should not grow fields for:
 
-Compact usage is primarily intended for errors and terse summaries.
+- long descriptions
+- examples
+- footer text
+- section headings
+- trigger policy
 
-Desired properties:
+Those belong in a later `Help` layer.
 
-- minimal noise
-- usually one logical line
-- still allowed to spill to a few lines for large alternatives
+The important compiler constraint is to keep the AST concrete. The backing child
+storage can be a concrete `Vector{UsageNode}` because the node type itself is not
+abstract and rendering/generation remain type-stable. Avoid `Vector{Abstract...}`
+or runtime-dispatched recursive node hierarchies.
 
-Compact mode applies presentation policies such as:
+## Usage Generation
 
-- collapse optional option-like children under `object(...)` into `[OPTIONS]`
-- keep positional arguments explicit
-- keep required options explicit
+Usage generation should be cold-path and on demand.
 
-Typical compact shapes should look like:
+Normal parsing should not eagerly maintain or mutate a parallel usage tree. A
+parser can generate its root usage when needed, and `tryargparse` may store that
+root usage in `Context` so error/help code has access to the original synopsis.
+
+Constructor usage generation should preserve declaration order, not parse
+priority order.
+
+This matters especially for `object(...)` and `sequence(...)`:
+
+- parsing may sort children by priority internally
+- usage should reflect the order the user wrote
+- display order is user-facing API
+- parse order is implementation detail
+
+When constructor usage generation needs to collect child usage nodes, avoid
+splatting. Prefer index-based generated helpers or other concrete paths that
+remain friendly to trimming and JET.
+
+## Rendering
+
+`render_usage` should stay a pure renderer over `UsageNode`.
+
+It should not need to know:
+
+- parser internals
+- parser state
+- parse errors
+- help triggers
+- how focus was recovered
+
+The current renderer distinguishes compact and expanded usage styles.
+
+Compact usage is primarily intended for terse summaries and errors:
 
 - `[OPTIONS] <FILE>`
 - `<SRC> <DST>`
 - `(<FILE> | <DIR>)`
 - `<COMMAND> [ARGS...]`
 
-### Expanded Usage
+Expanded usage can show more syntax detail, but it is still usage, not full
+help.
 
-Expanded usage is still only usage, but is allowed to show more structure.
+The renderer can own layout policy such as:
 
-The current implementation mostly keeps the same syntax tree but uses a more
-explicit layout where needed.
+- collapsing optional option-like children under `object(...)` into `[OPTIONS]`
+- stacking large heterogeneous alternatives
+- collapsing command alternatives into `<COMMAND> [ARGS...]`
 
-Typical expanded shapes should still preserve the same core syntax, but may
-spell out object children instead of collapsing them behind `[OPTIONS]`.
+It should not become the place where descriptions, examples, grouping, or help
+scope policy live.
 
-## Alternative Rendering Policy
+## Focused Usage / Help
 
-`UsageAlternative` is the main place where compact policy matters.
+The earlier breadcrumb/cursor design became too complex and should not be the
+main path.
 
-Current policy:
+The current direction is cold-path state recovery:
 
-- if all visible branches are commands, collapse to:
-  - `<COMMAND> [ARGS...]`
-- else, if there are at most 2 visible branches:
-  - render inline as `(a | b)`
-- else:
-  - render stacked
-  - show at most 2 concrete lines
-  - then show `...`
+```julia
+recover_usage_context(parser, args)::Context
+```
 
-This keeps compact usage readable when many alternatives exist.
+or a similar internal function.
 
-The intent is:
+The function should replay parsing over the same normalized argv and recover the
+most useful parser state/context for usage or help generation. This is only for
+errors and explicit help requests, not the normal successful parse path.
 
-- compact mode should not dump huge `a | b | c | d | ...` expressions inline
-- full branch listings belong in help, not in terse error usage
+Normal parsing should stay lean:
 
-The same alternative node should own the layout choice in both compact and
-expanded usage, and then recurse into each branch using the incoming style.
+1. Parse normally.
+2. If parsing succeeds, do no help work.
+3. If parsing fails, render the structured error.
+4. Error rendering asks for usage/help context.
+5. The cold path replays enough parser state to decide the relevant help scope.
+6. Rendering combines the original `ParseError` with focused usage/help.
 
-## Object / Tuple Rendering
+The recovery function should not be responsible for rendering. Its job is to
+produce the state needed by a later focus step.
 
-`UsageObject` and `UsageTuple` are structurally similar in the current renderer.
+A likely split is:
 
-The important visible distinction is the result shape they imply:
+```julia
+recover_usage_context(parser, args)::Context
+focused_usage(parser, ctx)::UsageNode
+```
 
-- `UsageObject` corresponds to the named aggregation parser
-- `UsageTuple` corresponds to the tuple aggregation parser
+Later, when `Help` exists, the second function likely becomes:
 
-Compact object rendering has an extra policy:
+```julia
+focused_help(parser, ctx)::Help
+```
 
-- collapse optional option-like children into a single `[OPTIONS]`
+## State-Based Focus
 
-This is a presentation choice, not a syntax transformation of the underlying AST.
+Focused usage/help should be derived from parser state.
 
-## Ordering
+Initial focus rules can be conservative:
 
-Usage should follow **declaration order**, not parse-priority order.
+- if no meaningful parser state was recovered, use root usage
+- if a command has been selected, focus on that command scope
+- if an `or` branch has been selected, focus on that branch scope
+- if an aggregate parser such as `object(...)` or `sequence(...)` is active,
+  keep the aggregate as the current scope unless a child represents a stronger
+  boundary
 
-This matters especially for object-like parsers:
+`object(...)` is not a branch selector. It visits many children, possibly across
+many iterations. That makes it a poor fit for persistent path semantics, but it
+can still contribute to help by collecting child entries.
 
-- parsing may sort children by priority internally
-- usage should still reflect the order the user wrote
+`sequence(...)` is closer to an aggregate than a branch selector too. Its output
+shape is ordered, but matching may still be priority-driven internally.
 
-Display order is user-facing API.
-Parse order is an implementation detail.
+`command(...)` and `or(...)` are the most important first focus boundaries.
 
-## Why Usage Is Not Threaded Through `Context`
+## Help Object Plan
 
-One idea considered early was to thread a usage structure through `Context` and
-update it as parsing proceeds.
+Usage should remain the syntax synopsis. Help should be represented by a richer
+semantic object.
 
-That was rejected.
+A possible shape:
 
-Reason:
+```julia
+struct Help
+    usage::UsageNode
+    brief::String
+    description::String
+    entries::Vector{HelpEntry}
+    footer::String
+end
 
-- parsers such as `object`, `or`, and `multiple` probe speculatively
-- speculative matching would then require usage rollback semantics too
-- that duplicates problems the parser state model already solves
+@enum HelpEntryKind begin
+    HELP_Option
+    HELP_Argument
+    HELP_Command
+    HELP_Group
+end
 
-The current direction is:
+struct HelpEntry
+    kind::HelpEntryKind
+    names::Vector{String}
+    metavar::String
+    brief::String
+    help::String
+    usage::UsageNode
+end
+```
 
-- static usage tree on the parser
-- small runtime path information in the parsing context
-- root-based rendering using that path
+The exact fields can change. The important point is the layer boundary:
 
-## Breadcrumb Plan
+- parser families build or combine `Help`
+- `UsageNode` remains only the synopsis AST
+- `render_help(io, help::Help)` renders the help document
+- `render_usage(io, usage::UsageNode)` remains independent
 
-To render usage for the active branch on failure, the system needs to know how
-the parser descended through the tree.
+This lets each parser family combine help according to its behavior:
 
-The current direction is to store lightweight **breadcrumbs** in `Context`,
-snapshot them on failure, and later use them while rendering usage from the root.
+- `command` can prepend/select the command scope
+- `or` can list command alternatives or branch alternatives
+- `object` and `sequence` can collect child entries
+- modifiers can wrap usage or annotate optional/repeated behavior
+- hidden parsers can suppress entries without disappearing from parser semantics
 
-### Breadcrumb shape
+This avoids overspecializing usage rendering to solve help problems.
 
-The agreed shape is:
+## Help Triggers
 
-- lightweight enum/tag + integer index
+Known help/usage entry points:
 
-The breadcrumb should identify a **structural choice**, not carry a whole usage
-subtree.
+- parse error
+- `--help` or equivalent help flag
+- help subcommand
 
-### What should contribute breadcrumbs
+Other possible future entry points:
 
-Breadcrumbs are meant to represent meaningful narrowing decisions.
+- shell completion metadata
+- suggestions for unknown flags or commands
+- richer diagnostics for ambiguous input
 
-Good candidates:
+Those should be policy decisions above parser semantics. The parser tree should
+provide enough structured information, but it should not hard-code one help
+trigger model.
 
-- `or`
-  - selected branch
-- `command`
-  - crossed command boundary / entered command child
-- possibly `sequence`
-  - if positional frontier turns out to be useful for focused usage
+## Open Questions
 
-### What should *not* contribute persistent breadcrumbs
+The main unresolved questions are:
 
-`object(...)` should not participate in the persistent breadcrumb path.
-
-Reason:
-
-- object matching is not really branch selection
-- multiple object fields can match over time
-- object field labels are parser-structure details, not usage-path concepts
-
-So the current model is:
-
-- `object` is breadcrumb-transparent
-- it passes contexts through
-- meaningful descendants keep whatever breadcrumb path they produce
-
-## Focused Usage Rendering
-
-Usage should ultimately render **from the root**, even when the error happened
-in a nested parser.
-
-Rendering from a detached child subtree is not enough, because the final output
-still needs the root prefix, for example:
-
-- `prog cmd subcmd ...`
-
-not just:
-
-- `subcmd ...`
-
-So the intended long-term API shape is:
-
-- render from the root usage tree
-- optionally with a focused path / scope
-
-This is why breadcrumb snapshots are needed.
-
-## Help Plan
-
-The longer-term help plan is still intentionally loose, but the high-level split
-is:
-
-- **usage**
-  - shared synopsis engine
-- **quick help**
-  - branch-specific help, likely `--help` or `help` subcmd
-- **full help**
-  - richer report, more like a manual page
-
-There was also discussion about letting users customize help trigger behavior,
-for example mapping different flags / commands to different help modes.
-
-That is a later policy layer and should not be baked into the usage AST itself.
-
-## Open Design Constraints
-
-### 1. The AST must stay compiler-friendly
-
-The current tuple-based recursion is acceptable, but large trees may stress
-compile time.
-
-So future extensions should continue to avoid:
-
-- abstract child containers
-- runtime-dispatched recursive usage nodes
-
-### 2. Help metadata should not distort usage syntax
-
-Help-specific data such as:
-
-- brief descriptions
-- long descriptions
-- examples
-- footer / epilog
-
-should likely live in metadata attached to parser families or commands, not in
-the core syntax AST itself.
-
-### 3. Compact output should stay compact
-
-Error usage should remain terse.
-
-Detailed listings belong in quick/full help, not in the compact synopsis.
+- exact signature and name of the recovery function
+- how much of parse should be replayed for help requests
+- whether recovery should stop at first failure or return the furthest useful
+  state
+- how complete-phase errors should choose a focus scope
+- exact `Help` and `HelpEntry` field layout
+- whether help grouping is a parser wrapper, metadata, or a separate help-only
+  layer
 
 ## Practical Next Steps
 
-The current high-value next steps are:
+The next implementation steps are:
 
-1. wire parser constructors to produce usage subtrees
-2. keep declaration order available for usage rendering
-3. finish breadcrumb plumbing through the parsers that represent real branch choices
-4. add focused root-based usage rendering from breadcrumb snapshots
-5. only then start building quick help on top
+1. Keep `usage(parser)::UsageNode` generation type-stable for all parser
+   families.
+2. Add focused tests that build usage from real parsers, not only hand-written
+   `UsageNode`s.
+3. Add a cold-path recovery function that replays parser state from argv.
+4. Implement root/focused usage selection from recovered state.
+5. Introduce a `Help` object only after usage focus is working.
+6. Keep rendering as the final pure step over `UsageNode` or `Help`.
 
 ## Summary
 
-The current intended architecture is:
+The intended architecture is:
 
 - parser tree is the source of truth
-- each parser owns a static usage subtree
-- usage AST is tuple-based and concrete for inference reasons
-- compact and expanded usage are rendering policies over the same tree
-- breadcrumb snapshots provide runtime focus information for nested errors
-- help is a later layer built on top of the usage engine
-
-This is the direction to preserve unless later experience shows a clear need to
-simplify or change it.
+- `UsageNode` is a concrete syntax AST
+- `usage(parser)` generates usage on demand
+- root usage can be stored in `Context`
+- normal parsing does not maintain breadcrumbs or mutable usage focus
+- focused usage/help comes from cold-path state recovery
+- help should become a semantic `Help` object, not an overloaded usage renderer

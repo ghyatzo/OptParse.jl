@@ -1,4 +1,3 @@
-
 @enum UsageKind::UInt8 begin
     USAGE_Flag
     USAGE_Option
@@ -35,20 +34,18 @@ UsageOption(names::Tuple{Vararg{String}}, metavar::AbstractString) =
 
 
 UsageArgument(metavar::AbstractString) =
-    UsageNode(kind = USAGE_Argument, metavar=String(metavar))
+    UsageNode(kind = USAGE_Argument, metavar = String(metavar))
 
 
 UsageCommand(names::Vector{String}, child::UsageNode) =
     UsageNode(kind = USAGE_Command, names = names, children = UsageNode[child])
 UsageCommand(names::Tuple{Vararg{String}}, child::UsageNode) = UsageCommand(String[name for name in names], child)
 
-UsageObject(items::Vector{UsageNode}) =
-    UsageNode(kind = USAGE_Object, children = items)
+UsageObject(items::Vector{UsageNode}) = UsageNode(kind = USAGE_Object, children = items)
 UsageObject(items::Tuple{Vararg{UsageNode}}) = UsageObject(UsageNode[item for item in items])
 UsageObject(items::Vararg{UsageNode}) = UsageObject(UsageNode[item for item in items])
 
-UsageTuple(items::Vector{UsageNode}) =
-    UsageNode(kind = USAGE_Tuple, children = items)
+UsageTuple(items::Vector{UsageNode}) = UsageNode(kind = USAGE_Tuple, children = items)
 UsageTuple(items::Tuple{Vararg{UsageNode}}) = UsageTuple(UsageNode[item for item in items])
 UsageTuple(items::Vararg{UsageNode}) = UsageTuple(UsageNode[item for item in items])
 
@@ -62,9 +59,9 @@ UsageOptional(child::UsageNode) = UsageNode(kind = USAGE_Optional, children = Us
 
 
 UsageRepeat(child::UsageNode, min::Integer, max::Integer) =
-    UsageNode(kind = USAGE_Repeat, children=UsageNode[child], min = Int(min), max=Int(max))
+    UsageNode(kind = USAGE_Repeat, children = UsageNode[child], min = Int(min), max = Int(max))
 
-UsageHidden(child::UsageNode) = UsageNode(kind=USAGE_Hidden, children=UsageNode[child])
+UsageHidden(child::UsageNode) = UsageNode(kind = USAGE_Hidden, children = UsageNode[child])
 
 UsageEmpty() = UsageNode()
 

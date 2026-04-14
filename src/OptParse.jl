@@ -79,8 +79,8 @@ Returns:
 """
 function normalize_argv(argv::Vector{String})
     expanded = String[]
-    origin   = Int[]
-    optterm  = false
+    origin = Int[]
+    optterm = false
 
     for (i, tok) in pairs(argv)
         if tok == "--"
@@ -104,6 +104,13 @@ function normalize_argv(argv::Vector{String})
 end
 
 
+function no_progress(previous_buffer, ctx)
+    return ctx_length(ctx) > 0 &&
+        ctx_length(ctx) == length(previous_buffer) &&
+        ctx_remaining(ctx) == previous_buffer
+end
+
+
 """
     tryoptparse(parser, argv)
 
@@ -115,7 +122,7 @@ Unlike [`optparse`](@ref), this function does not throw on parse failures.
 function tryoptparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}
 
     canonical_argv, _ = normalize_argv(args)
-    ctx = Context{S}(buffer=canonical_argv, state=pp.initialState, usage=@unionsplit usage(pp))
+    ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = @unionsplit usage(pp))
 
     while true
         mayberesult::InnerParseResult{S} = @unionsplit parse(pp, ctx)
@@ -128,11 +135,7 @@ function tryoptparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
         previous_buffer = ctx_remaining(ctx)
         ctx = res_nextctx(result)
 
-        if (
-                ctx_length(ctx) > 0
-                    && ctx_length(ctx) == length(previous_buffer)
-                    && ctx_remaining(ctx) == previous_buffer
-            )
+        if no_progress(previous_buffer, ctx)
             # Top-level progress guard: a parser must not report success while leaving argv unchanged.
             return typedErr(T, main_error(MAIN_NoProgress; token = ctx_peek(ctx)))
         end
@@ -169,6 +172,9 @@ If you need stable non-throwing behavior across environments, use
 
         if is_error(mayberes)
             errmsg = sprint(showerror, ParseException(unwrap_error(mayberes)))
+
+            err_ctx = recover_usage_context(pareser, args)
+
             print(Core.stderr, "Error: ")
             println(Core.stderr, errmsg)
             return nothing
@@ -191,6 +197,32 @@ else
 
 end
 
+
+function recover_usage_context(pp::Parser{T, S}, argv::Vector{String})::Context{S} where {T, S}
+    canonical_argv, _ = normalize_argv(argv)
+    ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = @unionsplit usage(pp))
+
+    while true
+        mayberesult::InnerParseResult{S} = @unionsplit parse(pp, ctx)
+
+        if is_error(mayberesult)
+            return ctx
+        end
+        result = unwrap(mayberesult)
+
+        previous_buffer = ctx_remaining(ctx)
+        ctx = res_nextctx(result)
+
+        if no_progress(previous_buffer, ctx)
+            # Top-level progress guard: a parser must not report success while leaving argv unchanged.
+            return ctx
+        end
+
+        ctx_length(ctx) > 0 || break
+    end
+
+    return ctx
+end
 
 
 end # module OptParse

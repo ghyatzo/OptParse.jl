@@ -194,6 +194,81 @@ end
     @test_opt render_usage(usage; progname = "pkg", style = Val(:expanded))
 end
 
+@testset "should build usage directly from a broad parser tree" begin
+    parser = object((;
+        tag = @constant(:root),
+        verbose = flag("-v", "--verbose"),
+        experimental = gate("--experimental"),
+        port = option("-p", "--port", integer("PORT")),
+        input = arg(str("INPUT")),
+        mode = optional(option("--mode", str("MODE"))),
+        fallback = default(option("--fallback", str("FALLBACK")), "fallback"),
+        extras = multiple(arg(str("EXTRA")); min = 1, max = 3),
+        coordinates = sequence(
+            option("--x", integer("X")),
+            option("--y", integer("Y")),
+        ),
+        action = or(
+            command("add", object((;
+                kind = @constant(:add),
+                name = arg(str("NAME")),
+            ))),
+            command("rm", sequence(
+                arg(str("TARGET")),
+                optional(gate("--force")),
+            )),
+            gate("--status"),
+        ),
+    ))
+
+    usage = OptParse.usage(parser)
+
+    expected = "tool [OPTIONS] --experimental --port <PORT> <INPUT> <EXTRA> [<EXTRA>] [<EXTRA>] --x <X> --y <Y> add <NAME>\n" *
+        "tool [OPTIONS] --experimental --port <PORT> <INPUT> <EXTRA> [<EXTRA>] [<EXTRA>] --x <X> --y <Y> rm <TARGET> [--force]\n" *
+        "tool [OPTIONS] --experimental --port <PORT> <INPUT> <EXTRA> [<EXTRA>] [<EXTRA>] --x <X> --y <Y> ..."
+
+    @test usage isa OptParse.UsageNode
+    @test render_usage(usage; progname = "tool") == expected
+    @test_opt OptParse.usage(parser)
+end
+
+@testset "should build usage directly from combine and concat parsers" begin
+    combined = combine(
+        object((;
+            quiet = flag("-q", "--quiet"),
+            host = option("--host", str("HOST")),
+        )),
+        object((;
+            token = @constant(:token),
+            port = option("--port", integer("PORT")),
+        )),
+    )
+
+    concatenated = concat(
+        sequence(
+            arg(str("SRC")),
+            option("--from", str("FROM")),
+        ),
+        sequence(
+            multiple(arg(str("REST")); min = 0, max = 2),
+            gate("--go"),
+        ),
+    )
+
+    parser = or(
+        command("combined", combined),
+        command("concatenated", concatenated),
+    )
+
+    @test render_usage(OptParse.usage(combined)) == "[OPTIONS] --host <HOST> --port <PORT>"
+    @test render_usage(OptParse.usage(concatenated)) == "<SRC> --from <FROM> [<REST>] [<REST>] --go"
+    @test render_usage(OptParse.usage(parser); progname = "tool") == "tool <COMMAND> [ARGS...]"
+
+    @test_opt OptParse.usage(combined)
+    @test_opt OptParse.usage(concatenated)
+    @test_opt OptParse.usage(parser)
+end
+
 @testset "should ignore hidden usage nodes inside sequences" begin
     usage = UsageObject(
         UsageHidden(UsageArgument("IGNORED")),
