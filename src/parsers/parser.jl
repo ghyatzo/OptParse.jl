@@ -89,6 +89,14 @@ end
 
 usage(p::Parser)::UsageNode = @unionsplit usage(p)::UsageNode
 
+@inline function focused_usage(p::Parser{T, S}, ctx::Context{S})::FocusedUsage where {T, S}
+    return focused_usage(p, ctx, String[])
+end
+
+@inline function focused_usage(p::Parser{T, S}, ctx::Context{S}, prefix::Vector{String})::FocusedUsage where {T, S}
+    return @unionsplit focused_usage(p, ctx, prefix)::FocusedUsage
+end
+
 
 # modifiers
 

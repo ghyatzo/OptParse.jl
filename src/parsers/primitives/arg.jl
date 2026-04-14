@@ -46,6 +46,8 @@ struct ArgArgument{T, S, p, P} <: AbstractParser{T, S, p, P}
 end
 
 usage(p::ArgArgument) = UsageArgument(trymetavar(p.valparser))
+focused_usage(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S}}, prefix::Vector{String}) where {T, S} =
+    FocusedUsage(prefix, usage(p))
 
 function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S}})::InnerParseResult{ArgumentState{S}} where {T, S}
     optpattern = r"^--?[a-z0-9-]+$"i

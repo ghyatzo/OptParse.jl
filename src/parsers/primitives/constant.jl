@@ -15,6 +15,8 @@ ArgConstant(val::T) where {T} = let
 end
 
 usage(p::ArgConstant) = UsageHidden(UsageEmpty())
+focused_usage(p::ArgConstant{Val{val}, ConstantState{val}}, ctx::Context{ConstantState{val}}, prefix::Vector{String}) where {val} =
+    FocusedUsage(prefix, usage(p))
 
 function parse(::ArgConstant{Val{val}, ConstantState{val}}, ctx::Context{ConstantState{val}})::InnerParseResult{ConstantState{val}} where {val}
     return innerOk(ctx, consumed_empty(ctx))

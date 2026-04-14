@@ -12,6 +12,12 @@ function render_usage(node::UsageNode; style::Symbol = :compact, progname::Abstr
     return String(take!(io))
 end
 
+function render_usage(focused::FocusedUsage; style::Symbol = :compact, progname::AbstractString = "")
+    io = IOBuffer()
+    render_usage(io, focused; style, progname)
+    return String(take!(io))
+end
+
 function render_usage(io::IO, node::UsageNode; style::Symbol = :compact, progname::AbstractString = "")
     resolved_style = UsageStyle(style)
     state = UsageRenderState()
@@ -27,6 +33,12 @@ function render_usage(io::IO, node::UsageNode; style::Symbol = :compact, prognam
     end
 
     _render_usage(io, node, resolved_style, state)
+    return nothing
+end
+
+function render_usage(io::IO, focused::FocusedUsage; style::Symbol = :compact, progname::AbstractString = "")
+    prefixed_progname = _usage_with_prefix(progname, focused.prefix)
+    render_usage(io, focused.usage; style, progname = prefixed_progname)
     return nothing
 end
 

@@ -39,6 +39,44 @@ end
 
 @inline usage(p::ConstrTuple) = UsageTuple(_usage_children(p.parsers))
 
+function focused_usage(
+    p::ConstrTuple{T, S},
+    ctx::Context{S},
+    prefix::Vector{String}
+)::FocusedUsage where {T, S <: Tuple}
+    return _focused_usage_tuple(p.parsers, ctx, prefix)
+end
+
+@generated function _focused_usage_tuple(
+    parsers::PTup,
+    ctx::Context{S},
+    prefix::Vector{String}
+) where {PTup <: Tuple, S <: Tuple}
+    N = fieldcount(PTup)
+    body = Expr(:block)
+
+    for i in 1:N
+        child_state_t = fieldtype(S, i)
+        push!(body.args, quote
+            child_state = ctx_state(ctx)[$i]::$child_state_t
+            child_ctx = widen_restate($child_state_t, ctx, child_state)
+            child_focus = focused_usage(parsers[$i], child_ctx, prefix)::FocusedUsage
+
+            if child_focus.prefix != prefix
+                return child_focus
+            end
+
+            children[$i] = child_focus.usage
+        end)
+    end
+
+    return quote
+        children = Vector{UsageNode}(undef, $N)
+        $body
+        return FocusedUsage(prefix, UsageTuple(children))
+    end
+end
+
 @generated function _generated_tup_parse(parsers::PTup, ctx::Context{S}) where {PTup <: Tuple, S <: Tuple}
 
     N = fieldcount(PTup)

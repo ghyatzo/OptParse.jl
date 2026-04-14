@@ -43,6 +43,19 @@ end
 
 usage(p::ModMultiple) = UsageRepeat(usage(p.parser)::UsageNode, p.min, p.max)
 
+function focused_usage(
+	p::ModMultiple{T, MultipleState{S}},
+	ctx::Context{MultipleState{S}},
+	prefix::Vector{String}
+)::FocusedUsage where {T, S}
+	child_state = isempty(ctx_state(ctx)) ? p.parser.initialState : ctx_state(ctx)[end]
+	child_ctx = widen_restate(S, ctx, child_state)
+	child_focus = focused_usage(p.parser, child_ctx, prefix)
+
+	child_focus.prefix != prefix && return child_focus
+	return FocusedUsage(prefix, UsageRepeat(child_focus.usage, p.min, p.max))
+end
+
 function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}})::InnerParseResult{MultipleState{S}} where {T, S}
 
 	#=Conceptual map:

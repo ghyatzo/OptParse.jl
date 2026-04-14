@@ -67,6 +67,39 @@ end
 
 @inline usage(p::ConstrOr) = UsageAlternative(_usage_children(p.parsers))
 
+function focused_usage(
+    p::ConstrOr{T, OrState{U}},
+    ctx::Context{OrState{U}},
+    prefix::Vector{String}
+)::FocusedUsage where {T, U}
+    is_error(ctx_state(ctx)) && return FocusedUsage(prefix, usage(p))
+
+    selected = unwrapunion(unwrap(ctx_state(ctx)))::U
+    return _focused_usage_or(p, selected, prefix)
+end
+
+@generated function _focused_usage_or(
+    p::ConstrOr{T, OrState{U}, pprio, PTup},
+    selected::U,
+    prefix::Vector{String}
+)::FocusedUsage where {T, U, pprio, PTup <: Tuple}
+    body = Expr(:block)
+
+    for branch_t in Base.uniontypes(U)
+        branch_t <: OrBranchState || continue
+
+        i = branch_t.parameters[1]
+        push!(body.args, quote
+            if selected isa $branch_t
+                return focused_usage(p.parsers[$i], res_nextctx(selected.success), prefix)
+            end
+        end)
+    end
+
+    push!(body.args, :(return FocusedUsage(prefix, usage(p))))
+    return body
+end
+
 @generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}) where {PTup <: Tuple, U}
     #=
     # General loop logic

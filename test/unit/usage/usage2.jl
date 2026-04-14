@@ -269,6 +269,46 @@ end
     @test_opt OptParse.usage(parser)
 end
 
+@testset "should focus usage on selected nested commands" begin
+    parser = object((;
+        verbose = flag("-v", "--verbose"),
+        action = or(
+            command("cmd", object((;
+                dry_run = flag("--dry-run"),
+                sub = command("subcmd", object((;
+                    force = flag("--force"),
+                    file = arg(str("FILE")),
+                ))),
+            ))),
+            command("other", arg(str("OTHER"))),
+        ),
+    ))
+
+    ctx = OptParse.recover_usage_context(parser, ["-v", "cmd", "subcmd", "--unknown"])
+    focused = OptParse.focused_usage(parser, ctx)
+
+    @test focused.prefix == ["cmd", "subcmd"]
+    @test render_usage(focused; progname = "prog") == "prog cmd subcmd [OPTIONS] <FILE>"
+    @test_opt OptParse.focused_usage(parser, ctx)
+end
+
+@testset "should keep local aggregate usage when focusing non-command alternatives" begin
+    parser = command("run", object((;
+        verbose = flag("-v", "--verbose"),
+        target = or(
+            arg(str("HOST")),
+            option("--socket", str("SOCKET")),
+        ),
+    )))
+
+    ctx = OptParse.recover_usage_context(parser, ["run", "localhost", "--unknown"])
+    focused = OptParse.focused_usage(parser, ctx)
+
+    @test focused.prefix == ["run"]
+    @test render_usage(focused; progname = "prog") == "prog run [OPTIONS] <HOST>"
+    @test_opt OptParse.focused_usage(parser, ctx)
+end
+
 @testset "should ignore hidden usage nodes inside sequences" begin
     usage = UsageObject(
         UsageHidden(UsageArgument("IGNORED")),

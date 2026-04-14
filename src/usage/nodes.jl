@@ -65,6 +65,41 @@ UsageHidden(child::UsageNode) = UsageNode(kind = USAGE_Hidden, children = UsageN
 
 UsageEmpty() = UsageNode()
 
+struct FocusedUsage
+    prefix::Vector{String}
+    usage::UsageNode
+end
+
+FocusedUsage(usage::UsageNode) = FocusedUsage(String[], usage)
+
+function _usage_with_prefix(progname::AbstractString, prefix::Vector{String})
+    isempty(prefix) && return String(progname)
+
+    io = IOBuffer()
+    wrote = false
+
+    if !isempty(progname)
+        print(io, progname)
+        wrote = true
+    end
+
+    for part in prefix
+        wrote && print(io, ' ')
+        print(io, part)
+        wrote = true
+    end
+
+    return String(take!(io))
+end
+
+function _usage_push_prefix(prefix::Vector{String}, part::String)
+    next = String[]
+    sizehint!(next, length(prefix) + 1)
+    append!(next, prefix)
+    push!(next, part)
+    return next
+end
+
 @generated function _usage_children(parsers::PTup) where {PTup <: Tuple}
     N = fieldcount(PTup)
     body = Expr(:block)

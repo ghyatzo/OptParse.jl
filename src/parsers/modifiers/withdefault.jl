@@ -33,6 +33,19 @@ end
 
 usage(p::ModWithDefault) = UsageOptional(usage(p.parser)::UsageNode)
 
+function focused_usage(
+    p::ModWithDefault{T, WithDefaultState{S}},
+    ctx::Context{WithDefaultState{S}},
+    prefix::Vector{String}
+)::FocusedUsage where {T, S}
+    child_state = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))
+    child_ctx = widen_restate(S, ctx, child_state)
+    child_focus = focused_usage(p.parser, child_ctx, prefix)
+
+    child_focus.prefix != prefix && return child_focus
+    return FocusedUsage(prefix, UsageOptional(child_focus.usage))
+end
+
 function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefaultState{S}})::InnerParseResult{WithDefaultState{S}} where {T, S}
 
     childstate = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))

@@ -41,6 +41,23 @@ end
 
 usage(p::ArgCommand) = UsageCommand(p.names, usage(p.parser)::UsageNode)
 
+function focused_usage(
+    p::ArgCommand{T, CommandState{PState}},
+    ctx::Context{CommandState{PState}},
+    prefix::Vector{String}
+)::FocusedUsage where {T, PState}
+    if is_error(ctx_state(ctx))
+        return FocusedUsage(prefix, usage(p))
+    end
+
+    maybestate = unwrap(ctx_state(ctx))
+    child_state = is_error(maybestate) ? p.parser.initialState : unwrap(maybestate)
+    child_ctx = widen_restate(tstate(p.parser), ctx, child_state)
+    child_prefix = _usage_push_prefix(prefix, first(p.names))
+
+    return focused_usage(p.parser, child_ctx, child_prefix)
+end
+
 function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState{PState}})::InnerParseResult{CommandState{PState}} where {T, PState}
     if is_error(ctx_state(ctx))
         # command not yet matched

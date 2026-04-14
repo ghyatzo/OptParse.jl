@@ -77,6 +77,45 @@ end
 
 @inline usage(p::ConstrObject) = UsageObject(_usage_children(values(p.parsers)))
 
+function focused_usage(
+    p::ConstrObject{T, S},
+    ctx::Context{S},
+    prefix::Vector{String}
+)::FocusedUsage where {T, S <: ObjectState}
+    return _focused_usage_object(p.parsers, ctx, prefix)
+end
+
+@generated function _focused_usage_object(
+    parsers::NamedTuple{labels, PTup},
+    ctx::Context{S},
+    prefix::Vector{String}
+) where {labels, PTup <: Tuple, S <: ObjectState}
+    N = fieldcount(PTup)
+    body = Expr(:block)
+
+    for i in 1:N
+        field = labels[i]
+        child_state_t = fieldtype(S, i)
+        push!(body.args, quote
+            child_state = ctx_state(ctx)[$(QuoteNode(field))]::$child_state_t
+            child_ctx = widen_restate($child_state_t, ctx, child_state)
+            child_focus = focused_usage(parsers[$(QuoteNode(field))], child_ctx, prefix)::FocusedUsage
+
+            if child_focus.prefix != prefix
+                return child_focus
+            end
+
+            children[$i] = child_focus.usage
+        end)
+    end
+
+    return quote
+        children = Vector{UsageNode}(undef, $N)
+        $body
+        return FocusedUsage(prefix, UsageObject(children))
+    end
+end
+
 @generated function _generated_object_parse(p::NamedTuple{labels, PTup}, ctx::Context{S}) where {labels, PTup <: Tuple, S}
 
     sorted_labels = _sort_obj_labels(labels, PTup)

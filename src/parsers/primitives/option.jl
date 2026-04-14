@@ -65,6 +65,8 @@ struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
 end
 
 usage(p::ArgOption) = UsageOption(p.names, trymetavar(p.valparser))
+focused_usage(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}}, prefix::Vector{String}) where {T} =
+    FocusedUsage(prefix, usage(p))
 
 function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::InnerParseResult{OptionState{T}} where {T}
 
