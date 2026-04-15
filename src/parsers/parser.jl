@@ -16,6 +16,8 @@ end
 ptypes(::Type{<:AbstractParser{T, S, _p, P}}) where {T, S, _p, P} = P
 ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
 
+helpinfo(::AbstractParser) = HelpInfo()
+
 """
     resulttype(parser_or_type)
 
@@ -75,6 +77,7 @@ include("modifiers/modifiers.jl")
 
         ModWithDefault{T, S, p, P},
         ModMultiple{T, S, p, P},
+        ModHelp{T, S, p, P},
     }
 end
 
@@ -83,14 +86,11 @@ _parser(x::AbstractParser{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x
 Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
 Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
 
-function complete(p::Parser{T, S}, st::S)::ParseResult{T} where {T, S}
-    @unionsplit complete(p, st)
-end
-
 usage(p::Parser)::UsageNode = @unionsplit usage(p)::UsageNode
+helpinfo(p::Parser)::HelpInfo = @unionsplit helpinfo(p)::HelpInfo
 
 @inline function focused_usage(p::Parser{T, S}, ctx::Context{S})::FocusedUsage where {T, S}
-    return focused_usage(p, ctx, String[])
+    return @unionsplit focused_usage(p, ctx, String[])::FocusedUsage
 end
 
 @inline function focused_usage(p::Parser{T, S}, ctx::Context{S}, prefix::Vector{String})::FocusedUsage where {T, S}
@@ -258,13 +258,119 @@ function multiple end
 multiple(p::Parser; kw...) = _parser(ModMultiple(p; kw...))
 multiple(; kw...) = (p::Parser) -> multiple(p; kw...)
 
+## Help Information
+
+"""
+    help(p::Parser, brief="", description="", footer=""; hidden=false)
+    help(brief="", description="", footer=""; hidden=false)
+
+Attach help information to a parser without changing parsing semantics.
+
+`help(...)` can be used either directly or as a pipeline modifier. The information
+is consumed by usage/help generation; parse and complete delegate to the wrapped
+parser unchanged.
+
+# Arguments
+- `p::Parser`: The parser to annotate
+- `brief::String`: Short one-line summary
+- `description::String`: Longer help text
+- `footer::String`: Footer or epilog text
+
+# Keywords
+- `hidden::Bool`: Hide this parser from usage/help output when `true`
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> parser = flag("-v", "--verbose") |> help("Enable verbose output");
+
+julia> optparse(parser, ["-v"])
+true
+```
+
+# See Also
+- [`hidden`](@ref): Convenience modifier for hidden parsers
+"""
+function help end
+
+function help(
+        p::Parser;
+        hidden::Bool = false,
+        brief::AbstractString = "",
+        description::AbstractString = "",
+        footer::AbstractString = "",
+    )
+    info = HelpInfo(String(brief), String(description), String(footer); hidden)
+    inner = unwrapunion(p)
+    return inner isa ModHelp ? _parser(ModHelp(inner, info)) : _parser(ModHelp(p, info))
+end
+
+help(
+    p::Parser,
+    brief::AbstractString;
+    hidden::Bool = false,
+    description::AbstractString = "",
+    footer::AbstractString = "",
+) = help(p; hidden, brief, description, footer)
+
+help(
+    p::Parser,
+    brief::AbstractString,
+    description::AbstractString;
+    hidden::Bool = false,
+    footer::AbstractString = "",
+) = help(p; hidden, brief, description, footer)
+
+help(
+    p::Parser,
+    brief::AbstractString,
+    description::AbstractString,
+    footer::AbstractString;
+    hidden::Bool = false,
+) = help(p; hidden, brief, description, footer)
+
+help(; kw...) = (p::Parser) -> help(p; kw...)
+help(brief::AbstractString; kw...) = (p::Parser) -> help(p, brief; kw...)
+help(brief::AbstractString, description::AbstractString; kw...) =
+    (p::Parser) -> help(p, brief, description; kw...)
+help(brief::AbstractString, description::AbstractString, footer::AbstractString; kw...) =
+    (p::Parser) -> help(p, brief, description, footer; kw...)
+
+"""
+    hidden(p::Parser)
+    hidden()
+
+Hide a parser from usage/help output without changing parsing semantics.
+
+This is equivalent to `help(p; hidden=true)` and supports pipeline style via
+`hidden()`.
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> parser = object((debug = flag("--debug") |> hidden(), file = arg(str("FILE"))));
+
+julia> optparse(parser, ["--debug", "input.txt"]).debug
+true
+```
+
+# See Also
+- [`help`](@ref): General help information modifier
+"""
+function hidden end
+
+hidden(p::Parser) = help(p; hidden = true)
+hidden() = (p::Parser) -> hidden(p)
+
 
 # primitives
 
 ## Option
 
 """
-    option(names..., valparser::ValueParser{T}; kw...) where {T}
+    option(names..., valparser::ValueParser{T}) where {T}
 
 Primitive parser that matches command-line options with associated values.
 
@@ -276,9 +382,6 @@ Options can be specified in multiple formats:
 - `names`: One or more option names (strings). Typically includes short (`"-o"`) and/or
   long (`"--option"`) forms. Can be provided as individual arguments or as a tuple.
 - `valparser::ValueParser{T}`: Value parser that determines how to parse the option's value
-
-# Keywords
-- `help::String`: Stored help text metadata for this option
 
 # Returns
 A parser that matches the specified option patterns and returns a value of type `T`.
@@ -340,21 +443,21 @@ Release::Mode = 1
 """
 function option end
 
-option(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption(names, valparser; kw...))
-option(opt1::String, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption((opt1,), valparser; kw...))
-option(opt1::String, opt2::String, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption((opt1, opt2), valparser; kw...))
-option(opt1::String, opt2::String, opt3::String, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption((opt1, opt2, opt3), valparser; kw...))
+option(names::Tuple{Vararg{String}}, valparser::ValueParser{T}) where {T} =
+    _parser(ArgOption(names, valparser))
+option(opt1::String, valparser::ValueParser{T}) where {T} =
+    _parser(ArgOption((opt1,), valparser))
+option(opt1::String, opt2::String, valparser::ValueParser{T}) where {T} =
+    _parser(ArgOption((opt1, opt2), valparser))
+option(opt1::String, opt2::String, opt3::String, valparser::ValueParser{T}) where {T} =
+    _parser(ArgOption((opt1, opt2, opt3), valparser))
 
-option(names::Tuple{Vararg{String}}; kw...) = (valp::ValueParser) -> option(names, valp; kw...)
+option(names::Tuple{Vararg{String}}) = (valp::ValueParser) -> option(names, valp)
 
 ## Gate
 
 """
-    gate(names...; kw...)
+    gate(names...)
 
 Primitive parser that requires a boolean flag to be present.
 
@@ -365,9 +468,6 @@ subtrees. When present in arguments, they indicate `true`; when absent, parsing 
 # Arguments
 - `names...`: One or more flag names (strings). Can include short (`"-v"`) and/or
   long (`"--verbose"`) forms
-
-# Keywords
-- `help::String`: Stored help text metadata for this flag
 
 # Returns
 A parser that returns `true` when the flag is present.
@@ -409,23 +509,20 @@ true
 """
 function gate end
 
-gate(names...; kw...) = _parser(ArgGate(names; kw...))
+gate(names...) = _parser(ArgGate(names))
 
 ## Flag
 
 """
-    flag(names...; kw...)
+    flag(names...)
 
 Convenience function for an optional flag that defaults to `false`.
 
-This is equivalent to `default(gate(names...; kw...), false)`. When the flag is
+This is equivalent to `default(gate(names...), false)`. When the flag is
 present in arguments, it returns `true`; when absent, it returns `false`.
 
 # Arguments
 - `names...`: One or more flag names (strings)
-
-# Keywords
-- `help::String`: Stored help text metadata for this flag
 
 # Returns
 A parser that returns `true` if the flag is present, `false` otherwise.
@@ -471,7 +568,7 @@ julia> result
 ```
 
 # Implementation Note
-This is implemented as: `default(gate(names...; kw...), false)`
+This is implemented as: `default(gate(names...), false)`
 
 # See Also
 - [`gate`](@ref): Required flag that fails if absent
@@ -479,7 +576,7 @@ This is implemented as: `default(gate(names...; kw...), false)`
 """
 function flag end
 
-flag(names...; kw...) = default(gate(names...; kw...), false)
+flag(names...) = default(gate(names...), false)
 
 ## Constant
 
@@ -553,7 +650,7 @@ end
 ## Arg
 
 """
-    arg(valparser::ValueParser{T}; kw...) where {T}
+    arg(valparser::ValueParser{T}) where {T}
 
 Primitive parser for positional arguments not associated with a flag or option.
 
@@ -562,9 +659,6 @@ in the order they're defined (though they can be interspersed with options).
 
 # Arguments
 - `valparser::ValueParser{T}`: Value parser that determines how to parse the argument's value
-
-# Keywords
-- `help::String`: Stored help text metadata for this argument
 
 # Returns
 A parser that matches a positional argument and returns a value of type `T`.
@@ -634,20 +728,20 @@ julia> result.input
 
 # Notes
 - Arguments must be present unless wrapped with `optional` or `default`
-- The `metavar` in the value parser is used in diagnostics and usage/help metadata
+- The `metavar` in the value parser is used in diagnostics and usage output
 - Arguments are parsed in order but can be interspersed with options
 - After `--`, remaining tokens are treated as positional input
 """
 function arg end
 
-arg(valparser::ValueParser{T}; kw...) where {T} = _parser(ArgArgument(valparser; kw...))
-arg(; kw...) = (valp::ValueParser) -> arg(valp; kw...)
+arg(valparser::ValueParser{T}) where {T} = _parser(ArgArgument(valparser))
+arg() = (valp::ValueParser) -> arg(valp)
 
 ## command
 
 """
-    command(name::String, p::Parser; kw...)
-    command(name::String, alias::String, p::Parser; kw...)
+    command(name::String, p::Parser)
+    command(name::String, alias::String, p::Parser)
 
 Primitive parser that matches a subcommand and its associated arguments.
 
@@ -658,11 +752,6 @@ the primary way to implement subcommands in CLI applications.
 # Arguments
 - `name::String`: The command name to match
 - `p::Parser`: The parser to use for arguments following the command
-
-# Keywords
-- `help::String`: Stored help text metadata for this command
-- `brief::String`: Stored short help metadata for this command
-- `footer::String`: Stored footer metadata for this command
 
 # Returns
 A parser that matches the command name and then parses the remaining arguments
@@ -724,9 +813,9 @@ julia> result.packages
 """
 function command end
 
-command(names::Tuple{Vararg{String}}, p::Parser; kw...) = _parser(ArgCommand(names, p; kw...))
-command(name::String, p::Parser; kw...) = _parser(ArgCommand((name,), p; kw...))
-command(name::String, alias::String, p::Parser; kw...) = _parser(ArgCommand((name, alias), p; kw...))
+command(names::Tuple{Vararg{String}}, p::Parser) = _parser(ArgCommand(names, p))
+command(name::String, p::Parser) = _parser(ArgCommand((name,), p))
+command(name::String, alias::String, p::Parser) = _parser(ArgCommand((name, alias), p))
 
 
 # constructors

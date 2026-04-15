@@ -9,15 +9,16 @@ const OptionState{X} = ParseResult{X}
     OPTION_Missing
 end
 
-argoption_error(code::OptionErrCode; token = "", detail = "", subject="") =
-    mkerror(ParsePhase, ERR_ArgOption, UInt8(code);
-        token,
-        detail,
-        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgOption, subject)]
-    )
+argoption_error(code::OptionErrCode; token = "", detail = "", subject = "") =
+    mkerror(
+    ParsePhase, ERR_ArgOption, UInt8(code);
+    token,
+    detail,
+    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgOption, subject)]
+)
 
 function argoption_render_error(io::IO, code::OptionErrCode, err::ParseError)
-    if code == OPTION_NoMoreOptions
+    return if code == OPTION_NoMoreOptions
         print(io, "No more options can be parsed")
     elseif code == OPTION_EndOfInput
         print(io, "Expected an option, got end of input")
@@ -41,10 +42,9 @@ struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
     #
     valparser::ValueParser{T}
     names::Vector{String}
-    help::String
 
 
-    ArgOption(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; help = "") where {T} = begin
+    ArgOption(names::Tuple{Vararg{String}}, valparser::ValueParser{T}) where {T} = begin
         for name in names
             if !startswith(name, r"^--?[^-]")
                 throw(ArgumentError("Flags and option names must start with `-` or `--`."))
@@ -55,11 +55,10 @@ struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
         end
 
         new{T, OptionState{T}, 10, Nothing}(
-            typedErr(argoption_error(OPTION_Missing; detail="$(names)")),
+            typedErr(argoption_error(OPTION_Missing; detail = "$(names)")),
             nothing,
             valparser,
-            [names...],
-            help
+            [names...]
         )
     end
 end
@@ -80,9 +79,10 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
 
     # When the input contains `--` is a signal to stop parsing options
     if (tok === "--")
-        return innerOk(ctx, 1;
+        return innerOk(
+            ctx, 1;
             nextctx = ctx_with_options_terminated(consume(ctx, 1), true),
-            counts_as_match=false
+            counts_as_match = false
         )
     end
 
@@ -95,7 +95,7 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
         end
 
         if ctx_haslessthan(2, ctx) || ctx_peek(ctx, 2) == "--"
-            return innerErr(ctx, argoption_error(OPTION_MissingValue; token=tok); consumed = 1)
+            return innerErr(ctx, argoption_error(OPTION_MissingValue; token = tok); consumed = 1)
         end
 
         result = p.valparser(ctx_peek(ctx, 2))::ParseResult{T}
@@ -121,23 +121,25 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
         value = tok[(length(prefix) + 1):end]
         result = p.valparser(value)::ParseResult{T}
 
-        return innerOk(ctx, 1;
+        return innerOk(
+            ctx, 1;
             nextctx = ctx_with_state(consume(ctx, 1), result)
         )
 
     end
 
-    return innerErr(ctx, argoption_error(OPTION_NoMatch; token=tok))
+    return innerErr(ctx, argoption_error(OPTION_NoMatch; token = tok))
 end
 
 function complete(p::ArgOption{T, OptionState{T}}, st::OptionState{T})::ParseResult{T} where {T}
     # if the state is an error it means that the valueparser returned an error. we then just need to append
     # a new context to the error and resurface
     return !is_error(st) ? st : typedErr(
-        error_with_trace(st,
-            CompletePhase,
-            ERR_ArgOption,
-            p.names[1]
+            error_with_trace(
+                st,
+                CompletePhase,
+                ERR_ArgOption,
+                p.names[1]
+            )
         )
-    )
 end

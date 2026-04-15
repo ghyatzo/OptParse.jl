@@ -199,6 +199,50 @@ because the tight signature:
 - gives JET less nonsense to analyze
 - makes trimming behavior much more predictable
 
+### Child parser state invariants
+
+Wrappers and constructors have an extra invariant: their child parser type must
+remain tied to the child state they pass around.
+
+It is not enough for the constructor to build only valid values. The method
+signature must also express the relationship, otherwise inference can still
+consider impossible wrapped-union arms.
+
+For a transparent wrapper whose state is exactly the child state, write methods
+like:
+
+```julia
+function parse(
+    p::ModHelp{T,S,_p,P},
+    ctx::Context{S},
+)::InnerParseResult{S} where {T,S,_p,P <: AbstractParser{<:Any,S}}
+```
+
+The important part is:
+
+```julia
+P <: AbstractParser{<:Any,S}
+```
+
+That tells inference that the wrapped child parser also operates on state `S`.
+
+For a wrapper whose state contains a child state, bind the child parser to the
+inner state instead:
+
+```julia
+function parse(
+    p::ModWithDefault{T,WithDefaultState{S},_p,P},
+    ctx::Context{WithDefaultState{S}},
+)::InnerParseResult{WithDefaultState{S}} where {T,S,_p,P <: AbstractParser{<:Any,S}}
+```
+
+Here the wrapper state is `WithDefaultState{S}`, but the wrapped parser operates
+on `S`. The signature must make that distinction explicit.
+
+This applies to `parse`, `complete`, `usage`, `focused_usage`, and any other
+method that delegates to the child parser while relying on a particular child
+state shape.
+
 ## `Context`
 
 `Context{S}` lives in `src/core/context.jl`.
@@ -343,4 +387,3 @@ error_with_context(result, CompletePhase, ERR_SomeDomain, "subject")
 ```
 
 This is how the final rendered message accumulates parser-specific context.
-

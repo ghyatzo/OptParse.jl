@@ -269,6 +269,22 @@ end
     @test_opt OptParse.usage(parser)
 end
 
+@testset "should hide parser usage through help information modifiers" begin
+    parser = object((;
+        debug = flag("--debug") |> help("Debug mode", "Enable debug mode") |> hidden(),
+        input = arg(str("FILE")),
+    ))
+
+    info = OptParse.helpinfo(parser.parsers.debug)
+
+    @test info.hidden
+    @test info.brief == "Debug mode"
+    @test info.description == "Enable debug mode"
+    @test render_usage(OptParse.usage(parser)) == "<FILE>"
+    @test optparse(parser, ["--debug", "input.txt"]) == (debug = true, input = "input.txt")
+    @test_opt OptParse.usage(parser)
+end
+
 @testset "should focus usage on selected nested commands" begin
     parser = object((;
         verbose = flag("-v", "--verbose"),

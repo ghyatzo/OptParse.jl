@@ -254,7 +254,7 @@ end
 
         push!(ex.args, quote
             if selected isa $branch_t
-                child_result = complete(p.parsers[$i], ℒ_nextstate(selected.success))::ParseResult{$out_t}
+                child_result = (@unionsplit complete(p.parsers[$i], ℒ_nextstate(selected.success)))::ParseResult{$out_t}
                 if is_error(child_result)
                     return typedErr(T,
                         error_with_trace(child_result,

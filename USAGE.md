@@ -252,6 +252,183 @@ This lets each parser family combine help according to its behavior:
 
 This avoids overspecializing usage rendering to solve help problems.
 
+## Overlay Parsers And Auxiliary Environments
+
+Help information, sections, visibility, suggestions, and shell-completion hints
+look like a separate parser family.
+
+They are not primitive parsers, constructors, or behavioral modifiers. They are
+**overlays**: transparent parser nodes that attach information to a subtree by
+changing an auxiliary interpretation environment.
+
+The core rule:
+
+```text
+Overlays are transparent to the primary parse/complete interpreter.
+They are meaningful to auxiliary interpreters such as help, usage focus,
+shell completion, suggestions, and diagnostics.
+```
+
+An overlay parser should preserve the wrapped parser's primary semantics:
+
+- same result type `T`
+- same state type `S`
+- same priority `p`
+- same initial state
+- same parse behavior
+- same complete behavior
+
+For example, the current help modifier is conceptually an overlay:
+
+```julia
+flag("-v") |> help("Verbose output")
+```
+
+The flag still parses exactly like the original flag. The `help(...)` layer only
+changes what the help/documentation interpreter sees.
+
+This suggests a future taxonomy:
+
+- primitive parsers match CLI syntax directly
+- constructors combine parser results into larger result shapes
+- behavioral modifiers change parse or complete behavior
+- overlays modify auxiliary environments for secondary tree interpreters
+
+### Environment-Based Traversal
+
+The important traversal pattern is:
+
+```julia
+interpret(parser, env)
+```
+
+Overlay nodes update `env` and delegate:
+
+```julia
+interpret(p::HelpOverlay, env) =
+    interpret(p.parser, with_helpinfo(env, p.info))
+
+interpret(p::SectionOverlay, env) =
+    interpret(p.parser, with_section(env, p.section))
+```
+
+The underlying parser family still owns parser-specific extraction:
+
+```julia
+helpentry(p::ArgOption, env) =
+    HelpEntry(
+        usage = usage(p),
+        info = env.node_info,
+        section = env.section,
+        kind = HELP_Option,
+    )
+```
+
+This keeps the syntax-specific knowledge with the parser family. An option knows
+how to expose its names and metavar. A command knows how to expose its command
+name and child scope. An object knows how to collect child entries. Overlays only
+change the environment those parsers are interpreted under.
+
+### HelpInfo, Sections, And Propagation
+
+`HelpInfo` should be node-local information:
+
+```julia
+HelpInfo(
+    hidden = false,
+    brief = "...",
+    description = "...",
+    footer = "...",
+)
+```
+
+It describes the parser node directly wrapped by `help(...)`. It should not
+blindly propagate to every child.
+
+For example:
+
+```julia
+object((...)) |> help("Configuration")
+```
+
+describes the object help scope, not every option inside the object.
+
+Sections are different. A section is intended to group entries below it, so it
+should propagate through constructor children:
+
+```julia
+object((;
+    port = option("-p", "--port", integer("PORT")),
+    tls = flag("--tls"),
+)) |> section("Network")
+```
+
+should place both child entries under a `Network` section.
+
+A useful future help traversal environment may therefore separate node-local
+information from inherited grouping:
+
+```julia
+struct HelpEnv
+    node_info::HelpInfo
+    section::SectionInfo
+end
+```
+
+The likely rules are:
+
+- `HelpInfo` is node-local and is reset when constructors descend into children
+- `SectionInfo` is inherited and groups child entries until overridden
+- overlays update the relevant part of `HelpEnv` and delegate
+- parser families produce `HelpDoc` / `HelpEntry` values using the current
+  environment
+
+### Focused HelpDoc
+
+The current `focused_usage` direction probably wants to generalize to a focused
+help-document builder:
+
+```julia
+focused_helpdoc(parser, ctx)::HelpDoc
+```
+
+Internally, that likely becomes an environment-carrying traversal:
+
+```julia
+focused_helpdoc(parser, ctx, env, prefix)::HelpDoc
+```
+
+Error usage, `--help`, and help subcommands can all use the same focused
+document and render different projections of it:
+
+- error rendering may print only compact usage from the focused `HelpDoc`
+- ordinary help may render usage, description, entries, sections, and footer
+- future detailed help may render more entry-specific information
+
+This avoids creating a separate focus mechanism for errors and for explicit help
+requests.
+
+### Future Auxiliary Environments
+
+The same overlay idea can be reused for other cold-path interpreters:
+
+- `HelpEnv` for help documents and usage focus
+- `ShellCompletionEnv` for shell completion candidates
+- `SuggestionEnv` for unknown-command or unknown-option suggestions
+- diagnostic environments for deprecation notes or richer error hints
+
+The boundary should stay explicit:
+
+- if a feature changes the parsed value or completion semantics, it is a
+  behavioral modifier
+- if a feature only changes a secondary interpretation of the parser tree, it is
+  an overlay
+
+For example, "read a missing default from an environment variable" probably
+changes the final parsed value, so it is likely a behavioral modifier. But
+"document that this option can be completed from an environment variable" is an
+overlay.
+
 ## Help Triggers
 
 Known help/usage entry points:
@@ -279,9 +456,11 @@ The main unresolved questions are:
 - whether recovery should stop at first failure or return the furthest useful
   state
 - how complete-phase errors should choose a focus scope
-- exact `Help` and `HelpEntry` field layout
-- whether help grouping is a parser wrapper, metadata, or a separate help-only
-  layer
+- exact `HelpDoc`, `HelpEntry`, and `HelpEnv` field layout
+- whether `ModHelp` should eventually move to an `overlays/` parser family and
+  be renamed to something like `HelpOverlay`
+- exact section propagation rules through `object`, `sequence`, `or`,
+  `command`, and behavioral modifiers
 
 ## Practical Next Steps
 
@@ -293,8 +472,9 @@ The next implementation steps are:
    `UsageNode`s.
 3. Add a cold-path recovery function that replays parser state from argv.
 4. Implement root/focused usage selection from recovered state.
-5. Introduce a `Help` object only after usage focus is working.
-6. Keep rendering as the final pure step over `UsageNode` or `Help`.
+5. Formalize `HelpInfo` as node-local overlay information.
+6. Introduce a minimal `HelpEnv` / `HelpDoc` only after usage focus is working.
+7. Keep rendering as the final pure step over `UsageNode` or `HelpDoc`.
 
 ## Summary
 
@@ -306,4 +486,7 @@ The intended architecture is:
 - root usage can be stored in `Context`
 - normal parsing does not maintain breadcrumbs or mutable usage focus
 - focused usage/help comes from cold-path state recovery
-- help should become a semantic `Help` object, not an overloaded usage renderer
+- overlays are transparent parser nodes interpreted through auxiliary
+  environments
+- help should become a semantic `HelpDoc` object, not an overloaded usage
+  renderer

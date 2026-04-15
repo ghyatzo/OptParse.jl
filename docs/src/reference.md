@@ -52,6 +52,8 @@ path
 default
 optional
 multiple
+help
+hidden
 ```
 
 ### Constructors

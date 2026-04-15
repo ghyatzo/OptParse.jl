@@ -32,6 +32,8 @@ export
     flt32,
     flt64,
     gate,
+    help,
+    hidden,
     i16,
     i32,
     i64,
@@ -110,6 +112,38 @@ function no_progress(previous_buffer, ctx)
         ctx_remaining(ctx) == previous_buffer
 end
 
+
+function recover_usage_context(pp::Parser{T, S}, argv::Vector{String})::Context{S} where {T, S}
+    canonical_argv, _ = normalize_argv(argv)
+    ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = @unionsplit usage(pp))
+
+    while true
+        mayberesult::InnerParseResult{S} = @unionsplit parse(pp, ctx)
+
+        if is_error(mayberesult)
+            return ctx
+        end
+        result = unwrap(mayberesult)
+
+        previous_buffer = ctx_remaining(ctx)
+        ctx = res_nextctx(result)
+
+        if no_progress(previous_buffer, ctx)
+            # Top-level progress guard: a parser must not report success while leaving argv unchanged.
+            return ctx
+        end
+
+        ctx_length(ctx) > 0 || break
+    end
+
+    return ctx
+end
+
+function build_help_doc(parser, argv)
+    return ctx = recover_usage_context(parser, argv)
+
+
+end
 
 """
     tryoptparse(parser, argv)
@@ -195,33 +229,6 @@ else
         return unwrap(mayberes)
     end
 
-end
-
-
-function recover_usage_context(pp::Parser{T, S}, argv::Vector{String})::Context{S} where {T, S}
-    canonical_argv, _ = normalize_argv(argv)
-    ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = @unionsplit usage(pp))
-
-    while true
-        mayberesult::InnerParseResult{S} = @unionsplit parse(pp, ctx)
-
-        if is_error(mayberesult)
-            return ctx
-        end
-        result = unwrap(mayberesult)
-
-        previous_buffer = ctx_remaining(ctx)
-        ctx = res_nextctx(result)
-
-        if no_progress(previous_buffer, ctx)
-            # Top-level progress guard: a parser must not report success while leaving argv unchanged.
-            return ctx
-        end
-
-        ctx_length(ctx) > 0 || break
-    end
-
-    return ctx
 end
 
 

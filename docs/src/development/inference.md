@@ -63,12 +63,50 @@ The tight version:
 - keeps JET focused on reachable execution paths
 - usually improves trimming behavior as well
 
+## Wrapper Child-State Invariants
+
+For wrapper parsers, also constrain the child parser type parameter.
+
+The common trap is writing a wrapper method that constrains the wrapper state but
+leaves the child parser type unconstrained:
+
+```julia
+function parse(p::ModHelp{T,S,_p,P}, ctx::Context{S}) where {T,S,_p,P}
+```
+
+Runtime construction may guarantee that `P` is a parser whose state is `S`, but
+the method signature does not say that. JET can then explore impossible
+instantiations of `P`, such as a wrapped parser whose state does not match
+`Context{S}`.
+
+Prefer:
+
+```julia
+function parse(
+    p::ModHelp{T,S,_p,P},
+    ctx::Context{S},
+)::InnerParseResult{S} where {T,S,_p,P <: AbstractParser{<:Any,S}}
+```
+
+For wrappers with nested child state, bind `P` to the inner state:
+
+```julia
+function complete(
+    p::ModWithDefault{T,WithDefaultState{S},_p,P},
+    state::WithDefaultState{S},
+)::ParseResult{T} where {T,S,_p,P <: AbstractParser{<:Any,S}}
+```
+
+This invariant was exposed by the help information modifier wrapping `default`.
+The parser values were valid, but the unconstrained method left inference free
+to consider impossible child-state combinations.
+
 ## Current Design Notes
 
 Two internal rules are worth keeping in mind while working on inference-sensitive code:
 
 1. parser families should only operate on their own state shape
 2. `Context` should be updated through its helper API so the state parameter stays explicit
+3. wrapper methods should constrain child parser type parameters to the child state they delegate to
 
 If inference starts to widen, look there first before adding local assertions.
-
