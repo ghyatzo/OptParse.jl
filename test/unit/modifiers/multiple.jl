@@ -10,8 +10,14 @@ end
     baseParser = option(("-l", "--locale"), str())
     multipleParser = multiple(baseParser)
 
-    val = parse_ok(multipleParser, ["-l", "en", "-l", "fr", "-l", "de"])
-    @test val == ["en", "fr", "de"]
+    # Test all combinations of option forms. Cf. issue #2.
+    for opt1 in (["-l", "en"], ["--locale", "en"], ["--locale=en"]),
+        opt2 in (["-l", "fr"], ["--locale", "fr"], ["--locale=fr"]),
+        opt3 in (["-l", "de"], ["--locale", "de"], ["--locale=de"])
+
+        val = parse_ok(multipleParser, [opt1; opt2; opt3])
+        @test val == ["en", "fr", "de"]
+    end
 end
 
 @testset "should return empty array when no matches found in object context" begin
