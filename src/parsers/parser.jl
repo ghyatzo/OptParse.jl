@@ -36,7 +36,7 @@ julia> greet = command("greet", object((
 julia> const Greet = resulttype(greet);
 
 julia> Greet
-@NamedTuple{name::String, cmd::Val{:greet}}
+@NamedTuple{cmd::Val{:greet}, name::String}
 ```
 
 A common pattern is to define a stable alias once and dispatch on it later
@@ -76,9 +76,8 @@ Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
 Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
 
 function complete(p::Parser{T, S}, st::S)::ParseResult{T} where {T, S}
-    complete(unwrapunion(p), st)
+    return complete(unwrapunion(p), st)
 end
-
 
 
 # modifiers
