@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/ghyatzo/OptParse.jl/compare/v0.2.0...v0.2.1) (2026-04-21)
+
+
+### Bug Fixes
+
+* **docs:** fix order of named_tuple object return type in docs as well ([80134bc](https://github.com/ghyatzo/OptParse.jl/commit/80134bcd9212221b8cdd04763f58c1d69d34d9e1))
+
 ## [0.2.0](https://github.com/ghyatzo/OptParse.jl/compare/v0.1.5...v0.2.0) (2026-04-05)
 
 
