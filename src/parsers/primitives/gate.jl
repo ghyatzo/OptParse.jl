@@ -76,7 +76,7 @@ function parse(p::ArgGate{Bool, GateState}, ctx::Context{GateState})::InnerParse
 
     if tok in p.names
 
-        if !is_error(ctx_state(ctx)) && unwrap(ctx_state(ctx))
+        if !is_error(ctx_state(ctx))
             return innerErr(ctx, arggate_error(GATE_Duplicate; token = tok); consumed = 1)
         end
 
