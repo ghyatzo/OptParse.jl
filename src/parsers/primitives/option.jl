@@ -110,7 +110,7 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
     for prefix in prefixes
         startswith(tok, prefix) || continue
 
-        if !is_error(ctx_state(ctx)) && unwrap(ctx_state(ctx))
+        if !is_error(ctx_state(ctx))
 
             return innerErr(ctx, argoption_error(OPTION_Duplicate; token = prefix[1:(end - 1)]); consumed = 1)
         end
