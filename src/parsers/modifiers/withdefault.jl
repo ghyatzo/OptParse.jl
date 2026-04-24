@@ -6,14 +6,14 @@ end
 
 modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "", subject = "") =
     mkerror(
-        CompletePhase, ERR_ModWithDefault, UInt8(code);
-        token,
-        detail,
-        trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModWithDefault, subject)]
-    )
+    CompletePhase, ERR_ModWithDefault, UInt8(code);
+    token,
+    detail,
+    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModWithDefault, subject)]
+)
 
 function modwithdefault_render_error(io::IO, code::WithDefaultErrCode, err::ParseError)
-    if code == WITHDEFAULT_DummyError
+    return if code == WITHDEFAULT_DummyError
         print(io, "default internal error")
     else
         print(io, "unreachable")
@@ -32,19 +32,37 @@ struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
     end
 end
 
-usage(p::ModWithDefault) = UsageOptional(usage(p.parser)::UsageNode)
+usage(p::ModWithDefault) = UsageOptional(usage(p.parser))
+function helpentries(p::ModWithDefault, rt::OverlayContext)
+    child = unwrapunion(p.parser)
+    return if (
+            child isa ArgGate
+                || child isa ArgOption
+                || child isa ArgConstant
+                || child isa ArgArgument
+                || child isa ArgCommand
+        )
 
-function focused_usage(
+        entry = helpentries(child, rt)[1]
+        HelpEntry[set(entry, (@o _.usage), UsageOptional(entry.usage))]
+    else
+        helpentries(child, rt)
+    end
+end
+function focused_helpdoc(
         p::ModWithDefault{T, WithDefaultState{S}, _p, P},
         ctx::Context{WithDefaultState{S}},
-        prefix::Vector{String}
-    )::FocusedUsage where {T, S, _p, P <: AbstractParser{<:Any, S}}
+        prefix::Vector{String},
+        rt::OverlayContext
+    )::HelpDoc where {T, S, _p, P <: AbstractParser{<:Any, S}}
     child_state = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))
     child_ctx = widen_restate(S, ctx, child_state)
-    child_focus = focused_usage(p.parser, child_ctx, prefix)
+    # we don't reset the OverlayContext because the modifiers are sort of "behavioural overlays"
+    # so they can't consume the node local informations.
+    child_focus = focused_helpdoc(p.parser, child_ctx, prefix, rt)
 
     child_focus.prefix != prefix && return child_focus
-    return FocusedUsage(prefix, UsageOptional(child_focus.usage))
+    return HelpDoc(prefix, UsageOptional(child_focus.usage), rt.info, HelpEntry[])
 end
 
 function parse(

@@ -56,7 +56,8 @@ export
     uuid
 
 include("utils.jl")
-include("usage/usage.jl")
+include("core/usage/usage.jl")
+include("core/help/help.jl")
 include("core/context.jl")
 include("core/errors.jl")
 include("core/parseresult.jl")
@@ -140,9 +141,8 @@ function recover_usage_context(pp::Parser{T, S}, argv::Vector{String})::Context{
 end
 
 function build_help_doc(parser, argv)
-    return ctx = recover_usage_context(parser, argv)
-
-
+    ctx = recover_usage_context(parser, argv)
+    return focused_helpdoc(parser, ctx, root_overlay_context())
 end
 
 """

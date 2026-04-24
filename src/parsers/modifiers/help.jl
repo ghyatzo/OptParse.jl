@@ -6,32 +6,31 @@ end
 
 ModHelp(parser::P, info::HelpInfo) where {P <: AbstractParser} =
     ModHelp{
-        tval(P),
-        tstate(P),
-        priority(P),
-        P,
-    }(parser.initialState, parser, info)
+    tval(P),
+    tstate(P),
+    priority(P),
+    P,
+}(parser.initialState, parser, info)
 
 ModHelp(parser::ModHelp, info::HelpInfo) =
     ModHelp(parser.parser, merge_helpinfo(parser.info, info))
 
-helpinfo(p::ModHelp{T, S, _p, P}) where {T, S, _p, P <: AbstractParser{<:Any, S}} =
-    merge_helpinfo(helpinfo(p.parser), p.info)
-
 function usage(p::ModHelp{T, S, _p, P}) where {T, S, _p, P <: AbstractParser{<:Any, S}}
     child_usage = usage(p.parser)::UsageNode
-    return _usage_or_hidden(helpinfo(p), child_usage)
+    return ishidden(p.info) ? UsageHidden(child_usage) : child_usage
 end
-
-function focused_usage(
+helpentries(p::ModHelp, rt::OverlayContext) = ishidden(p.info) ? HelpEntry[] : helpentries(p.parser, with_helpinfo(rt, p.info))
+function focused_helpdoc(
         p::ModHelp{T, S, _p, P},
         ctx::Context{S},
-        prefix::Vector{String}
-    )::FocusedUsage where {T, S, _p, P <: AbstractParser{<:Any, S}}
-    info = helpinfo(p)
-    info.hidden && return FocusedUsage(prefix, UsageHidden(usage(p.parser)::UsageNode))
-
-    return focused_usage(p.parser, ctx, prefix)
+        prefix::Vector{String},
+        rt::OverlayContext
+    )::HelpDoc where {T, S, _p, P <: AbstractParser{<:Any, S}}
+    info = p.info
+    info.hidden && return HelpDoc(
+        prefix, UsageHidden(usage(p.parser)::UsageNode), info, helpentries(p.parser, with_helpinfo(rt, info))
+    )
+    return focused_helpdoc(p.parser, ctx, prefix, with_helpinfo(rt, info))
 end
 
 @inline function parse(

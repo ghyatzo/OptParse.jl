@@ -1,4 +1,3 @@
-
 UsageStyle(::Val{:compact}) = UsageCompactStyle()
 UsageStyle(::Val{:expanded}) = UsageExpandedStyle()
 UsageStyle(style::Symbol) =
@@ -9,12 +8,6 @@ UsageStyle(style::Symbol) =
 function render_usage(node::UsageNode; style::Symbol = :compact, progname::AbstractString = "")
     io = IOBuffer()
     render_usage(io, node; style, progname)
-    return String(take!(io))
-end
-
-function render_usage(focused::FocusedUsage; style::Symbol = :compact, progname::AbstractString = "")
-    io = IOBuffer()
-    render_usage(io, focused; style, progname)
     return String(take!(io))
 end
 
@@ -36,17 +29,11 @@ function render_usage(io::IO, node::UsageNode; style::Symbol = :compact, prognam
     return nothing
 end
 
-function render_usage(io::IO, focused::FocusedUsage; style::Symbol = :compact, progname::AbstractString = "")
-    prefixed_progname = _usage_with_prefix(progname, focused.prefix)
-    render_usage(io, focused.usage; style, progname = prefixed_progname)
-    return nothing
-end
-
 @inline _usage_continue_with(state::UsageRenderState, suffix::AbstractString) =
     UsageRenderState(
-        continuation_prefix = state.continuation_prefix * suffix,
-        allow_multiline = state.allow_multiline,
-    )
+    continuation_prefix = state.continuation_prefix * suffix,
+    allow_multiline = state.allow_multiline,
+)
 
 function _render_usage_inline_string(node::UsageNode, style::AbstractUsageRenderStyle)
     io = IOBuffer()
@@ -66,8 +53,6 @@ function _render_wrapped_usage(io::IO, node::UsageNode, style::AbstractUsageRend
     end
     return nothing
 end
-
-
 
 
 function _render_usage(io::IO, node::UsageNode, style::AbstractUsageRenderStyle, state::UsageRenderState)
@@ -160,12 +145,12 @@ end
 #   sequence / product rendering
 ##=----------------------------=##
 function _render_usage_sequence(
-    io::IO,
-    nodes::Vector{UsageNode},
-    style::AbstractUsageRenderStyle,
-    state::UsageRenderState,
-    nvisible = _tuple_nvisible(nodes)
-)
+        io::IO,
+        nodes::Vector{UsageNode},
+        style::AbstractUsageRenderStyle,
+        state::UsageRenderState,
+        nvisible = _tuple_nvisible(nodes)
+    )
 
     iszero(nvisible) && return nothing
 
@@ -198,12 +183,12 @@ end
 ##=----------------------------=##
 
 function _render_usage_object_compact(
-    io::IO,
-    nodes::Vector{UsageNode},
-    style::UsageCompactStyle,
-    state::UsageRenderState,
-    nsegments = _tuple_ncompact_segments(nodes)
-)
+        io::IO,
+        nodes::Vector{UsageNode},
+        style::UsageCompactStyle,
+        state::UsageRenderState,
+        nsegments = _tuple_ncompact_segments(nodes)
+    )
     iszero(nsegments) && return nothing
 
     curr_state = state
@@ -246,23 +231,17 @@ function _render_usage_object_compact(
 end
 
 
-
-
-
-
-
-
 ##=----------------------------=##
 #   alternative rendering
 ##=----------------------------=##
 
 function _render_usage_alternatives_inline(
-    io::IO,
-    nodes::Vector{UsageNode},
-    style::AbstractUsageRenderStyle,
-    elide::Bool,
-    rendered = 0
-)
+        io::IO,
+        nodes::Vector{UsageNode},
+        style::AbstractUsageRenderStyle,
+        elide::Bool,
+        rendered = 0
+    )
     isempty(nodes) && return nothing
 
     print(io, '(')
@@ -287,12 +266,12 @@ end
 
 
 function _render_usage_alternatives_stacked(
-    io::IO,
-    nodes::Vector{UsageNode},
-    style::AbstractUsageRenderStyle,
-    state::UsageRenderState,
-    rendered = 0
-)
+        io::IO,
+        nodes::Vector{UsageNode},
+        style::AbstractUsageRenderStyle,
+        state::UsageRenderState,
+        rendered = 0
+    )
     isempty(nodes) && return nothing
 
     for node in nodes
@@ -319,9 +298,6 @@ function _render_usage_alternatives_stacked(
 
     return nothing
 end
-
-
-
 
 
 ##=----------------------------=##

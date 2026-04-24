@@ -6,15 +6,16 @@ const ObjectState{L, P} = NamedTuple{L, P}
     OBJECT_MaxIter
 end
 
-constrobject_error(code::ObjectErrCode; token = "", detail = "", subject="") =
-    mkerror(ParsePhase, ERR_ConstrObject, UInt8(code);
-        token,
-        detail,
-        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrObject, subject)]
-    )
+constrobject_error(code::ObjectErrCode; token = "", detail = "", subject = "") =
+    mkerror(
+    ParsePhase, ERR_ConstrObject, UInt8(code);
+    token,
+    detail,
+    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrObject, subject)]
+)
 
 function constrobject_render_error(io::IO, code::ObjectErrCode, err::ParseError)
-    if code == OBJECT_UnexpectedToken
+    return if code == OBJECT_UnexpectedToken
         print(io, "Unexpected option or argument: $(err.token)")
     elseif code == OBJECT_EndOfInput
         print(io, "Expected an option or argument, got end of input")
@@ -42,11 +43,11 @@ function ConstrObject(parsers_obj::NamedTuple; label = "")
     parsers_obj_tval = NamedTuple{labels, Tuple{parsers_tvals...}}
     init_state = NamedTuple{labels, Tuple{parsers_tstates...}}(map(p -> p.initialState, parsers))
 
-    ConstrObject{
+    return ConstrObject{
         parsers_obj_tval,
         typeof(init_state),
         mapreduce(p -> priority(p), max, parsers_obj),
-        typeof(parsers_obj)
+        typeof(parsers_obj),
     }(init_state, parsers_obj, label)
 end
 #=
@@ -76,43 +77,55 @@ Base.@assume_effects :foldable function _sort_obj_labels(
 end
 
 @inline usage(p::ConstrObject) = UsageObject(_usage_children(values(p.parsers)))
-
-function focused_usage(
-    p::ConstrObject{T, S},
-    ctx::Context{S},
-    prefix::Vector{String}
-)::FocusedUsage where {T, S <: ObjectState}
-    return _focused_usage_object(p.parsers, ctx, prefix)
+function helpentries(p::ConstrObject, rt::OverlayContext)
+    entries = HelpEntry[]
+    for child in values(p.parsers)
+        append!(entries, helpentries(child, descend_child(rt)))
+    end
+    return entries
+end
+function focused_helpdoc(
+        p::ConstrObject{T, S},
+        ctx::Context{S},
+        prefix::Vector{String},
+        rt::OverlayContext
+    )::HelpDoc where {T, S <: ObjectState}
+    return _focused_helpdoc_object(p.parsers, ctx, prefix, rt)
 end
 
-@generated function _focused_usage_object(
-    parsers::NamedTuple{labels, PTup},
-    ctx::Context{S},
-    prefix::Vector{String}
-) where {labels, PTup <: Tuple, S <: ObjectState}
+@generated function _focused_helpdoc_object(
+        parsers::NamedTuple{labels, PTup},
+        ctx::Context{S},
+        prefix::Vector{String},
+        rt::OverlayContext
+    ) where {labels, PTup <: Tuple, S <: ObjectState}
     N = fieldcount(PTup)
     body = Expr(:block)
 
     for i in 1:N
         field = labels[i]
         child_state_t = fieldtype(S, i)
-        push!(body.args, quote
-            child_state = ctx_state(ctx)[$(QuoteNode(field))]::$child_state_t
-            child_ctx = widen_restate($child_state_t, ctx, child_state)
-            child_focus = focused_usage(parsers[$(QuoteNode(field))], child_ctx, prefix)::FocusedUsage
+        push!(
+            body.args, quote
+                child_state = ctx_state(ctx)[$(QuoteNode(field))]::$child_state_t
+                child_ctx = widen_restate($child_state_t, ctx, child_state)
+                child_helpdoc = focused_helpdoc(parsers[$(QuoteNode(field))], child_ctx, prefix, descend_child(rt))::HelpDoc
 
-            if child_focus.prefix != prefix
-                return child_focus
+                if child_helpdoc.prefix != prefix
+                    return child_helpdoc
+                end
+
+                append!(entries, (@unionsplit helpentries(parsers[$(QuoteNode(field))], descend_child(rt)))::Vector{HelpEntry})
+                children[$i] = usage(parsers[$(QuoteNode(field))])
             end
-
-            children[$i] = child_focus.usage
-        end)
+        )
     end
 
     return quote
         children = Vector{UsageNode}(undef, $N)
+        entries = HelpEntry[]
         $body
-        return FocusedUsage(prefix, UsageObject(children))
+        return HelpDoc(prefix, UsageObject(children), helpinfo(rt), entries)
     end
 end
 
@@ -262,8 +275,10 @@ function complete(p::ConstrObject{T}, st::ObjectState)::ParseResult{T} where {T}
 
     if !cancomplete
         subject = isempty(p.label) ? "object" : p.label
-        return typedErr(T,
-            error_with_trace(_result,
+        return typedErr(
+            T,
+            error_with_trace(
+                _result,
                 CompletePhase,
                 ERR_ConstrObject,
                 subject
@@ -273,7 +288,6 @@ function complete(p::ConstrObject{T}, st::ObjectState)::ParseResult{T} where {T}
 
     return typedOk(T, _result)
 end
-
 
 
 # # object parser return a named tuple, that can be tagged by a @constant value ie (tag=Val(:some_action), value=10, ...)

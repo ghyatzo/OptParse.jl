@@ -1,64 +1,84 @@
 const MultipleState{X} = Vector{X}
 
 @enum MultipleErrCode::UInt8 begin
-	MULTIPLE_TooFew
-	MULTIPLE_TooMany
+    MULTIPLE_TooFew
+    MULTIPLE_TooMany
 end
 
-modmultiple_error(code::MultipleErrCode; token = "", detail = "", subject="") =
-	mkerror(CompletePhase, ERR_ModMultiple, UInt8(code);
-		token,
-		detail,
-		trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModMultiple, subject)]
-	)
+modmultiple_error(code::MultipleErrCode; token = "", detail = "", subject = "") =
+    mkerror(
+    CompletePhase, ERR_ModMultiple, UInt8(code);
+    token,
+    detail,
+    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModMultiple, subject)]
+)
 
 function modmultiple_render_error(io::IO, code::MultipleErrCode, err::ParseError)
-	if code == MULTIPLE_TooFew
-		min, got = split(err.detail, ","; limit = 2)
-		print(io, "Expected at least $(min) values, but got only $(got)")
-	elseif code == MULTIPLE_TooMany
-		max, got = split(err.detail, ","; limit = 2)
-		print(io, "Expected at most $(max) values, but got $(got)")
-	else
-		print(io, "unreachable")
-	end
+    return if code == MULTIPLE_TooFew
+        min, got = split(err.detail, ","; limit = 2)
+        print(io, "Expected at least $(min) values, but got only $(got)")
+    elseif code == MULTIPLE_TooMany
+        max, got = split(err.detail, ","; limit = 2)
+        print(io, "Expected at most $(max) values, but got $(got)")
+    else
+        print(io, "unreachable")
+    end
 end
 
 struct ModMultiple{T, S, _p, P} <: AbstractParser{T, S, _p, P}
-	initialState::S
-	parser::P
-	#
-	min::Int
-	max::Int
+    initialState::S
+    parser::P
+    #
+    min::Int
+    max::Int
 end
 
 ModMultiple(parser::P; min::Integer = 0, max::Integer = typemax(Int)) where {P <: AbstractParser} = let
-	ModMultiple{
-		Vector{tval(P)},
-		MultipleState{tstate(P)},
-		priority(P),
-		P
-	}(tstate(P)[], parser, min, max)
+    ModMultiple{
+        Vector{tval(P)},
+        MultipleState{tstate(P)},
+        priority(P),
+        P,
+    }(tstate(P)[], parser, min, max)
 end
 
 usage(p::ModMultiple) = UsageRepeat(usage(p.parser)::UsageNode, p.min, p.max)
+function helpentries(p::ModMultiple, rt::OverlayContext)
+    # if we have a group-like object then return the entries.
+    child = unwrapunion(p.parser)
+    return if (
+            child isa ArgGate
+                || child isa ArgOption
+                || child isa ArgConstant
+                || child isa ArgArgument
+                || child isa ArgCommand
+        )
 
-function focused_usage(
-	p::ModMultiple{T, MultipleState{S}},
-	ctx::Context{MultipleState{S}},
-	prefix::Vector{String}
-)::FocusedUsage where {T, S}
-	child_state = isempty(ctx_state(ctx)) ? p.parser.initialState : ctx_state(ctx)[end]
-	child_ctx = widen_restate(S, ctx, child_state)
-	child_focus = focused_usage(p.parser, child_ctx, prefix)
+        entry = helpentries(child, rt)[1]
+        HelpEntry[set(entry, (@o _.usage), UsageRepeat(entry.usage, p.min, p.max))]
+    else
+        helpentries(child, rt)
+    end
+end
+function focused_helpdoc(
+        p::ModMultiple{T, MultipleState{S}},
+        ctx::Context{MultipleState{S}},
+        prefix::Vector{String},
+        rt::OverlayContext
+    )::HelpDoc where {T, S}
+    child_state = isempty(ctx_state(ctx)) ? p.parser.initialState : ctx_state(ctx)[end]
+    child_ctx = widen_restate(S, ctx, child_state)
+    # we don't reset the OverlayContext because the modifiers are sort of "behavioural overlays"
+    # so they can't consume the node local informations.
+    child_focus = focused_helpdoc(p.parser, child_ctx, prefix, rt)
 
-	child_focus.prefix != prefix && return child_focus
-	return FocusedUsage(prefix, UsageRepeat(child_focus.usage, p.min, p.max))
+    child_focus.prefix != prefix && return child_focus
+    return HelpDoc(prefix, UsageRepeat(child_focus.usage, p.min, p.max), rt.info, HelpEntry[])
 end
 
-function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}})::InnerParseResult{MultipleState{S}} where {T, S}
+function parse(p::ModMultiple{T, MultipleState{S}}, ctx::Context{MultipleState{S}})::InnerParseResult{MultipleState{S}} where {T, S}
 
-	#=Conceptual map:
+    #=Conceptual map:
 
 	`multiple` stores the child parse state for each matched repetition in `state`.
 
@@ -82,115 +102,121 @@ function parse(p::ModMultiple{T,MultipleState{S}}, ctx::Context{MultipleState{S}
 	`allconsumed` keeps every consumed chunk so the returned `Consumed` reflects
 	the whole parse step, not only the final child attempt.
 	=#
-	current_ctx = ctx
-	allconsumed = Consumed[]
-	has_active = !isempty(ctx_state(ctx))
+    current_ctx = ctx
+    allconsumed = Consumed[]
+    has_active = !isempty(ctx_state(ctx))
 
-	#=First attempt:
+    #=First attempt:
 	continue the active repetition if one exists;
 	otherwise try to start the first repetition.=#
-	child_state = has_active ? ctx_state(ctx)[end] : p.parser.initialState
-	child_ctx = widen_restate(S, current_ctx, child_state)
-	result = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
+    child_state = has_active ? ctx_state(ctx)[end] : p.parser.initialState
+    child_ctx = widen_restate(S, current_ctx, child_state)
+    result = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
 
-	if !is_error(result)
-		parse_ok = unwrap(result)
-		push!(allconsumed, res_consumed(parse_ok))
+    if !is_error(result)
+        parse_ok = unwrap(result)
+        push!(allconsumed, res_consumed(parse_ok))
 
-		if res_matchcounts(parse_ok)
-			#=The child matched semantically.
+        if res_matchcounts(parse_ok)
+            #=The child matched semantically.
 			This either updates the active repetition or creates the first one.=#
-			nextst = [s for s in ctx_state(ctx)]
-			if has_active
-				nextst[end] = ℒ_nextstate(parse_ok)
-			else
-				push!(nextst, ℒ_nextstate(parse_ok))
-			end
+            nextst = [s for s in ctx_state(ctx)]
+            if has_active
+                nextst[end] = ℒ_nextstate(parse_ok)
+            else
+                push!(nextst, ℒ_nextstate(parse_ok))
+            end
 
-			nextctx = widen_restate(MultipleState{S}, res_nextctx(parse_ok), nextst)
-			return innerOk(nextctx, merge(allconsumed))
-		else
-			#=The child only propagated control state.
+            nextctx = widen_restate(MultipleState{S}, res_nextctx(parse_ok), nextst)
+            return innerOk(nextctx, merge(allconsumed))
+        else
+            #=The child only propagated control state.
 			Carry the updated parsing context forward, but do not alter the
 			repetition structure yet.=#
-			current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
-		end
-	elseif !has_active
-		#=If there is no active repetition yet, a real failure on the first attempt
+            current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
+        end
+    elseif !has_active
+        #=If there is no active repetition yet, a real failure on the first attempt
 		is final: there is no existing repetition to close and no second chance
 		to reinterpret the same token as the start of a new repetition.=#
-		return innerErr(ctx, result)
-	end
+        return innerErr(ctx, result)
+    end
 
-	#=Second attempt:
+    #=Second attempt:
 	if there was already an active repetition, the first attempt may have failed
 	only because that repetition has finished. Reset the child to a blank slate
 	and see whether the same input starts a new repetition instead.=#
-	if has_active
-		child_ctx = widen_restate(S, current_ctx, p.parser.initialState)
-		retry = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
+    if has_active
+        child_ctx = widen_restate(S, current_ctx, p.parser.initialState)
+        retry = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
 
-		if is_error(retry)
-			#=No new repetition started either.
+        if is_error(retry)
+            #=No new repetition started either.
 			If we consumed input only to propagate control state, bubble that
 			progress outward; otherwise the failure is real.=#
-			if !isempty(allconsumed)
-				return innerOk(current_ctx, merge(allconsumed), false)
-			end
-			return innerErr(ctx, retry)
-		end
+            if !isempty(allconsumed)
+                return innerOk(current_ctx, merge(allconsumed), false)
+            end
+            return innerErr(ctx, retry)
+        end
 
-		parse_ok = unwrap(retry)
-		push!(allconsumed, res_consumed(parse_ok))
+        parse_ok = unwrap(retry)
+        push!(allconsumed, res_consumed(parse_ok))
 
-		if  res_matchcounts(parse_ok)
-			#=A fresh repetition matched semantically. Append it to the state.=#
-			nextst = [s for s in ctx_state(current_ctx)]
-			push!(nextst, ℒ_nextstate(parse_ok))
+        if res_matchcounts(parse_ok)
+            #=A fresh repetition matched semantically. Append it to the state.=#
+            nextst = [s for s in ctx_state(current_ctx)]
+            push!(nextst, ℒ_nextstate(parse_ok))
 
-			nextctx = widen_restate(MultipleState{S}, res_nextctx(parse_ok), nextst)
-			return innerOk(nextctx, merge(allconsumed))
-		else
-			#=A fresh parse attempt also only propagated control state.
+            nextctx = widen_restate(MultipleState{S}, res_nextctx(parse_ok), nextst)
+            return innerOk(nextctx, merge(allconsumed))
+        else
+            #=A fresh parse attempt also only propagated control state.
 			Update context, but do not append a repetition.=#
-			current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
-			return innerOk(current_ctx, merge(allconsumed), false)
-		end
-	end
+            current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
+            return innerOk(current_ctx, merge(allconsumed), false)
+        end
+    end
 
-	#=No semantic repetition matched, but control state did propagate.
+    #=No semantic repetition matched, but control state did propagate.
 	Bubble that progress outward so outer parsers see the updated context.=#
-	return innerOk(current_ctx, merge(allconsumed), false)
+    return innerOk(current_ctx, merge(allconsumed), false)
 
 end
 
-function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleState{S})::ParseResult{T} where {T,S, _p, P}
-	result = tval(P)[]
-	for s in state
-		val = complete(unwrapunion(p.parser), s)::ParseResult{tval(p.parser)}
-		if is_error(val)
-			return typedErr(T,
-				error_with_trace(val,
-					CompletePhase,
-					ERR_ModMultiple,
-					"multiple"
-				)
-			)
-		end
-		val = unwrap(val)
-		push!(result, val)
-	end
+function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleState{S})::ParseResult{T} where {T, S, _p, P}
+    result = tval(P)[]
+    for s in state
+        val = complete(unwrapunion(p.parser), s)::ParseResult{tval(p.parser)}
+        if is_error(val)
+            return typedErr(
+                T,
+                error_with_trace(
+                    val,
+                    CompletePhase,
+                    ERR_ModMultiple,
+                    "multiple"
+                )
+            )
+        end
+        val = unwrap(val)
+        push!(result, val)
+    end
 
-	if length(result) < p.min
-		return typedErr(T, modmultiple_error(
-			MULTIPLE_TooFew; detail = "$(p.min),$(length(result))"
-		))
-	elseif length(result) > p.max
-		return typedErr(T, modmultiple_error(
-			MULTIPLE_TooMany; detail = "$(p.max),$(length(result))"
-		))
-	end
+    if length(result) < p.min
+        return typedErr(
+            T, modmultiple_error(
+                MULTIPLE_TooFew; detail = "$(p.min),$(length(result))"
+            )
+        )
+    elseif length(result) > p.max
+        return typedErr(
+            T, modmultiple_error(
+                MULTIPLE_TooMany; detail = "$(p.max),$(length(result))"
+            )
+        )
+    end
 
-	return typedOk(T, result)
+    return typedOk(T, result)
 
 end

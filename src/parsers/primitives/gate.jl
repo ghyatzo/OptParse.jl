@@ -55,8 +55,13 @@ struct ArgGate{T, S, p, P} <: AbstractParser{T, S, p, P}
 end
 
 usage(p::ArgGate) = UsageFlag(p.names)
-focused_usage(p::ArgGate, ctx::Context{GateState}, prefix::Vector{String}) =
-    FocusedUsage(prefix, usage(p))
+helpentries(p::ArgGate, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
+focused_helpdoc(
+    p::ArgGate,
+    ctx::Context{GateState},
+    prefix::Vector{String},
+    rt::OverlayContext
+) = HelpDoc(prefix, usage(p), helpinfo(rt), HelpEntry[])
 
 function parse(p::ArgGate{Bool, GateState}, ctx::Context{GateState})::InnerParseResult{GateState}
 

@@ -1,3 +1,15 @@
+abstract type AbstractUsageRenderStyle end
+
+struct UsageCompactStyle <: AbstractUsageRenderStyle end
+struct UsageExpandedStyle <: AbstractUsageRenderStyle end
+
+Base.@kwdef struct UsageRenderState
+    # Prefix to repeat when a child renderer decides to spill onto later lines.
+    continuation_prefix::String = ""
+    # Inline subrenders disable multiline to avoid nested stacked layouts inside wrappers.
+    allow_multiline::Bool = true
+end
+
 ##=---------------------=##
 #   basic usage traits
 ##=---------------------=##
@@ -16,12 +28,16 @@ end
 function _usage_renders_empty(node::UsageNode)
     if node.kind == USAGE_Hidden || node.kind == USAGE_Empty
         return true
-    elseif (node.kind == USAGE_Alternative
-        || node.kind == USAGE_Object
-        || node.kind == USAGE_Tuple)
+    elseif (
+            node.kind == USAGE_Alternative
+                || node.kind == USAGE_Object
+                || node.kind == USAGE_Tuple
+        )
         return _tuple_renders_empty(node.children)
-    elseif (node.kind == USAGE_Optional
-        || node.kind == USAGE_Repeat)
+    elseif (
+            node.kind == USAGE_Optional
+                || node.kind == USAGE_Repeat
+        )
         return _usage_renders_empty(first(node.children))
     else
         return false
@@ -31,12 +47,12 @@ end
 
 function _tuple_renders_empty(nodes::Vector{UsageNode})
     isempty(nodes) && return true
-    all(_usage_renders_empty(node) for node in nodes)
+    return all(_usage_renders_empty(node) for node in nodes)
 end
 
 function _tuple_nvisible(nodes::Vector{UsageNode})
     isempty(nodes) && return 0
-    count(!_usage_renders_empty(node) for node in nodes)
+    return count(!_usage_renders_empty(node) for node in nodes)
 end
 
 @inline _tuple_has_multiple_visible(nodes::Vector{UsageNode}) = _tuple_nvisible(nodes) > 1
@@ -53,7 +69,6 @@ function _all_visible_are_commands(nodes::Vector{UsageNode})
 end
 
 
-
 ##=---------------------=##
 #   optional option collapse
 ##=---------------------=##
@@ -68,12 +83,16 @@ function _usage_is_optional(node::UsageNode)
 end
 
 function _usage_is_optionlike(node::UsageNode)
-    if (node.kind == USAGE_Flag
-        || node.kind == USAGE_Option)
+    if (
+            node.kind == USAGE_Flag
+                || node.kind == USAGE_Option
+        )
         return true
-    elseif (node.kind == USAGE_Optional
-        || node.kind == USAGE_Repeat
-        || node.kind == USAGE_Hidden)
+    elseif (
+            node.kind == USAGE_Optional
+                || node.kind == USAGE_Repeat
+                || node.kind == USAGE_Hidden
+        )
         return _usage_is_optionlike(first(node.children))
     else
         return false
@@ -99,7 +118,6 @@ function _tuple_ncompact_segments(nodes::Vector{UsageNode})
 
     return compact_segments
 end
-
 
 
 ##=---------------------=##

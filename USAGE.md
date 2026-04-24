@@ -259,7 +259,7 @@ look like a separate parser family.
 
 They are not primitive parsers, constructors, or behavioral modifiers. They are
 **overlays**: transparent parser nodes that attach information to a subtree by
-changing an auxiliary interpretation environment.
+changing subsystem-specific scoped interpretation state.
 
 The core rule:
 
@@ -267,6 +267,13 @@ The core rule:
 Overlays are transparent to the primary parse/complete interpreter.
 They are meaningful to auxiliary interpreters such as help, usage focus,
 shell completion, suggestions, and diagnostics.
+```
+
+More concretely:
+
+```text
+An overlay parser may update one or more ScopedValues before delegating to its
+wrapped parser in an auxiliary interpreter.
 ```
 
 An overlay parser should preserve the wrapped parser's primary semantics:
@@ -294,32 +301,55 @@ This suggests a future taxonomy:
 - behavioral modifiers change parse or complete behavior
 - overlays modify auxiliary environments for secondary tree interpreters
 
-### Environment-Based Traversal
+### Scoped Auxiliary State
 
-The important traversal pattern is:
+The earlier manually threaded `env` idea is serviceable, but `ScopedValues`
+match overlay semantics more closely.
 
-```julia
-interpret(parser, env)
-```
-
-Overlay nodes update `env` and delegate:
+Each auxiliary subsystem can own its own scoped state:
 
 ```julia
-interpret(p::HelpOverlay, env) =
-    interpret(p.parser, with_helpinfo(env, p.info))
-
-interpret(p::SectionOverlay, env) =
-    interpret(p.parser, with_section(env, p.section))
+const HELP_INFO = ScopedValue(HelpInfo())
+const SECTION_INFO = ScopedValue(SectionInfo())
 ```
 
+Overlay nodes then update only the scoped state they care about and delegate:
+
+```julia
+focused_helpdoc(p::HelpOverlay, ctx, prefix) =
+    with(HELP_INFO => merge_helpinfo(HELP_INFO[], p.info)) do
+        focused_helpdoc(p.parser, ctx, prefix)
+    end
+
+focused_helpdoc(p::SectionOverlay, ctx, prefix) =
+    with(SECTION_INFO => merge_sectioninfo(SECTION_INFO[], p.section)) do
+        focused_helpdoc(p.parser, ctx, prefix)
+    end
+```
+
+This has a few desirable properties:
+
+- overlay composition stays orthogonal
+- adding a new overlay does not force new method parameters through every
+  traversal function
+- each subsystem sees only the scoped state it cares about
+- unrelated overlays do not couple independent auxiliary interpreters
+
+For example, help traversal may care about `HELP_INFO` and `SECTION_INFO`, while
+a future shell-completion interpreter may care about a different
+`SHELL_COMPLETION_INFO` scoped value and ignore the help-related ones entirely.
+
+### Parser-Owned Extraction Under Scoped State
+
+Scoped values should not make overlays responsible for building help entries.
 The underlying parser family still owns parser-specific extraction:
 
 ```julia
-helpentry(p::ArgOption, env) =
+helpentry(p::ArgOption) =
     HelpEntry(
         usage = usage(p),
-        info = env.node_info,
-        section = env.section,
+        info = HELP_INFO[],
+        section = SECTION_INFO[],
         kind = HELP_Option,
     )
 ```
@@ -327,7 +357,7 @@ helpentry(p::ArgOption, env) =
 This keeps the syntax-specific knowledge with the parser family. An option knows
 how to expose its names and metavar. A command knows how to expose its command
 name and child scope. An object knows how to collect child entries. Overlays only
-change the environment those parsers are interpreted under.
+change the scoped interpretation state those parsers are interpreted under.
 
 ### HelpInfo, Sections, And Propagation
 
@@ -365,23 +395,24 @@ object((;
 
 should place both child entries under a `Network` section.
 
-A useful future help traversal environment may therefore separate node-local
-information from inherited grouping:
+This suggests two different propagation modes for scoped auxiliary state:
 
 ```julia
-struct HelpEnv
-    node_info::HelpInfo
-    section::SectionInfo
-end
+HELP_INFO[]      # node-local
+SECTION_INFO[]   # inherited / grouping
 ```
 
 The likely rules are:
 
 - `HelpInfo` is node-local and is reset when constructors descend into children
 - `SectionInfo` is inherited and groups child entries until overridden
-- overlays update the relevant part of `HelpEnv` and delegate
-- parser families produce `HelpDoc` / `HelpEntry` values using the current
-  environment
+- overlays update only the scoped values they own and then delegate
+- parser families produce `HelpDoc` / `HelpEntry` values under the currently
+  visible scoped state
+
+In practice, that means constructors such as `object(...)` will likely need
+small scoped helper utilities so they can preserve inherited section state while
+clearing node-local help state before descending into each child.
 
 ### Focused HelpDoc
 
@@ -390,12 +421,6 @@ help-document builder:
 
 ```julia
 focused_helpdoc(parser, ctx)::HelpDoc
-```
-
-Internally, that likely becomes an environment-carrying traversal:
-
-```julia
-focused_helpdoc(parser, ctx, env, prefix)::HelpDoc
 ```
 
 Error usage, `--help`, and help subcommands can all use the same focused
@@ -412,10 +437,10 @@ requests.
 
 The same overlay idea can be reused for other cold-path interpreters:
 
-- `HelpEnv` for help documents and usage focus
-- `ShellCompletionEnv` for shell completion candidates
-- `SuggestionEnv` for unknown-command or unknown-option suggestions
-- diagnostic environments for deprecation notes or richer error hints
+- `HELP_INFO` / `SECTION_INFO` for help documents and usage focus
+- `SHELL_COMPLETION_INFO` for shell completion candidates
+- `SUGGESTION_INFO` for unknown-command or unknown-option suggestions
+- diagnostic scoped state for deprecation notes or richer error hints
 
 The boundary should stay explicit:
 
@@ -428,6 +453,69 @@ For example, "read a missing default from an environment variable" probably
 changes the final parsed value, so it is likely a behavioral modifier. But
 "document that this option can be completed from an environment variable" is an
 overlay.
+
+Scoped values should stay limited to these cold-path auxiliary interpreters.
+They should not leak into the primary `parse` / `complete` runtime.
+
+### Current Fallback Transport
+
+`Base.ScopedValues` turned out not to be compatible with `--trim=safe` for the
+actual rebinding path (`with(...)`), even though plain reads appear to trim.
+
+That means the current practical fallback is a manual, interpreter-local version
+of dynamic scope:
+
+```julia
+mutable struct HelpRuntime
+    info::HelpInfo
+    section::SectionInfo
+end
+```
+
+A fresh runtime object is created for one top-level auxiliary traversal:
+
+```julia
+rt = HelpRuntime(HelpInfo(), SectionInfo())
+focused_helpdoc(parser, ctx, rt)
+```
+
+Overlay nodes then update and restore runtime fields with explicit stack
+discipline:
+
+```julia
+function with_helpinfo(rt::HelpRuntime, info::HelpInfo, f)
+    old = rt.info
+    rt.info = merge_helpinfo(old, info)
+    try
+        return f()
+    finally
+        rt.info = old
+    end
+end
+```
+
+The same pattern applies to section state and any future auxiliary interpreter
+state.
+
+The intended invariants are:
+
+- runtime objects are created fresh per top-level auxiliary traversal
+- they are never stored globally
+- they are never shared across unrelated traversals
+- they are only used for cold-path auxiliary interpreters
+- `parse` / `complete` never depend on them
+
+This preserves most of the benefits of the `ScopedValues` model:
+
+- overlays still behave like dynamically scoped interpreters
+- parser families still own syntax-specific extraction
+- different auxiliary subsystems can have different runtime objects
+- migration to real `ScopedValues` should be mechanically straightforward later
+
+The migration story is intentionally simple: if `ScopedValues` become trim-safe
+in the future, the helper layer around `HelpRuntime` / `SectionRuntime` can be
+swapped for real scoped values with minimal changes to the higher-level overlay
+interpreter structure.
 
 ## Help Triggers
 

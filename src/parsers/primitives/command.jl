@@ -42,14 +42,16 @@ struct ArgCommand{T, S, _p, P} <: AbstractParser{T, S, _p, P}
 end
 
 usage(p::ArgCommand) = UsageCommand(p.names, usage(p.parser)::UsageNode)
-
-function focused_usage(
+helpentries(p::ArgCommand, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
+function focused_helpdoc(
         p::ArgCommand{T, CommandState{PState}},
         ctx::Context{CommandState{PState}},
-        prefix::Vector{String}
-    )::FocusedUsage where {T, PState}
+        prefix::Vector{String},
+        rt::OverlayContext
+    )::HelpDoc where {T, PState}
     if is_error(ctx_state(ctx))
-        return FocusedUsage(prefix, usage(p))
+        # the command failed to parse. This is the root node.
+        return HelpDoc(prefix, usage(p), helpinfo(rt), helpentries(p.parser, descend_child(rt)))
     end
 
     maybestate = unwrap(ctx_state(ctx))
@@ -57,7 +59,7 @@ function focused_usage(
     child_ctx = widen_restate(tstate(p.parser), ctx, child_state)
     child_prefix = _usage_push_prefix(prefix, first(p.names))
 
-    return focused_usage(p.parser, child_ctx, child_prefix)
+    return focused_helpdoc(p.parser, child_ctx, child_prefix, descend_child(rt))
 end
 
 function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState{PState}})::InnerParseResult{CommandState{PState}} where {T, PState}

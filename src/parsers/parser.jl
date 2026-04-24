@@ -16,8 +16,6 @@ end
 ptypes(::Type{<:AbstractParser{T, S, _p, P}}) where {T, S, _p, P} = P
 ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
 
-helpinfo(::AbstractParser) = HelpInfo()
-
 """
     resulttype(parser_or_type)
 
@@ -49,6 +47,25 @@ A common pattern is to define a stable alias once and dispatch on it later
 """
 resulttype(::Type{<:AbstractParser{T}}) where {T} = T
 resulttype(::AbstractParser{T}) where {T} = T
+
+
+struct OverlayContext
+    info::HelpInfo
+end
+
+helpinfo(rt::OverlayContext) = rt.info
+
+root_overlay_context() = OverlayContext(HelpInfo())
+
+node_helpinfo(rt::OverlayContext) = rt.info
+
+with_helpinfo(ctx::OverlayContext, info::HelpInfo) =
+    set(ctx, (@o _.info), merge_helpinfo(ctx.info, info))
+
+# the help information is Node local, not inherited.
+descend_child(ctx::OverlayContext) =
+    OverlayContext(HelpInfo())
+
 
 include("valueparsers/valueparsers.jl")
 include("primitives/primitives.jl")
@@ -87,16 +104,16 @@ Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
 Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
 
 usage(p::Parser)::UsageNode = @unionsplit usage(p)::UsageNode
-helpinfo(p::Parser)::HelpInfo = @unionsplit helpinfo(p)::HelpInfo
 
-@inline function focused_usage(p::Parser{T, S}, ctx::Context{S})::FocusedUsage where {T, S}
-    return @unionsplit focused_usage(p, ctx, String[])::FocusedUsage
+helpentries(p::Parser, rt::OverlayContext) = @unionsplit helpentries(p, rt)::Vector{HelpEntry}
+
+@inline function focused_helpdoc(p::Parser{T, S}, ctx::Context{S}, rt::OverlayContext) where {T, S}
+    return @unionsplit focused_helpdoc(p, ctx, String[], rt)::HelpDoc
 end
 
-@inline function focused_usage(p::Parser{T, S}, ctx::Context{S}, prefix::Vector{String})::FocusedUsage where {T, S}
-    return @unionsplit focused_usage(p, ctx, prefix)::FocusedUsage
+@inline function focused_helpdoc(p::Parser{T, S}, ctx::Context{S}, prefix::Vector{String}, rt::OverlayContext)::HelpDoc where {T, S}
+    return @unionsplit focused_helpdoc(p, ctx, prefix, rt)::HelpDoc
 end
-
 
 # modifiers
 
@@ -301,7 +318,7 @@ function help(
         description::AbstractString = "",
         footer::AbstractString = "",
     )
-    info = HelpInfo(String(brief), String(description), String(footer); hidden)
+    info = HelpInfo(; brief = String(brief), description = String(description), footer = String(footer), hidden)
     inner = unwrapunion(p)
     return inner isa ModHelp ? _parser(ModHelp(inner, info)) : _parser(ModHelp(p, info))
 end

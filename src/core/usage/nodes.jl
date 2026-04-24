@@ -65,13 +65,6 @@ UsageHidden(child::UsageNode) = UsageNode(kind = USAGE_Hidden, children = UsageN
 
 UsageEmpty() = UsageNode()
 
-struct FocusedUsage
-    prefix::Vector{String}
-    usage::UsageNode
-end
-
-FocusedUsage(usage::UsageNode) = FocusedUsage(String[], usage)
-
 function _usage_with_prefix(progname::AbstractString, prefix::Vector{String})
     isempty(prefix) && return String(progname)
 
@@ -112,17 +105,4 @@ end
         $body
         return children
     end
-end
-
-
-abstract type AbstractUsageRenderStyle end
-
-struct UsageCompactStyle <: AbstractUsageRenderStyle end
-struct UsageExpandedStyle <: AbstractUsageRenderStyle end
-
-Base.@kwdef struct UsageRenderState
-    # Prefix to repeat when a child renderer decides to spill onto later lines.
-    continuation_prefix::String = ""
-    # Inline subrenders disable multiline to avoid nested stacked layouts inside wrappers.
-    allow_multiline::Bool = true
 end
