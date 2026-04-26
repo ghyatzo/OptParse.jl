@@ -8,15 +8,16 @@ const GateState = ParseResult{Bool}
     GATE_Missing
 end
 
-arggate_error(code::GateErrCode; token = "", detail = "", subject="") =
-    mkerror(ParsePhase, ERR_ArgGate, UInt8(code);
-        token,
-        detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgGate, subject)]
-    )
+arggate_error(code::GateErrCode; token = "", detail = "", subject = "") =
+    mkerror(
+    ParsePhase, ERR_ArgGate, UInt8(code);
+    token,
+    detail,
+    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgGate, subject)]
+)
 
 function arggate_render_error(io::IO, code::GateErrCode, err::ParseError)
-    if code == GATE_NoMoreOptions
+    return if code == GATE_NoMoreOptions
         print(io, "No more options can be parsed")
     elseif code == GATE_EndOfInput
         print(io, "Expected a flag, got end of input")
@@ -37,10 +38,9 @@ struct ArgGate{T, S, p, P} <: AbstractParser{T, S, p, P}
     _dummy::P
     #
     names::Vector{String}
-    help::String
 
 
-    ArgGate(names::Tuple{Vararg{String}}; help = "") = begin
+    ArgGate(names::Tuple{Vararg{String}}) = begin
         for name in names
             if !startswith(name, r"^--?[^-]")
                 throw(ArgumentError("Flags and option names must start with `-` or `--`."))
@@ -50,11 +50,18 @@ struct ArgGate{T, S, p, P} <: AbstractParser{T, S, p, P}
             end
 
         end
-        new{Bool, GateState, 9, Nothing}(typedErr(arggate_error(GATE_Missing; detail="$(names)")), nothing, [names...], help)
-        # new{Bool, GateState, 9, Nothing}(typedErr("Missing Flag(s) $(names)."), nothing, [names...], help)
+        new{Bool, GateState, 9, Nothing}(typedErr(arggate_error(GATE_Missing; detail = "$(names)")), nothing, [names...])
     end
 end
 
+usage(p::ArgGate) = UsageFlag(p.names)
+helpentries(p::ArgGate, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
+focused_helpdoc(
+    p::ArgGate,
+    ctx::Context{GateState},
+    prefix::Vector{String},
+    rt::OverlayContext
+) = HelpDoc(prefix, usage(p), helpinfo(rt), HelpEntry[])
 
 function parse(p::ArgGate{Bool, GateState}, ctx::Context{GateState})::InnerParseResult{GateState}
 
@@ -68,9 +75,10 @@ function parse(p::ArgGate{Bool, GateState}, ctx::Context{GateState})::InnerParse
 
     #= When the input contains `--` stop parsing options =#
     if (tok === "--")
-        return innerOk(ctx, 1;
+        return innerOk(
+            ctx, 1;
             nextctx = ctx_with_options_terminated(consume(ctx, 1), true),
-            counts_as_match=false
+            counts_as_match = false
         )
     end
 
@@ -89,10 +97,11 @@ end
 
 function complete(p::ArgGate, st::GateState)::ParseResult{Bool}
     return !is_error(st) ? st : typedErr(
-        error_with_context(st,
-            CompletePhase,
-            ERR_ArgGate,
-            p.names[1]
+            error_with_trace(
+                st,
+                CompletePhase,
+                ERR_ArgGate,
+                p.names[1]
+            )
         )
-    )
 end

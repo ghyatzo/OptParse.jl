@@ -32,7 +32,7 @@ function @main(args::Vector{String})::Cint
 
 	parser = or(simple, greet, multiarg, goodbye, opt)
 
-	obj = argparse(parser, args)
+	obj = optparse(parser, args)
 	isnothing(obj) && return 1
 
 	doaction(obj)

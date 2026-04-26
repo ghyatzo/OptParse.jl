@@ -15,7 +15,7 @@ uuidval_error(code::UUIDErrCode; token="", detail="", subject="") =
     mkerror(ValuePhase, ERR_UUIDVal, UInt8(code);
         token,
         detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_UUIDVal, subject)]
+        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_UUIDVal, subject)]
     )
 
 function uuidval_render_error(io::IO, code::UUIDErrCode, err::ParseError)

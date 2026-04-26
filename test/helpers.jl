@@ -7,20 +7,20 @@ using OptParse:
     as_vector,
     complete,
     consumed_empty,
+    ctx_optterm,
     ctx_remaining,
+    ctx_state,
+    ctx_with_options_terminated,
     metavar,
     parse,
     priority,
+    res_consumed,
+    res_nextctx,
+    res_num_consumed,
     tstate,
     tval,
-    widen_state,
-    ℒ_buffer,
-    ℒ_consumed,
-    ℒ_nextctx,
-    ℒ_nextstate,
-    ℒ_optterm,
-    ℒ_pos,
-    ℒ_state
+    widen_state
+
 
 using ErrorTypes
 using WrappedUnions: @unionsplit, unwrap as unwrapunion
@@ -30,12 +30,18 @@ using UUIDs
 # define it here for ease of use
 splitparse(p::Parser, ctx::Context) = @unionsplit parse(p, ctx)
 splitcomplete(p::Parser, st) = @unionsplit complete(p, st)
+function mkctx(buffer::Vector{String}, state; options_terminated::Bool=false)
+    ctx = Context(; buffer, state)
+    options_terminated && (ctx = ctx_with_options_terminated(ctx, true))
+    return ctx
+end
+res_nextstate(succ) = ctx_state(res_nextctx(succ))
 val(::Val{x}) where {x} = x
 
-parse_ok(p, argv) = unwrap(tryargparse(p, argv))
+parse_ok(p, argv) = unwrap(tryoptparse(p, argv))
 
 function parse_fail(p, argv)
-    result = tryargparse(p, argv)
+    result = tryoptparse(p, argv)
     @test is_error(result)
     return unwrap_error(result)
 end

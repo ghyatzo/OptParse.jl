@@ -9,15 +9,16 @@ end
     TUPLE_NoRemainingParser
 end
 
-constrtuple_error(code::TupleErrCode; token = "", detail = "", subject="") =
-    mkerror(ParsePhase, ERR_ConstrTuple, UInt8(code);
-        token,
-        detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrTuple, subject)]
-    )
+constrtuple_error(code::TupleErrCode; token = "", detail = "", subject = "") =
+    mkerror(
+    ParsePhase, ERR_ConstrTuple, UInt8(code);
+    token,
+    detail,
+    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrTuple, subject)]
+)
 
 function constrtuple_render_error(io::IO, code::TupleErrCode, err::ParseError)
-    if code == TUPLE_NoRemainingParser
+    return if code == TUPLE_NoRemainingParser
         if isempty(err.token)
             print(io, "No remaining tuple element could match the input")
         else
@@ -37,16 +38,57 @@ ConstrTuple(parsers::PTup; label::String = "") where {PTup} = let
     }(map(p -> p.initialState, parsers), parsers, label)
 end
 
-# Base.@assume_effects :foldable function _sortperm_by_priority(p::PTup) where {PTup <: Tuple}
-#     perm = tupsortperm(p, rev = true, by = priority)
-#     permp = ntuple(fieldcount(PTup)) do i
-#         @inbounds(p[perm[i]])
-#     end
-#     return perm, permp
-# end
+@inline usage(p::ConstrTuple) = UsageTuple(_usage_children(p.parsers))
+function helpentries(p::ConstrTuple{T, S, _p, PTup}, rt::OverlayContext) where {T, S <: Tuple, _p, PTup <: Tuple}
+    entries = HelpEntry[]
+    for (child, type) in zip(values(p.parsers), fieldtypes(PTup))
+        append!(entries, @unionsplit helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
+    end
+    return entries
+end
+function focused_helpdoc(
+        p::ConstrTuple{T, S},
+        ctx::Context{S},
+        prefix::Vector{String},
+        rt::OverlayContext
+    )::HelpDoc where {T, S <: Tuple}
+    return _focused_helpdoc_tuple(p.parsers, ctx, prefix, rt)
+end
 
-# sortperm_tuple(p::PTup) where {PTup <: Tuple} = _sortperm_by_priority(p)
+@generated function _focused_helpdoc_tuple(
+        parsers::PTup,
+        ctx::Context{S},
+        prefix::Vector{String},
+        rt::OverlayContext
+    ) where {PTup <: Tuple, S <: Tuple}
+    N = fieldcount(PTup)
+    body = Expr(:block)
 
+    for i in 1:N
+        child_state_t = fieldtype(S, i)
+        push!(
+            body.args, quote
+                child_state = ctx_state(ctx)[$i]::$child_state_t
+                child_ctx = widen_restate($child_state_t, ctx, child_state)
+                child_helpdoc = focused_helpdoc(parsers[$i], child_ctx, prefix, descend_child(rt))::HelpDoc
+
+                if child_helpdoc.prefix != prefix
+                    return child_helpdoc
+                end
+
+                append!(entries, @unionsplit helpentries(parsers[$i], descend_child(rt))::Vector{HelpEntry})
+                children[$i] = usage(parsers[$i])
+            end
+        )
+    end
+
+    return quote
+        children = Vector{UsageNode}(undef, $N)
+        entries = HelpEntry[]
+        $body
+        return HelpDoc(prefix, UsageTuple(children), helpinfo(rt), entries)
+    end
+end
 
 @generated function _generated_tup_parse(parsers::PTup, ctx::Context{S}) where {PTup <: Tuple, S <: Tuple}
 
@@ -59,78 +101,82 @@ end
     for (i, parser_t) in enumerate(sorted_ptup)
         child_parser_tstate = tstate(parser_t)
 
-        push!(whilebody_consumers.args, quote
-            # child_state = ℒ_state(current_ctx)[$(perm[i])]
-            #= we need to simulate a i in matched_parsers && continue but in an unrolled loop
+        push!(
+            whilebody_consumers.args, quote
+                # child_state = ℒ_state(current_ctx)[$(perm[i])]
+                #= we need to simulate a i in matched_parsers && continue but in an unrolled loop
             # so it becomes a whole if, this unrolled part only happens if it's not yet matched!
             =#
-            if $i ∉ matched_parsers
-                parser = parsers[$(perm[i])]
+                if $i ∉ matched_parsers
+                    parser = parsers[$(perm[i])]
 
-                child_state = (IndexLens($(perm[i])) ∘ ℒ_state)(current_ctx)::$child_parser_tstate
-                child_ctx = ctx_with_state(current_ctx, child_state)
+                    child_state = (IndexLens($(perm[i])) ∘ ℒ_state)(current_ctx)::$child_parser_tstate
+                    child_ctx = ctx_with_state(current_ctx, child_state)
 
-                result = parse(unwrapunion(parser), child_ctx)::InnerParseResult{$child_parser_tstate}
+                    result = parse(unwrapunion(parser), child_ctx)::InnerParseResult{$child_parser_tstate}
 
-                if !is_error(result) && length(unwrap(result).consumed) > 0
-                    parse_ok = unwrap(result)
+                    if !is_error(result) && length(unwrap(result).consumed) > 0
+                        parse_ok = unwrap(result)
 
-                    if parse_ok.counts_as_match
-                        #= parser succeded and consumed input - match it =#
+                        if parse_ok.counts_as_match
+                            #= parser succeded and consumed input - match it =#
+                            newstate = set(ctx_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
+                            current_ctx = ctx_with_state(res_nextctx(parse_ok), newstate)
+
+                            push!(allconsumed, ℒ_consumed(parse_ok))
+
+                            push!(matched_parsers, $i)
+                            found_match = true
+                            #= take the first (highest priority) match that consumes input =#
+                            @goto endloop_consumers #= it simulates a "break" by using @goto. =#
+                        else
+                            #= the inner parser succeded and consumed but by consuming control tokens, not semantic ones
+                        # so we update the context with the new information and keep going. =#
+                            current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
+                            push!(allconsumed, res_consumed(parse_ok))
+                        end
+
+                    elseif is_error(result) && res_num_consumed(error) < res_num_consumed(result)
+                        error = unwrap_error(result)
+                    end
+                end
+            end
+        )
+
+        # we can generate both unrolls at the same time!
+        push!(
+            whilebody_nonconsumers.args, quote
+                if $i ∉ matched_parsers
+                    parser = parsers[$(perm[i])]
+
+                    child_state = (IndexLens($(perm[i])) ∘ ℒ_state)(current_ctx)::$child_parser_tstate
+                    child_ctx = ctx_with_state(current_ctx, child_state)
+
+                    result = parse(unwrapunion(parser), child_ctx)::InnerParseResult{tstate(parser)}
+
+                    if !is_error(result) && length(unwrap(result).consumed) < 1
+                        #=parser succeded without consuming - match it as success=#
+                        parse_ok = unwrap(result)
+
                         newstate = set(ctx_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
                         current_ctx = ctx_with_state(res_nextctx(parse_ok), newstate)
-
-                        push!(allconsumed, ℒ_consumed(parse_ok))
 
                         push!(matched_parsers, $i)
                         found_match = true
                         #= take the first (highest priority) match that consumes input =#
-                        @goto endloop_consumers #= it simulates a "break" by using @goto. =#
-                    else
-                        #= the inner parser succeded and consumed but by consuming control tokens, not semantic ones
-                        # so we update the context with the new information and keep going. =#
-                        current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
-                        push!(allconsumed, res_consumed(parse_ok))
-                    end
-
-                elseif is_error(result) && res_num_consumed(error) < res_num_consumed(result)
-                    error = unwrap_error(result)
-                end
-            end
-        end)
-
-        # we can generate both unrolls at the same time!
-        push!(whilebody_nonconsumers.args, quote
-            if $i ∉ matched_parsers
-                parser = parsers[$(perm[i])]
-
-                child_state = (IndexLens($(perm[i])) ∘ ℒ_state)(current_ctx)::$child_parser_tstate
-                child_ctx = ctx_with_state(current_ctx, child_state)
-
-                result = parse(unwrapunion(parser), child_ctx)::InnerParseResult{tstate(parser)}
-
-                if !is_error(result) && length(unwrap(result).consumed) < 1
-                    #=parser succeded without consuming - match it as success=#
-                    parse_ok = unwrap(result)
-
-                    newstate = set(ctx_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
-                    current_ctx = ctx_with_state(res_nextctx(parse_ok), newstate)
-
-                    push!(matched_parsers, $i)
-                    found_match = true
-                    #= take the first (highest priority) match that consumes input =#
-                    @goto endloop_nonconsumers
-                elseif is_error(result) && res_num_consumed(result) < 1
-                    #=parser failed without consuming input, this could be an optional
+                        @goto endloop_nonconsumers
+                    elseif is_error(result) && res_num_consumed(result) < 1
+                        #=parser failed without consuming input, this could be an optional
                     # parser that doesn't match.
                     # mark it as matched anyway.
                     =#
-                    push!(matched_parsers, $i)
-                    found_match = true
-                    @goto endloop_nonconsumers
+                        push!(matched_parsers, $i)
+                        found_match = true
+                        @goto endloop_nonconsumers
+                    end
                 end
             end
-        end)
+        )
     end
 
     return quote
@@ -178,7 +224,7 @@ end
 
 function parse(p::ConstrTuple{T, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: Tuple}
 
-    _generated_tup_parse(p.parsers, ctx)
+    return _generated_tup_parse(p.parsers, ctx)
 
 end
 
@@ -216,8 +262,10 @@ function complete(p::ConstrTuple{T, TState}, st::TState)::ParseResult{T} where {
 
     if !cancomplete
         subject = isempty(p.label) ? "tuple" : p.label
-        return typedErr(T,
-            error_with_context(_result,
+        return typedErr(
+            T,
+            error_with_trace(
+                _result,
                 CompletePhase,
                 ERR_ConstrTuple,
                 subject

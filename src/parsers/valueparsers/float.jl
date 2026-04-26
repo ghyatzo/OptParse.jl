@@ -22,7 +22,7 @@ floatval_error(code::FloatErrCode; token="", detail="", subject="") =
     mkerror(ValuePhase, ERR_FloatVal, UInt8(code);
         token,
         detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_FloatVal, subject)]
+        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_FloatVal, subject)]
     )
 
 function floatval_render_error(io::IO, code::FloatErrCode, err::ParseError)

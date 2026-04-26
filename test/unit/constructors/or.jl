@@ -127,6 +127,25 @@ end
     @test err.domain == OptParse.ERR_ConstrObject
 end
 
+@testset "should keep parsing selected alternative state after branch selection" begin
+    parser = or(
+        command("bye", object((
+            name = option("-n", str()),
+            port = option("-p", integer()),
+        ))),
+        multiple(arg(str())),
+    )
+
+    ctx1 = mkctx(["bye", "-n", "alice"], parser.initialState)
+    pres1 = splitparse(parser, ctx1)
+    @test !is_error(pres1)
+    succ1 = unwrap(pres1)
+
+    ctx2 = mkctx(["-p", "8080"], ctx_state(res_nextctx(succ1)))
+    pres2 = splitparse(parser, ctx2)
+    @test !is_error(pres2)
+end
+
 @testset "should be type stable" begin
     @test_opt or(
         object((verbose = gate("-v"),)),
@@ -140,5 +159,5 @@ end
         object((verify = gate("-v"),)),
     )
 
-    @test_opt argparse(parser, ["-v"])
+    @test_opt optparse(parser, ["-v"])
 end

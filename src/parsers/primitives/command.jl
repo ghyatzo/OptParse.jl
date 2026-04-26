@@ -6,15 +6,16 @@ const CommandState{X} = Option{Option{X}}
     COMMAND_NotMatched
 end
 
-argcommand_error(code::CommandErrCode; token = "", detail = "", subject="") =
-    mkerror(ParsePhase, ERR_ArgCommand, UInt8(code);
-        token,
-        detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgCommand, subject)]
-    )
+argcommand_error(code::CommandErrCode; token = "", detail = "", subject = "") =
+    mkerror(
+    ParsePhase, ERR_ArgCommand, UInt8(code);
+    token,
+    detail,
+    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgCommand, subject)]
+)
 
 function argcommand_render_error(io::IO, code::CommandErrCode, err::ParseError)
-    if code == COMMAND_EndOfInput
+    return if code == COMMAND_EndOfInput
         print(io, "Expected command $(err.detail), got end of input")
     elseif code == COMMAND_WrongName
         print(io, "Expected command $(err.detail), got $(err.token)")
@@ -31,14 +32,35 @@ struct ArgCommand{T, S, _p, P} <: AbstractParser{T, S, _p, P}
     parser::P
     #
     names::Vector{String}
-    brief::String
-    help::String
-    footer::String
 
-    ArgCommand(names::Tuple{Vararg{String}}, parser::P; brief = "", help = "", footer = "") where {P} =
-        new{tval(P), CommandState{tstate(P)}, 15, P}(none(Option{tstate(P)}), parser, [names...], brief, help, footer)
+    ArgCommand(names::Tuple{Vararg{String}}, parser::P) where {P} =
+        new{tval(P), CommandState{tstate(P)}, 15, P}(
+        none(Option{tstate(P)}),
+        parser,
+        [names...],
+    )
 end
 
+usage(p::ArgCommand) = UsageCommand(p.names, usage(p.parser)::UsageNode)
+helpentries(p::ArgCommand, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
+function focused_helpdoc(
+        p::ArgCommand{T, CommandState{PState}},
+        ctx::Context{CommandState{PState}},
+        prefix::Vector{String},
+        rt::OverlayContext
+    )::HelpDoc where {T, PState}
+    if is_error(ctx_state(ctx))
+        # the command failed to parse. This is the root node.
+        return HelpDoc(prefix, usage(p), helpinfo(rt), helpentries(p.parser, descend_child(rt)))
+    end
+
+    maybestate = unwrap(ctx_state(ctx))
+    child_state = is_error(maybestate) ? p.parser.initialState : unwrap(maybestate)
+    child_ctx = widen_restate(tstate(p.parser), ctx, child_state)
+    child_prefix = _usage_push_prefix(prefix, first(p.names))
+
+    return focused_helpdoc(p.parser, child_ctx, child_prefix, descend_child(rt))
+end
 
 function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState{PState}})::InnerParseResult{CommandState{PState}} where {T, PState}
     if is_error(ctx_state(ctx))
@@ -95,11 +117,12 @@ function complete(p::ArgCommand{T, CommandState{PState}}, maybemaybestate::Comma
             complete(unwrapunion(p.parser), unwrap(maybestate))
         end
         return !is_error(result) ? result : typedErr(
-            error_with_context(result,
-                CompletePhase,
-                ERR_ArgCommand,
-                p.names[1]
+                error_with_trace(
+                    result,
+                    CompletePhase,
+                    ERR_ArgCommand,
+                    p.names[1]
+                )
             )
-        )
     end
 end

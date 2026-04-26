@@ -15,11 +15,11 @@ end
 
 @testset "should propagate option termination through optional flags" begin
     @test parse_ok(flag("-v"), ["--"]) == false
-    @test is_error(tryargparse(flag("-v"), ["--", "-v"]))
+    @test is_error(tryoptparse(flag("-v"), ["--", "-v"]))
 end
 
 @testset "should be type stable" begin
     @test_opt flag("-v")
-    @test_opt argparse(flag("-v"), ["-v"])
-    @test_opt argparse(flag("-v"), String[])
+    @test_opt optparse(flag("-v"), ["-v"])
+    @test_opt optparse(flag("-v"), String[])
 end

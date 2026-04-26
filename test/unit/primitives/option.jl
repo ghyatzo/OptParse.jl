@@ -11,7 +11,7 @@ end
 
 @testset "should parse option with separated value" begin
     parser = option(("-p", "--port"), integer())
-    context = Context(buffer=["--port", "8080"], state=parser.initialState)
+    context = mkctx(["--port", "8080"], parser.initialState)
 
     res = splitparse(parser, context)
 
@@ -19,29 +19,29 @@ end
     ps = unwrap(res)
 
     # next.state should itself be a successful value (Result/Option)
-    @test !is_error(ℒ_nextstate(ps))
-    @test unwrap(ℒ_nextstate(ps)) == 8080
+    @test !is_error(res_nextstate(ps))
+    @test unwrap(res_nextstate(ps)) == 8080
 
     # buffer consumed
-    @test ctx_remaining(ps.next) == String[]
+    @test ctx_remaining(res_nextctx(ps)) == String[]
     # tuple, not Vector
-    @test as_tuple(ℒ_consumed(ps)) == ("--port", "8080")
+    @test as_tuple(res_consumed(ps)) == ("--port", "8080")
 end
 
 @testset "should parse option with equals-separated value" begin
     parser = option("--port", integer())
-    context = Context(buffer=["--port=8080"], state=parser.initialState)
+    context = mkctx(["--port=8080"], parser.initialState)
 
     res = splitparse(parser, context)
 
     @test !is_error(res)
     ps = unwrap(res)
 
-    @test !is_error(ℒ_nextstate(ps))
-    @test unwrap(ℒ_nextstate(ps)) == 8080
+    @test !is_error(res_nextstate(ps))
+    @test unwrap(res_nextstate(ps)) == 8080
 
-    @test ctx_remaining(ℒ_nextctx(ps)) == String[]
-    @test as_tuple(ℒ_consumed(ps)) == ("--port=8080",)
+    @test ctx_remaining(res_nextctx(ps)) == String[]
+    @test as_tuple(res_consumed(ps)) == ("--port=8080",)
 end
 
 @testset "should handle option terminator edge cases correctly" begin
@@ -69,14 +69,14 @@ end
 
 @testset "should fail when value is missing" begin
     parser = option("--port", integer())
-    context = Context(buffer=["--port"], state=parser.initialState)
+    context = mkctx(["--port"], parser.initialState)
 
     res = splitparse(parser, context)
 
     @test is_error(res)
     pf = unwrap_error(res)
 
-    @test ℒ_consumed(pf) == 1
+    @test res_num_consumed(pf) == 1
     @test pf.error.domain == OptParse.ERR_ArgOption
     @test OptParse.OptionErrCode(pf.error.code) == OptParse.OPTION_MissingValue
     @test pf.error.token == "--port"
@@ -84,20 +84,20 @@ end
 
 @testset "should parse string values" begin
     parser = option("--name", str(; metavar = "NAME"))
-    context = Context(buffer=["--name", "Alice"], state=parser.initialState)
+    context = mkctx(["--name", "Alice"], parser.initialState)
 
     res = splitparse(parser, context)
 
     @test !is_error(res)
     ps = unwrap(res)
 
-    @test !is_error(ℒ_nextstate(ps))
-    @test unwrap(ℒ_nextstate(ps)) == "Alice"
+    @test !is_error(res_nextstate(ps))
+    @test unwrap(res_nextstate(ps)) == "Alice"
 end
 
 @testset "should propagate value parser failures" begin
     parser = option("--port", integer(; min = 1, max = 0xffff))
-    context = Context(buffer=["--port", "invalid"], state=parser.initialState)
+    context = mkctx(["--port", "invalid"], parser.initialState)
 
     res = splitparse(parser, context)
 
@@ -106,8 +106,8 @@ end
     ps = unwrap(res)
 
     # ...but the inner value parser failed (carry failure in state)
-    @test is_error(ℒ_nextstate(ps))
-    err = unwrap_error(ℒ_nextstate(ps))
+    @test is_error(res_nextstate(ps))
+    err = unwrap_error(res_nextstate(ps))
     @test err.domain == OptParse.ERR_IntegerVal
     @test OptParse.IntegerErrCode(err.code) == OptParse.INTEGER_Invalid
     @test err.token == "invalid"
@@ -115,14 +115,14 @@ end
 
 @testset "should fail on unmatched option" begin
     parser = option(("-v", "--verbose"), choice(["yes", "no"]))
-    context = Context(buffer=["--help"], state=parser.initialState)
+    context = mkctx(["--help"], parser.initialState)
 
     res = splitparse(parser, context)
 
     @test is_error(res)
     pf = unwrap_error(res)
 
-    @test ℒ_consumed(pf) == 0
+    @test res_num_consumed(pf) == 0
     @test pf.error.domain == OptParse.ERR_ArgOption
     @test OptParse.OptionErrCode(pf.error.code) == OptParse.OPTION_NoMatch
     @test pf.error.token == "--help"
@@ -132,5 +132,5 @@ end
     @test_opt option("--port", integer())
     parser = option("--port", integer())
 
-    @test_opt argparse(parser, ["--port", "8080"])
+    @test_opt optparse(parser, ["--port", "8080"])
 end

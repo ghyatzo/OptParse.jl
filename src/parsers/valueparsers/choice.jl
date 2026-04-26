@@ -28,7 +28,7 @@ choice_error(code::ChoiceErrCode; token="", detail="", subject="") =
     mkerror(ValuePhase, ERR_ChoiceVal, UInt8(code);
         token,
         detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_ChoiceVal, subject)]
+        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_ChoiceVal, subject)]
     )
 
 function choice_render_error(io::IO, code::ChoiceErrCode, err::ParseError)

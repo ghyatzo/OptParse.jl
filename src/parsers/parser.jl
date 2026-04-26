@@ -1,58 +1,35 @@
-abstract type AbstractParser{T, S, p, P} end
 
-tval(::Type{<:AbstractParser{T}}) where {T} = T
-tval(::AbstractParser{T}) where {T} = T
-
-tstate(::Type{<:AbstractParser{T, S}}) where {T, S} = S
-tstate(::AbstractParser{T, S}) where {T, S} = S
-
-function priority(::Type{<:AbstractParser{T, S, _p}})::Int where {T, S, _p}
-    return _p
-end
-function priority(::AbstractParser{T, S, _p})::Int where {T, S, _p}
-    return _p
+struct OverlayContext
+    info::HelpInfo
 end
 
-ptypes(::Type{<:AbstractParser{T, S, _p, P}}) where {T, S, _p, P} = P
-ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
+helpinfo(rt::OverlayContext) = rt.info
 
-"""
-    resulttype(parser_or_type)
+root_overlay_context() = OverlayContext(HelpInfo())
 
-Return the final value type produced by a parser.
+node_helpinfo(rt::OverlayContext) = rt.info
 
-This is useful when you want to refer to a parser's output type in user code,
-for example to define method specializations on the result of a specific parser.
+with_helpinfo(ctx::OverlayContext, info::HelpInfo) =
+    set(ctx, (@o _.info), merge_helpinfo(ctx.info, info))
 
-# Examples
-```jldoctest
-julia> using OptParse
+# the help information is Node local, not inherited.
+descend_child(ctx::OverlayContext) =
+    OverlayContext(HelpInfo())
 
-julia> greet = command("greet", object((
-           cmd = @constant(:greet),
-           name = option("-n", str("NAME")),
-       )));
-
-julia> const Greet = resulttype(greet);
-
-julia> Greet
-@NamedTuple{cmd::Val{:greet}, name::String}
-```
-
-A common pattern is to define a stable alias once and dispatch on it later
-
-# See Also
-- [`argparse`](@ref)
-- [`tryargparse`](@ref)
-"""
-resulttype(::Type{<:AbstractParser{T}}) where {T} = T
-resulttype(::AbstractParser{T}) where {T} = T
 
 include("valueparsers/valueparsers.jl")
 include("primitives/primitives.jl")
 include("constructors/constructors.jl")
 include("modifiers/modifiers.jl")
 
+# Developer note:
+# `Parser` is a wrapped union over all parser families, so analysis tools like JET
+# may explore union arms that are impossible for a given concrete parser value. To
+# keep those impossible branches from introducing spurious runtime dispatch, each
+# parser family's `parse`/`complete` methods should constrain the state parameter
+# to the parser's real invariant state shape, rather than accepting an unconstrained
+# `S`. In practice this means using the parser-specific state aliases in method
+# signatures, even when looser signatures would happen to work at runtime.
 @wrapped struct Parser{T, S, p, P} <: AbstractParser{T, S, p, P}
     union::Union{
         ArgGate{T, S, p, P},
@@ -67,6 +44,7 @@ include("modifiers/modifiers.jl")
 
         ModWithDefault{T, S, p, P},
         ModMultiple{T, S, p, P},
+        ModHelp{T, S, p, P},
     }
 end
 
@@ -75,10 +53,17 @@ _parser(x::AbstractParser{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x
 Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
 Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
 
-function complete(p::Parser{T, S}, st::S)::ParseResult{T} where {T, S}
-    return complete(unwrapunion(p), st)
+usage(p::Parser)::UsageNode = @unionsplit usage(p)::UsageNode
+
+@inline helpentries(p::Parser{T, S}, rt::OverlayContext) where {T, S} = @unionsplit helpentries(p, rt)::Vector{HelpEntry}
+
+@inline function focused_helpdoc(p::Parser{T, S}, ctx::Context{S}, rt::OverlayContext) where {T, S}
+    return @unionsplit focused_helpdoc(p, ctx, String[], rt)::HelpDoc
 end
 
+@inline function focused_helpdoc(p::Parser{T, S}, ctx::Context{S}, prefix::Vector{String}, rt::OverlayContext)::HelpDoc where {T, S}
+    return @unionsplit focused_helpdoc(p, ctx, prefix, rt)::HelpDoc
+end
 
 # modifiers
 
@@ -105,12 +90,12 @@ julia> using OptParse
 julia> # Parser with explicit default
        p = default(option("-p", "--port", integer()), 8080);
 
-julia> result = argparse(p, String[]);
+julia> result = optparse(p, String[]);
 
 julia> result
 8080
 
-julia> result = argparse(p, ["--port", "3000"]);
+julia> result = optparse(p, ["--port", "3000"]);
 
 julia> result
 3000
@@ -118,7 +103,7 @@ julia> result
 julia> # Curried version for pipeline composition
        p = option("-p", "--port", integer()) |> default(8080);
 
-julia> result = argparse(p, String[]);
+julia> result = optparse(p, String[]);
 
 julia> result
 8080
@@ -155,12 +140,12 @@ julia> using OptParse
 julia> # Optional option - returns parsed value or nothing
        port = optional(option("-p", "--port", integer()));
 
-julia> result = argparse(port, String[]);
+julia> result = optparse(port, String[]);
 
 julia> result === nothing
 true
 
-julia> result = argparse(port, ["-p", "8080"]);
+julia> result = optparse(port, ["-p", "8080"]);
 
 julia> result
 8080
@@ -203,7 +188,7 @@ julia> using OptParse
 julia> # Multiple arguments (e.g., `add pkg1 pkg2 pkg3`)
        packages = multiple(arg(str("PACKAGE")));
 
-julia> result = argparse(packages, ["pkg1", "pkg2", "pkg3"]);
+julia> result = optparse(packages, ["pkg1", "pkg2", "pkg3"]);
 
 julia> result
 3-element Vector{String}:
@@ -214,7 +199,7 @@ julia> result
 julia> # Multiple gates for verbosity levels (e.g., `-v -v -v`)
        verbosity = multiple(gate("-v"));
 
-julia> result = argparse(verbosity, ["-v", "-v", "-v"]);
+julia> result = optparse(verbosity, ["-v", "-v", "-v"]);
 
 julia> length(result)
 3
@@ -222,7 +207,7 @@ julia> length(result)
 julia> # Multiple options
        includes = multiple(option("-I", str()));
 
-julia> result = argparse(includes, ["-I", "/usr/include", "-I", "/opt/include"]);
+julia> result = optparse(includes, ["-I", "/usr/include", "-I", "/opt/include"]);
 
 julia> result
 2-element Vector{String}:
@@ -240,13 +225,119 @@ function multiple end
 multiple(p::Parser; kw...) = _parser(ModMultiple(p; kw...))
 multiple(; kw...) = (p::Parser) -> multiple(p; kw...)
 
+## Help Information
+
+"""
+    help(p::Parser, brief="", description="", footer=""; hidden=false)
+    help(brief="", description="", footer=""; hidden=false)
+
+Attach help information to a parser without changing parsing semantics.
+
+`help(...)` can be used either directly or as a pipeline modifier. The information
+is consumed by usage/help generation; parse and complete delegate to the wrapped
+parser unchanged.
+
+# Arguments
+- `p::Parser`: The parser to annotate
+- `brief::String`: Short one-line summary
+- `description::String`: Longer help text
+- `footer::String`: Footer or epilog text
+
+# Keywords
+- `hidden::Bool`: Hide this parser from usage/help output when `true`
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> parser = flag("-v", "--verbose") |> help("Enable verbose output");
+
+julia> optparse(parser, ["-v"])
+true
+```
+
+# See Also
+- [`hidden`](@ref): Convenience modifier for hidden parsers
+"""
+function help end
+
+function help(
+        p::Parser;
+        hidden::Bool = false,
+        brief::AbstractString = "",
+        description::AbstractString = "",
+        footer::AbstractString = "",
+    )
+    info = HelpInfo(; brief = String(brief), description = String(description), footer = String(footer), hidden)
+    inner = unwrapunion(p)
+    return inner isa ModHelp ? _parser(ModHelp(inner, info)) : _parser(ModHelp(p, info))
+end
+
+help(
+    p::Parser,
+    brief::AbstractString;
+    hidden::Bool = false,
+    description::AbstractString = "",
+    footer::AbstractString = "",
+) = help(p; hidden, brief, description, footer)
+
+help(
+    p::Parser,
+    brief::AbstractString,
+    description::AbstractString;
+    hidden::Bool = false,
+    footer::AbstractString = "",
+) = help(p; hidden, brief, description, footer)
+
+help(
+    p::Parser,
+    brief::AbstractString,
+    description::AbstractString,
+    footer::AbstractString;
+    hidden::Bool = false,
+) = help(p; hidden, brief, description, footer)
+
+help(; kw...) = (p::Parser) -> help(p; kw...)
+help(brief::AbstractString; kw...) = (p::Parser) -> help(p, brief; kw...)
+help(brief::AbstractString, description::AbstractString; kw...) =
+    (p::Parser) -> help(p, brief, description; kw...)
+help(brief::AbstractString, description::AbstractString, footer::AbstractString; kw...) =
+    (p::Parser) -> help(p, brief, description, footer; kw...)
+
+"""
+    hidden(p::Parser)
+    hidden()
+
+Hide a parser from usage/help output without changing parsing semantics.
+
+This is equivalent to `help(p; hidden=true)` and supports pipeline style via
+`hidden()`.
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> parser = object((debug = flag("--debug") |> hidden(), file = arg(str("FILE"))));
+
+julia> optparse(parser, ["--debug", "input.txt"]).debug
+true
+```
+
+# See Also
+- [`help`](@ref): General help information modifier
+"""
+function hidden end
+
+hidden(p::Parser) = help(p; hidden = true)
+hidden() = (p::Parser) -> hidden(p)
+
 
 # primitives
 
 ## Option
 
 """
-    option(names..., valparser::ValueParser{T}; kw...) where {T}
+    option(names..., valparser::ValueParser{T}) where {T}
 
 Primitive parser that matches command-line options with associated values.
 
@@ -259,9 +350,6 @@ Options can be specified in multiple formats:
   long (`"--option"`) forms. Can be provided as individual arguments or as a tuple.
 - `valparser::ValueParser{T}`: Value parser that determines how to parse the option's value
 
-# Keywords
-- `help::String`: Stored help text metadata for this option
-
 # Returns
 A parser that matches the specified option patterns and returns a value of type `T`.
 
@@ -272,7 +360,7 @@ julia> using OptParse
 julia> # Single long option
        port = option("--port", integer());
 
-julia> result = argparse(port, ["--port", "8080"]);
+julia> result = optparse(port, ["--port", "8080"]);
 
 julia> result
 8080
@@ -280,18 +368,18 @@ julia> result
 julia> # Short and long forms
        port = option("-p", "--port", integer());
 
-julia> result = argparse(port, ["-p", "3000"]);
+julia> result = optparse(port, ["-p", "3000"]);
 
 julia> result
 3000
 
-julia> result = argparse(port, ["--port", "3000"]);
+julia> result = optparse(port, ["--port", "3000"]);
 
 julia> result
 3000
 
 julia> # With equals sign
-       result = argparse(port, ["--port=3000"]);
+       result = optparse(port, ["--port=3000"]);
 
 julia> result
 3000
@@ -299,7 +387,7 @@ julia> result
 julia> # With constraints
        level = option("-l", "--level", choice(["debug", "info", "warn"]));
 
-julia> result = argparse(level, ["-l", "debug"]);
+julia> result = optparse(level, ["-l", "debug"]);
 
 julia> result
 "DEBUG"
@@ -311,7 +399,7 @@ julia> @enum Mode begin
 
 julia> mode = option("--mode", choice(Mode));
 
-julia> argparse(mode, ["--mode", "release"])
+julia> optparse(mode, ["--mode", "release"])
 Release::Mode = 1
 ```
 
@@ -322,21 +410,21 @@ Release::Mode = 1
 """
 function option end
 
-option(names::Tuple{Vararg{String}}, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption(names, valparser; kw...))
-option(opt1::String, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption((opt1,), valparser; kw...))
-option(opt1::String, opt2::String, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption((opt1, opt2), valparser; kw...))
-option(opt1::String, opt2::String, opt3::String, valparser::ValueParser{T}; kw...) where {T} =
-    _parser(ArgOption((opt1, opt2, opt3), valparser; kw...))
+option(names::Tuple{Vararg{String}}, valparser::ValueParser{T}) where {T} =
+    _parser(ArgOption(names, valparser))
+option(opt1::String, valparser::ValueParser{T}) where {T} =
+    _parser(ArgOption((opt1,), valparser))
+option(opt1::String, opt2::String, valparser::ValueParser{T}) where {T} =
+    _parser(ArgOption((opt1, opt2), valparser))
+option(opt1::String, opt2::String, opt3::String, valparser::ValueParser{T}) where {T} =
+    _parser(ArgOption((opt1, opt2, opt3), valparser))
 
-option(names::Tuple{Vararg{String}}; kw...) = (valp::ValueParser) -> option(names, valp; kw...)
+option(names::Tuple{Vararg{String}}) = (valp::ValueParser) -> option(names, valp)
 
 ## Gate
 
 """
-    gate(names...; kw...)
+    gate(names...)
 
 Primitive parser that requires a boolean flag to be present.
 
@@ -348,9 +436,6 @@ subtrees. When present in arguments, they indicate `true`; when absent, parsing 
 - `names...`: One or more flag names (strings). Can include short (`"-v"`) and/or
   long (`"--verbose"`) forms
 
-# Keywords
-- `help::String`: Stored help text metadata for this flag
-
 # Returns
 A parser that returns `true` when the flag is present.
 
@@ -361,7 +446,7 @@ julia> using OptParse
 julia> # Simple gate
        experimental = gate("--experimental");
 
-julia> result = argparse(experimental, ["--experimental"]);
+julia> result = optparse(experimental, ["--experimental"]);
 
 julia> result
 true
@@ -369,12 +454,12 @@ true
 julia> # Multiple names
        debug = gate("-d", "--debug");
 
-julia> result = argparse(debug, ["-d"]);
+julia> result = optparse(debug, ["-d"]);
 
 julia> result
 true
 
-julia> result = argparse(debug, ["--debug"]);
+julia> result = optparse(debug, ["--debug"]);
 
 julia> result
 true
@@ -391,23 +476,20 @@ true
 """
 function gate end
 
-gate(names...; kw...) = _parser(ArgGate(names; kw...))
+gate(names...) = _parser(ArgGate(names))
 
 ## Flag
 
 """
-    flag(names...; kw...)
+    flag(names...)
 
 Convenience function for an optional flag that defaults to `false`.
 
-This is equivalent to `default(gate(names...; kw...), false)`. When the flag is
+This is equivalent to `default(gate(names...), false)`. When the flag is
 present in arguments, it returns `true`; when absent, it returns `false`.
 
 # Arguments
 - `names...`: One or more flag names (strings)
-
-# Keywords
-- `help::String`: Stored help text metadata for this flag
 
 # Returns
 A parser that returns `true` if the flag is present, `false` otherwise.
@@ -419,12 +501,12 @@ julia> using OptParse
 julia> # Basic usage
        verbose = flag("-v", "--verbose");
 
-julia> result = argparse(verbose, String[]);
+julia> result = optparse(verbose, String[]);
 
 julia> result
 false
 
-julia> result = argparse(verbose, ["-v"]);
+julia> result = optparse(verbose, ["-v"]);
 
 julia> result
 true
@@ -436,14 +518,14 @@ julia> # In an object parser
            quiet = flag("-q", "--quiet")
        ));
 
-julia> result = argparse(parser, ["-h", "--version"]);
+julia> result = optparse(parser, ["-h", "--version"]);
 
 julia> (result.help, result.version, result.quiet)
 (true, true, false)
 
 julia> verbosity = multiple(gate("-v")); # Multiple verbosity levels using multiple
 
-julia> result = argparse(verbosity, ["-v", "-v", "-v"]);
+julia> result = optparse(verbosity, ["-v", "-v", "-v"]);
 
 julia> result
 3-element Vector{Bool}:
@@ -453,7 +535,7 @@ julia> result
 ```
 
 # Implementation Note
-This is implemented as: `default(gate(names...; kw...), false)`
+This is implemented as: `default(gate(names...), false)`
 
 # See Also
 - [`gate`](@ref): Required flag that fails if absent
@@ -461,7 +543,7 @@ This is implemented as: `default(gate(names...; kw...), false)`
 """
 function flag end
 
-flag(names...; kw...) = default(gate(names...; kw...), false)
+flag(names...) = default(gate(names...), false)
 
 ## Constant
 
@@ -497,7 +579,7 @@ julia> removeCmd = command("remove", object((
 
 julia> parser = or(addCmd, removeCmd);
 
-julia> result = argparse(parser, ["add", "username", "alice"]);
+julia> result = optparse(parser, ["add", "username", "alice"]);
 
 julia> result.action
 Val{:add}()
@@ -514,7 +596,7 @@ julia> # Providing metadata
            name = arg(str())
        ));
 
-julia> result = argparse(parser2, ["myapp"]);
+julia> result = optparse(parser2, ["myapp"]);
 
 julia> result.version
 Val{Symbol("1.0.0")}()
@@ -535,7 +617,7 @@ end
 ## Arg
 
 """
-    arg(valparser::ValueParser{T}; kw...) where {T}
+    arg(valparser::ValueParser{T}) where {T}
 
 Primitive parser for positional arguments not associated with a flag or option.
 
@@ -544,9 +626,6 @@ in the order they're defined (though they can be interspersed with options).
 
 # Arguments
 - `valparser::ValueParser{T}`: Value parser that determines how to parse the argument's value
-
-# Keywords
-- `help::String`: Stored help text metadata for this argument
 
 # Returns
 A parser that matches a positional argument and returns a value of type `T`.
@@ -558,7 +637,7 @@ julia> using OptParse
 julia> # Single argument
        source = arg(str("SOURCE"));
 
-julia> result = argparse(source, ["/path/to/file"]);
+julia> result = optparse(source, ["/path/to/file"]);
 
 julia> result
 "/path/to/file"
@@ -569,7 +648,7 @@ julia> # Multiple positional arguments
            dest = arg(str("DEST"))
        ));
 
-julia> result = argparse(parser, ["/from/here", "/to/here"]);
+julia> result = optparse(parser, ["/from/here", "/to/here"]);
 
 julia> result.source
 "/from/here"
@@ -580,7 +659,7 @@ julia> result.dest
 julia> # Variable number of arguments
        files = multiple(arg(str("FILE")));
 
-julia> result = argparse(files, ["file1.txt", "file2.txt", "file3.txt"]);
+julia> result = optparse(files, ["file1.txt", "file2.txt", "file3.txt"]);
 
 julia> result
 3-element Vector{String}:
@@ -591,7 +670,7 @@ julia> result
 julia> # Arguments with type constraints
        port = arg(integer(min=1000, max=65535));
 
-julia> result = argparse(port, ["8080"]);
+julia> result = optparse(port, ["8080"]);
 
 julia> result
 8080
@@ -603,12 +682,12 @@ julia> # Mixed with options (order flexible)
            verbose = flag("-v")
        ));
 
-julia> result = argparse(parser, ["input.txt", "-o", "output.txt", "-v"]);
+julia> result = optparse(parser, ["input.txt", "-o", "output.txt", "-v"]);
 
 julia> result.input
 "input.txt"
 
-julia> result = argparse(parser, ["-v", "input.txt", "-o", "output.txt"]);
+julia> result = optparse(parser, ["-v", "input.txt", "-o", "output.txt"]);
 
 julia> result.input
 "input.txt"
@@ -616,20 +695,20 @@ julia> result.input
 
 # Notes
 - Arguments must be present unless wrapped with `optional` or `default`
-- The `metavar` in the value parser is used in diagnostics and usage/help metadata
+- The `metavar` in the value parser is used in diagnostics and usage output
 - Arguments are parsed in order but can be interspersed with options
 - After `--`, remaining tokens are treated as positional input
 """
 function arg end
 
-arg(valparser::ValueParser{T}; kw...) where {T} = _parser(ArgArgument(valparser; kw...))
-arg(; kw...) = (valp::ValueParser) -> arg(valp; kw...)
+arg(valparser::ValueParser{T}) where {T} = _parser(ArgArgument(valparser))
+arg() = (valp::ValueParser) -> arg(valp)
 
 ## command
 
 """
-    command(name::String, p::Parser; kw...)
-    command(name::String, alias::String, p::Parser; kw...)
+    command(name::String, p::Parser)
+    command(name::String, alias::String, p::Parser)
 
 Primitive parser that matches a subcommand and its associated arguments.
 
@@ -640,11 +719,6 @@ the primary way to implement subcommands in CLI applications.
 # Arguments
 - `name::String`: The command name to match
 - `p::Parser`: The parser to use for arguments following the command
-
-# Keywords
-- `help::String`: Stored help text metadata for this command
-- `brief::String`: Stored short help metadata for this command
-- `footer::String`: Stored footer metadata for this command
 
 # Returns
 A parser that matches the command name and then parses the remaining arguments
@@ -660,7 +734,7 @@ julia> # Simple command
            manifest = flag("-m", "--manifest")
        )));
 
-julia> result = argparse(instantiate, ["instantiate", "-v", "-m"]);
+julia> result = optparse(instantiate, ["instantiate", "-v", "-m"]);
 
 julia> (result.verbose, result.manifest)
 (true, true)
@@ -678,7 +752,7 @@ julia> removeCmd = command("remove", object((
 
 julia> pkgParser = or(addCmd, removeCmd);
 
-julia> result = argparse(pkgParser, ["add", "OptParse", "DataFrames"]);
+julia> result = optparse(pkgParser, ["add", "OptParse", "DataFrames"]);
 
 julia> result.action
 Val{:add}()
@@ -688,7 +762,7 @@ julia> result.packages
  "OptParse"
  "DataFrames"
 
-julia> result = argparse(pkgParser, ["remove", "OldPkg"]);
+julia> result = optparse(pkgParser, ["remove", "OldPkg"]);
 
 julia> result.action
 Val{:remove}()
@@ -706,9 +780,9 @@ julia> result.packages
 """
 function command end
 
-command(names::Tuple{Vararg{String}}, p::Parser; kw...) = _parser(ArgCommand(names, p; kw...))
-command(name::String, p::Parser; kw...) = _parser(ArgCommand((name,), p; kw...))
-command(name::String, alias::String, p::Parser; kw...) = _parser(ArgCommand((name, alias), p; kw...))
+command(names::Tuple{Vararg{String}}, p::Parser) = _parser(ArgCommand(names, p))
+command(name::String, p::Parser) = _parser(ArgCommand((name,), p))
+command(name::String, alias::String, p::Parser) = _parser(ArgCommand((name, alias), p))
 
 
 # constructors
@@ -745,7 +819,7 @@ julia> # Basic usage
            verbose = flag("-v")
        ));
 
-julia> result = argparse(parser, ["-n", "server", "-p", "8080", "-v"]);
+julia> result = optparse(parser, ["-n", "server", "-p", "8080", "-v"]);
 
 julia> result.name
 "server"
@@ -761,7 +835,7 @@ julia> parser = object("config", (
            port = option("--port", integer())
        )); # With a label for clearer diagnostics
 
-julia> result = argparse(parser, ["--host", "localhost", "--port", "3000"]);
+julia> result = optparse(parser, ["--host", "localhost", "--port", "3000"]);
 
 julia> result.host
 "localhost"
@@ -774,7 +848,7 @@ julia> parser = object((
            timeout = option("--timeout", integer())
        ));  # Nested objects
 
-julia> result = argparse(parser, ["--host", "localhost", "--port", "8080", "--timeout", "30"]);
+julia> result = optparse(parser, ["--host", "localhost", "--port", "8080", "--timeout", "30"]);
 
 julia> result.server.host
 "localhost"
@@ -838,7 +912,7 @@ julia> networkOpts = object((
 julia> # Merge into single parser
        parser = combine(commonOpts, networkOpts);
 
-julia> result = argparse(parser, ["-v", "--host", "localhost", "--port", "8080"]);
+julia> result = optparse(parser, ["-v", "--host", "localhost", "--port", "8080"]);
 
 julia> result.verbose
 true
@@ -852,7 +926,7 @@ julia> result.port
 julia> # With label
        parser = combine("server_options", commonOpts, networkOpts);
 
-julia> result = argparse(parser, ["--host", "127.0.0.1", "--port", "3000", "-v"]);
+julia> result = optparse(parser, ["--host", "127.0.0.1", "--port", "3000", "-v"]);
 
 julia> result.host
 "127.0.0.1"
@@ -912,7 +986,7 @@ julia> removeCmd = command("remove", object((
 
 julia> parser = or(addCmd, removeCmd);
 
-julia> result = argparse(parser, ["add", "Package1", "Package2"]);
+julia> result = optparse(parser, ["add", "Package1", "Package2"]);
 
 julia> result.action
 Val{:add}()
@@ -922,7 +996,7 @@ julia> result.packages
  "Package1"
  "Package2"
 
-julia> result = argparse(parser, ["remove", "OldPackage"]);
+julia> result = optparse(parser, ["remove", "OldPackage"]);
 
 julia> result.action
 Val{:remove}()
@@ -934,12 +1008,12 @@ julia> # Alternative formats
            gate("-?")
        );
 
-julia> result = argparse(helpFormat, ["-h"]);
+julia> result = optparse(helpFormat, ["-h"]);
 
 julia> result
 true
 
-julia> result = argparse(helpFormat, ["--help"]);
+julia> result = optparse(helpFormat, ["--help"]);
 
 julia> result
 true
@@ -950,7 +1024,7 @@ julia> # Different configuration modes
            object((mode = @constant(:inline), config = option("-c", str())))
        );
 
-julia> result = argparse(config, ["-f", "config.toml"]);
+julia> result = optparse(config, ["-f", "config.toml"]);
 
 julia> result.mode
 Val{:file}()
@@ -1003,7 +1077,7 @@ julia> # Basic tuple
            option("-y", integer())
        );
 
-julia> result = argparse(parser, ["-y", "20", "-x", "10"]);
+julia> result = optparse(parser, ["-y", "20", "-x", "10"]);
 
 julia> result
 (10, 20)
@@ -1015,7 +1089,7 @@ julia> # With label
            option("-z", integer())
        );
 
-julia> result = argparse(parser, ["-z", "30", "-x", "10", "-y", "20"]);
+julia> result = optparse(parser, ["-z", "30", "-x", "10", "-y", "20"]);
 
 julia> result
 (10, 20, 30)
@@ -1027,7 +1101,7 @@ julia> # Mixed with arguments
            gate("-v")
        );
 
-julia> result = argparse(parser, ["input.txt", "-v", "-o", "output.txt"]);
+julia> result = optparse(parser, ["input.txt", "-v", "-o", "output.txt"]);
 
 julia> result
 ("input.txt", "output.txt", true)
@@ -1088,7 +1162,7 @@ julia> sizeArgs = sequence(
 julia> # Concatenate into single tuple
        parser = concat(positionArgs, sizeArgs);
 
-julia> result = argparse(parser, ["-x", "10", "-y", "20", "--width", "100", "--height", "50"]);
+julia> result = optparse(parser, ["-x", "10", "-y", "20", "--width", "100", "--height", "50"]);
 
 julia> result
 (10, 20, 100, 50)
@@ -1100,7 +1174,7 @@ julia> # With label
            label = "connection"
        );
 
-julia> result = argparse(parser, ["--host", "localhost", "--port", "8080"]);
+julia> result = optparse(parser, ["--host", "localhost", "--port", "8080"]);
 
 julia> result
 ("localhost", 8080)
@@ -1114,7 +1188,7 @@ julia> authArgs = sequence(option("-u", str()), option("-p", str()));
 
 julia> httpParser = concat(headerArgs, bodyArgs, authArgs, label = "http_request");
 
-julia> result = argparse(httpParser, ["-H", "Content-Type: json", "-d", "data", "-u", "user", "-p", "pass"]);
+julia> result = optparse(httpParser, ["-H", "Content-Type: json", "-d", "data", "-u", "user", "-p", "pass"]);
 
 julia> result
 ("Content-Type: json", "data", "user", "pass")

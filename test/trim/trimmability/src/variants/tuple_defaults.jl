@@ -8,7 +8,7 @@ const parser = sequence(
 )
 
 function @main(args::Vector{String})::Cint
-    _ = argparse(parser, args)
+    _ = optparse(parser, args)
     # println(Core.stdout, join(args, ','))
     return 0
 end

@@ -91,7 +91,7 @@ end
     )
 
     # No arguments provided, should fail on first argument parser
-    @test is_error(tryargparse(parser, ["-v"]))
+    @test is_error(tryoptparse(parser, ["-v"]))
 end
 
 @testset "should work with complex argument and option combinations" begin
@@ -121,8 +121,8 @@ end
     err = parse_fail(parser, ["--", "hello"])
     @test err.domain == OptParse.ERR_ArgGate
     @test OptParse.GateErrCode(err.code) == OptParse.GATE_Missing
-    @test !isempty(err.context)
-    @test last(err.context).domain == OptParse.ERR_ConstrTuple
+    @test !isempty(err.trace)
+    @test last(err.trace).domain == OptParse.ERR_ConstrTuple
 end
 
 @testset "should propagate control-only consumption to later tuple elements" begin

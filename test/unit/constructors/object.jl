@@ -23,12 +23,12 @@ end
     )
 
     argv = ["-v", "-p", "8080"]
-    ctx = Context(buffer=argv, state=parser.initialState)
+    ctx = mkctx(argv, parser.initialState)
     res = splitparse(parser, ctx)
 
     @test !is_error(res)
     ps = unwrap(res)
-    st = ps.next.state
+    st = res_nextstate(ps)
     @test haskey(Dict(propertynames(st) .=> getfield.(Ref(st), propertynames(st))), :verbose)
     @test haskey(Dict(propertynames(st) .=> getfield.(Ref(st), propertynames(st))), :port)
     @test (@? getfield(st, :verbose)) == true
@@ -67,7 +67,7 @@ end
     buffer = ["--help"]
     state = parser.initialState
     # optionsTerminated defaults to false
-    ctx = Context(;buffer, state)
+    ctx = mkctx(buffer, state)
     res = splitparse(parser, ctx)
 
     @test is_error(res)
@@ -86,7 +86,7 @@ end
     )
 
     argv = String[]
-    ctx = Context(buffer=argv, state=parser.initialState)
+    ctx = mkctx(argv, parser.initialState)
     res = splitparse(parser, ctx)
 
     @test is_error(res)
@@ -107,13 +107,13 @@ end
         )
     )
 
-    ctx = Context(buffer=["--verbose", "--host", "me", "--test", "--", "--test"], state=obj.initialState)
+    ctx = mkctx(["--verbose", "--host", "me", "--test", "--", "--test"], obj.initialState)
 
     result = splitparse(obj, ctx)
     @test !is_error(result)
     succ = unwrap(result)
 
-    st = succ.next.state
+    st = res_nextstate(succ)
     comp = splitcomplete(obj, st)
 
     @test !is_error(comp)
@@ -168,12 +168,12 @@ end
         )
     )
 
-    ctx = Context(buffer=["--verbose", "--host", "me", "--test", "--", "--test"], state=obj.initialState)
+    ctx = mkctx(["--verbose", "--host", "me", "--test", "--", "--test"], obj.initialState)
 
     @test_opt parse(unwrapunion(obj), ctx)
 
     res = splitparse(obj, ctx)
     succ = unwrap(res)
 
-    @test_opt complete(unwrapunion(obj), succ.next.state)
+    @test_opt complete(unwrapunion(obj), res_nextstate(succ))
 end

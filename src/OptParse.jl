@@ -21,7 +21,7 @@ export
     @?,
     @constant,
     arg,
-    argparse,
+    optparse,
     choice,
     combine,
     concat,
@@ -32,6 +32,8 @@ export
     flt32,
     flt64,
     gate,
+    help,
+    hidden,
     i16,
     i32,
     i64,
@@ -45,7 +47,7 @@ export
     path,
     resulttype,
     str,
-    tryargparse,
+    tryoptparse,
     sequence,
     u16,
     u32,
@@ -53,7 +55,59 @@ export
     u8,
     uuid
 
+abstract type AbstractParser{T, S, p, P} end
+
+tval(::Type{<:AbstractParser{T}}) where {T} = T
+tval(::AbstractParser{T}) where {T} = T
+
+tstate(::Type{<:AbstractParser{T, S}}) where {T, S} = S
+tstate(::AbstractParser{T, S}) where {T, S} = S
+
+function priority(::Type{<:AbstractParser{T, S, _p}})::Int where {T, S, _p}
+    return _p
+end
+function priority(::AbstractParser{T, S, _p})::Int where {T, S, _p}
+    return _p
+end
+
+ptypes(::Type{<:AbstractParser{T, S, _p, P}}) where {T, S, _p, P} = P
+ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
+
+"""
+    resulttype(parser_or_type)
+
+Return the final value type produced by a parser.
+
+This is useful when you want to refer to a parser's output type in user code,
+for example to define method specializations on the result of a specific parser.
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> greet = command("greet", object((
+           cmd = @constant(:greet),
+           name = option("-n", str("NAME")),
+       )));
+
+julia> const Greet = resulttype(greet);
+
+julia> Greet
+@NamedTuple{cmd::Val{:greet}, name::String}
+```
+
+A common pattern is to define a stable alias once and dispatch on it later
+
+# See Also
+- [`optparse`](@ref)
+- [`tryoptparse`](@ref)
+"""
+resulttype(::Type{<:AbstractParser{T}}) where {T} = T
+resulttype(::AbstractParser{T}) where {T} = T
+
 include("utils.jl")
+include("core/usage/usage.jl")
+include("core/help/help.jl")
 include("core/context.jl")
 include("core/errors.jl")
 include("core/parseresult.jl")
@@ -78,8 +132,8 @@ Returns:
 """
 function normalize_argv(argv::Vector{String})
     expanded = String[]
-    origin   = Int[]
-    optterm  = false
+    origin = Int[]
+    optterm = false
 
     for (i, tok) in pairs(argv)
         if tok == "--"
@@ -103,18 +157,56 @@ function normalize_argv(argv::Vector{String})
 end
 
 
+function no_progress(previous_buffer, ctx)
+    return ctx_length(ctx) > 0 &&
+        ctx_length(ctx) == length(previous_buffer) &&
+        ctx_remaining(ctx) == previous_buffer
+end
+
+
+function recover_usage_context(pp::Parser{T, S}, argv::Vector{String})::Context{S} where {T, S}
+    canonical_argv, _ = normalize_argv(argv)
+    ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = @unionsplit usage(pp))
+
+    while true
+        mayberesult::InnerParseResult{S} = @unionsplit parse(pp, ctx)
+
+        if is_error(mayberesult)
+            return ctx
+        end
+        result = unwrap(mayberesult)
+
+        previous_buffer = ctx_remaining(ctx)
+        ctx = res_nextctx(result)
+
+        if no_progress(previous_buffer, ctx)
+            # Top-level progress guard: a parser must not report success while leaving argv unchanged.
+            return ctx
+        end
+
+        ctx_length(ctx) > 0 || break
+    end
+
+    return ctx
+end
+
+function build_help_doc(parser, argv)
+    ctx = recover_usage_context(parser, argv)
+    return focused_helpdoc(parser, ctx, root_overlay_context())
+end
+
 """
-    tryargparse(parser, argv)
+    tryoptparse(parser, argv)
 
 Lower-level parsing entrypoint.
 
 Returns a result object containing either the parsed value or a structured parse failure.
-Unlike [`argparse`](@ref), this function does not throw on parse failures.
+Unlike [`optparse`](@ref), this function does not throw on parse failures.
 """
-function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}
+function tryoptparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}
 
     canonical_argv, _ = normalize_argv(args)
-    ctx = Context{S}(buffer=canonical_argv, state=pp.initialState)
+    ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = @unionsplit usage(pp))
 
     while true
         mayberesult::InnerParseResult{S} = @unionsplit parse(pp, ctx)
@@ -127,13 +219,9 @@ function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
         previous_buffer = ctx_remaining(ctx)
         ctx = res_nextctx(result)
 
-        if (
-                ctx_length(ctx) > 0
-                    && ctx_length(ctx) == length(previous_buffer)
-                    && ctx_remaining(ctx) == previous_buffer
-            )
+        if no_progress(previous_buffer, ctx)
             # Top-level progress guard: a parser must not report success while leaving argv unchanged.
-            return typedErr(main_error(MAIN_NoProgress; token = ctx_peek(ctx)))
+            return typedErr(T, main_error(MAIN_NoProgress; token = ctx_peek(ctx)))
         end
 
         ctx_length(ctx) > 0 || break
@@ -141,11 +229,12 @@ function tryargparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} whe
 
     state = ctx_state(ctx)
 
-    return @unionsplit complete(pp, state)
+    ret = @unionsplit complete(pp, state)
+    return ret
 end
 
 """
-    argparse(parser, argv)
+    optparse(parser, argv)
 
 High-level parsing entrypoint.
 
@@ -158,15 +247,22 @@ via `Preferences.jl`:
   `nothing` on failure instead of throwing
 
 If you need stable non-throwing behavior across environments, use
-[`tryargparse`](@ref) instead.
+[`tryoptparse`](@ref) instead.
 """
 @static if juliac
 
-    function argparse(pp::Parser{T}, args::Vector{String})::Union{T, Nothing} where {T}
-        mayberes = tryargparse(pp, args)::ParseResult{T}
+    function optparse(pp::Parser{T}, args::Vector{String})::Union{T, Nothing} where {T}
+        mayberes = tryoptparse(pp, args)::ParseResult{T}
 
         if is_error(mayberes)
-            errmsg = sprint(showerror, ParseException(unwrap_error(mayberes)))
+            errmsg = sprint(
+                showerror, ParseException(
+                    pp,
+                    args,
+                    unwrap_error(mayberes)
+                )
+            )
+
             print(Core.stderr, "Error: ")
             println(Core.stderr, errmsg)
             return nothing
@@ -177,18 +273,23 @@ If you need stable non-throwing behavior across environments, use
 
 else
 
-    function argparse(pp::Parser{T}, args::Vector{String})::T where {T}
-        mayberes = tryargparse(pp, args)::ParseResult{T}
+    function optparse(pp::Parser{T}, args::Vector{String})::T where {T}
+        mayberes = tryoptparse(pp, args)::ParseResult{T}
 
         if is_error(mayberes)
-            throw(ParseException(unwrap_error(mayberes)))
+            throw(
+                ParseException(
+                    pp,
+                    args,
+                    unwrap_error(mayberes)
+                )
+            )
         end
 
         return unwrap(mayberes)
     end
 
 end
-
 
 
 end # module OptParse

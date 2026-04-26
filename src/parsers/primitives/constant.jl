@@ -14,6 +14,15 @@ ArgConstant(val::T) where {T} = let
     end
 end
 
+usage(p::ArgConstant) = UsageHidden(UsageEmpty())
+helpentries(p::ArgConstant, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
+focused_helpdoc(
+    p::ArgConstant{Val{val}, ConstantState{val}},
+    ctx::Context{ConstantState{val}},
+    prefix::Vector{String},
+    rt::OverlayContext
+) where {val} = HelpDoc(prefix, usage(p), helpinfo(rt), HelpEntry[])
+
 function parse(::ArgConstant{Val{val}, ConstantState{val}}, ctx::Context{ConstantState{val}})::InnerParseResult{ConstantState{val}} where {val}
     return innerOk(ctx, consumed_empty(ctx))
 end
