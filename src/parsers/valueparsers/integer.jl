@@ -18,7 +18,7 @@ integerval_error(code::IntegerErrCode; token="", detail="", subject="") =
     mkerror(ValuePhase, ERR_IntegerVal, UInt8(code);
         token,
         detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_IntegerVal, subject)]
+        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_IntegerVal, subject)]
     )
 
 function integerval_render_error(io::IO, code::IntegerErrCode, err::ParseError)

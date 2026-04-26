@@ -7,13 +7,13 @@ end
 
 @testset "should parse without consuming any input" begin
     parser = @constant(:hello)
-    context = Context(buffer=["--option", "value"], state=Val(:hello))
+    context = mkctx(["--option", "value"], Val(:hello))
 
     result = splitparse(parser, context)
     @test !is_error(result)
     succ = unwrap(result)
-    @test ℒ_consumed(succ) == consumed_empty(context)
-    @test ℒ_nextctx(succ) == context
+    @test res_consumed(succ) == consumed_empty(context)
+    @test res_nextctx(succ) == context
 end
 
 # @test "should fail when passed strings" begin
@@ -45,5 +45,5 @@ end
     @test_opt @constant(true)
     @test_opt @constant((key = :value,))
 
-    @test_opt argparse(@constant(10), String[])
+    @test_opt optparse(@constant(10), String[])
 end

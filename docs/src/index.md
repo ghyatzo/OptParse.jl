@@ -45,7 +45,7 @@ parser = object((
 ))
 
 # Parse arguments
-result = argparse(parser, ["--name", "myserver", "-p", "8080", "-v"])
+result = optparse(parser, ["--name", "myserver", "-p", "8080", "-v"])
 
 @assert result.name == "myserver"
 @assert result.port == 8080
@@ -61,17 +61,17 @@ Current parsing conventions:
 
 For the public entrypoints:
 
-- `argparse(parser, argv)` is the high-level convenience entrypoint
-- `tryargparse(parser, argv)` is the lower-level entrypoint and returns a result object instead of throwing
+- `optparse(parser, argv)` is the high-level convenience entrypoint
+- `tryoptparse(parser, argv)` is the lower-level entrypoint and returns a result object instead of throwing
 - `resulttype(parser)` returns the final value type produced by a parser
 
-`argparse` has two modes controlled through the `juliac` key via
+`optparse` has two modes controlled through the `juliac` key via
 `Preferences.jl` mechanisms:
 
 - in normal Julia runtime usage, it returns the parsed value or throws `OptParse.ParseException`
 - when `juliac` mode is enabled, it renders the error to `stderr` and returns `nothing` on failure instead of throwing
 
-If you need stable non-throwing behavior across environments, use `tryargparse`.
+If you need stable non-throwing behavior across environments, use `tryoptparse`.
 
 ## Core Concepts
 
@@ -215,14 +215,14 @@ OptParse exposes two entrypoints:
 parser = option("-p", integer("PORT"; min=1000))
 
 # Throwing API
-value = argparse(parser, ["-p", "3000"])
+value = optparse(parser, ["-p", "3000"])
 
 # Lower-level API
-result = tryargparse(parser, ["-p", "3000"])
+result = tryoptparse(parser, ["-p", "3000"])
 ```
 
-`argparse` returns the parsed value on success and throws `OptParse.ParseException` on failure.
-`tryargparse` returns a result object instead of throwing, which is useful if you want to inspect failures programmatically.
+`optparse` returns the parsed value on success and throws `OptParse.ParseException` on failure.
+`tryoptparse` returns a result object instead of throwing, which is useful if you want to inspect failures programmatically.
 
 Rendered error messages are produced centrally from structured internal diagnostics. The exact wording may evolve, but failures are surfaced with parser-specific context, for example invalid values, missing required inputs, or unexpected arguments.
 
@@ -230,7 +230,7 @@ Rendered error messages are produced centrally from structured internal diagnost
 parser = option("-p", integer("PORT"; min=1000))
 
 try
-    argparse(parser, ["-p", "abc"])
+    optparse(parser, ["-p", "abc"])
 catch err
     @assert err isa OptParse.ParseException
 end

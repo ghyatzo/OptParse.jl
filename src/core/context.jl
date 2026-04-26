@@ -1,4 +1,5 @@
 
+
 # -----------------------------------------------------------------------------
 # Context & state aliases
 # -----------------------------------------------------------------------------
@@ -12,29 +13,30 @@ Parsing context carrying:
 - `state`: parser state accumulator.
 - `optionsTerminated`: whether `--` or equivalent was encountered
 """
-Base.@kwdef struct Context{S}
+@kwdef struct Context{S}
     buffer::Vector{String}
     pos::Int = 1
     state::S
+    usage::UsageNode = UsageNode()
     optionsTerminated::Bool = false
 end
 
 # Note: the ℒ is `\\scrL<TAB>`
-
 const ℒ_buffer  = @o _.buffer
 const ℒ_pos     = @o _.pos
 const ℒ_state   = @o _.state
+const ℒ_usage   = @o _.usage
 const ℒ_optterm = @o _.optionsTerminated
 
 ctx_buffer(ctx::Context) = ℒ_buffer(ctx)
 ctx_pos(ctx::Context) = ℒ_pos(ctx)
-ctx_optterm(ctx::Context) = ℒ_optterm(ctx)
 ctx_state(ctx::Context) = ℒ_state(ctx)
+ctx_usage(ctx::Context) = ℒ_usage(ctx)
+ctx_optterm(ctx::Context) = ℒ_optterm(ctx)
 
 @inline ctx_with_options_terminated(ctx::Context, flag::Bool) = set(ctx, ℒ_optterm, flag)
 @inline ctx_with_buffer(ctx::Context, buf::Vector{String}) = set(ctx, ℒ_buffer, buf)
 @inline ctx_with_pos(ctx::Context, pos::Int) = set(ctx, ℒ_pos, pos)
-
 # -----------------------------------------------------------------------------
 # Centralized "checkpoints" and state retagging
 # -----------------------------------------------------------------------------
@@ -47,7 +49,13 @@ context's state parameter to be `S`.
 
 """
 @inline function ctx_with_state(ctx::Context, s::S) where {S}
-    return Context{S}(ℒ_buffer(ctx), ℒ_pos(ctx), s, ℒ_optterm(ctx))
+    return Context{S}(
+        ℒ_buffer(ctx),
+        ℒ_pos(ctx),
+        s,
+        ℒ_usage(ctx),
+        ℒ_optterm(ctx)
+    )
 end
 
 """
@@ -75,6 +83,7 @@ in a type-stable way (as long as `B` is a compile-time type known value).
         ℒ_buffer(ctx),
         ℒ_pos(ctx),
         convert(U, ℒ_state(ctx)),
+        ℒ_usage(ctx),
         ℒ_optterm(ctx)
     )
 end
@@ -90,6 +99,7 @@ Utility function that combines a new state while also widening it
         ℒ_buffer(ctx),
         ℒ_pos(ctx),
         convert(U, s),
+        ℒ_usage(ctx),
         ℒ_optterm(ctx)
     )
 end

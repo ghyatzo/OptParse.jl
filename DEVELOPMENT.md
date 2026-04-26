@@ -35,9 +35,10 @@ When adding a new parser family:
 1. Decide whether it belongs in `primitives/`, `constructors/`, or `modifiers/`.
 2. Define a concrete parser-family-specific state alias first.
 3. Keep `parse` and `complete` signatures tight to the real state invariant.
-4. Add family-specific error codes and an error renderer.
-5. Add the family to the wrapped `Parser` union in `src/parsers/parser.jl`.
-6. Add the public constructor and docstring in `src/parsers/parser.jl`.
-7. Add `show_compact` / `show_pretty` support in `src/display/parser_show.jl`.
-8. Add tests, including `@test_opt`.
-9. Add the public constructor to `docs/src/reference.md` if it is exported.
+4. For wrappers, constrain child parser type parameters to the child state they delegate to.
+5. Add family-specific error codes and an error renderer.
+6. Add the family to the wrapped `Parser` union in `src/parsers/parser.jl`.
+7. Add the public constructor and docstring in `src/parsers/parser.jl`.
+8. Add `show_compact` / `show_pretty` support in `src/display/parser_show.jl`.
+9. Add tests, including `@test_opt`.
+10. Add the public constructor to `docs/src/reference.md` if it is exported.

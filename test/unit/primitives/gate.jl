@@ -12,28 +12,28 @@ end
 
 @testset "should parse single short gate" begin
     parser = gate("-v")
-    context = Context(buffer=["-v"], state=parser.initialState)
+    context = mkctx(["-v"], parser.initialState)
 
     result = splitparse(parser, context)
 
     @test !is_error(result)
     succ = unwrap(result)
-    @test is_ok_and(==(true), ℒ_state(ℒ_nextctx(succ)))
-    @test ctx_remaining(ℒ_nextctx(succ)) == String[]
-    @test as_tuple(ℒ_consumed(succ)) == ("-v",)
+    @test is_ok_and(==(true), ctx_state(res_nextctx(succ)))
+    @test ctx_remaining(res_nextctx(succ)) == String[]
+    @test as_tuple(res_consumed(succ)) == ("-v",)
 end
 
 @testset "should parse long gate" begin
     parser = gate("--verbose")
-    context = Context(buffer=["--verbose"], state=parser.initialState)
+    context = mkctx(["--verbose"], parser.initialState)
 
     result = splitparse(parser, context)
 
     @test !is_error(result)
     succ = unwrap(result)
-    @test is_ok_and(==(true), ℒ_state(ℒ_nextctx(succ)))
-    @test ctx_remaining(ℒ_nextctx(succ)) == String[]
-    @test as_tuple(ℒ_consumed(succ)) == ("--verbose",)
+    @test is_ok_and(==(true), ctx_state(res_nextctx(succ)))
+    @test ctx_remaining(res_nextctx(succ)) == String[]
+    @test as_tuple(res_consumed(succ)) == ("--verbose",)
 end
 
 @testset "should parse multiple gate names" begin
@@ -44,13 +44,13 @@ end
 
 @testset "should fail when gate is already set" begin
     parser = gate("-v")
-    context = Context(buffer=["-v"], state=OptParse.ParseResult{Bool}(Ok(true)))
+    context = mkctx(["-v"], OptParse.ParseResult{Bool}(Ok(true)))
 
     result = splitparse(parser, context)
 
     @test is_error(result)
     fail = unwrap_error(result)
-    @test ℒ_consumed(fail) == 1
+    @test res_num_consumed(fail) == 1
     @test fail.error.domain == OptParse.ERR_ArgGate
     @test OptParse.GateErrCode(fail.error.code) == OptParse.GATE_Duplicate
     @test fail.error.token == "-v"
@@ -75,28 +75,28 @@ end
 
 @testset "should fail when flags are terminated" begin
     parser = gate("-v")
-    context = Context(buffer=["-v"], state=parser.initialState, optionsTerminated=true)
+    context = mkctx(["-v"], parser.initialState; options_terminated=true)
 
     result = splitparse(parser, context)
 
     @test is_error(result)
     fail = unwrap_error(result)
-    @test ℒ_consumed(fail) == 0
+    @test res_num_consumed(fail) == 0
     @test fail.error.domain == OptParse.ERR_ArgGate
     @test OptParse.GateErrCode(fail.error.code) == OptParse.GATE_NoMoreOptions
 end
 
 @testset "should handle flags terminator --" begin
     parser = gate("-v")
-    context = Context(buffer=["--"], state=parser.initialState)
+    context = mkctx(["--"], parser.initialState)
 
     result = splitparse(parser, context)
 
     @test !is_error(result)
     succ = unwrap(result)
-    @test (ℒ_optterm ∘ ℒ_nextctx)(succ) == true
-    @test ctx_remaining(ℒ_nextctx(succ)) == String[]
-    @test as_tuple(ℒ_consumed(succ)) == ("--",)
+    @test ctx_optterm(res_nextctx(succ)) == true
+    @test ctx_remaining(res_nextctx(succ)) == String[]
+    @test as_tuple(res_consumed(succ)) == ("--",)
 end
 
 @testset "should handle option terminator edge cases correctly" begin
@@ -107,13 +107,13 @@ end
 
 @testset "should handle empty buffer" begin
     parser = gate("-v")
-    context = Context(buffer=String[], state=parser.initialState)
+    context = mkctx(String[], parser.initialState)
 
     result = splitparse(parser, context)
 
     @test is_error(result)
     fail = unwrap_error(result)
-    @test ℒ_consumed(fail) == 0
+    @test res_num_consumed(fail) == 0
     @test fail.error.domain == OptParse.ERR_ArgGate
     @test OptParse.GateErrCode(fail.error.code) == OptParse.GATE_EndOfInput
 end
@@ -122,5 +122,5 @@ end
     @test_opt gate("-v")
     parser = gate("-v")
 
-    @test_opt argparse(parser, ["-v"])
+    @test_opt optparse(parser, ["-v"])
 end

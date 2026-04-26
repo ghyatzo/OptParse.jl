@@ -4,15 +4,16 @@ const WithDefaultState{X} = Option{X}
     WITHDEFAULT_DummyError
 end
 
-modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "", subject="") =
-    mkerror(CompletePhase, ERR_ModWithDefault, UInt8(code);
-        token,
-        detail,
-        context= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModWithDefault, subject)]
-    )
+modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "", subject = "") =
+    mkerror(
+    CompletePhase, ERR_ModWithDefault, UInt8(code);
+    token,
+    detail,
+    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModWithDefault, subject)]
+)
 
 function modwithdefault_render_error(io::IO, code::WithDefaultErrCode, err::ParseError)
-    if code == WITHDEFAULT_DummyError
+    return if code == WITHDEFAULT_DummyError
         print(io, "default internal error")
     else
         print(io, "unreachable")
@@ -31,7 +32,43 @@ struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
     end
 end
 
-function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefaultState{S}})::InnerParseResult{WithDefaultState{S}} where {T, S}
+usage(p::ModWithDefault) = UsageOptional(usage(p.parser))
+function helpentries(p::ModWithDefault, rt::OverlayContext)
+    child = unwrapunion(p.parser)
+    return if (
+            child isa ArgGate
+                || child isa ArgOption
+                || child isa ArgConstant
+                || child isa ArgArgument
+                || child isa ArgCommand
+        )
+
+        entry = helpentries(child, rt)[1]
+        HelpEntry[set(entry, (@o _.usage), UsageOptional(entry.usage))]
+    else
+        helpentries(child, rt)
+    end
+end
+function focused_helpdoc(
+        p::ModWithDefault{T, WithDefaultState{S}, _p, P},
+        ctx::Context{WithDefaultState{S}},
+        prefix::Vector{String},
+        rt::OverlayContext
+    )::HelpDoc where {T, S, _p, P <: AbstractParser{<:Any, S}}
+    child_state = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))
+    child_ctx = widen_restate(S, ctx, child_state)
+    # we don't reset the OverlayContext because the modifiers are sort of "behavioural overlays"
+    # so they can't consume the node local informations.
+    child_focus = focused_helpdoc(p.parser, child_ctx, prefix, rt)
+
+    child_focus.prefix != prefix && return child_focus
+    return HelpDoc(prefix, UsageOptional(child_focus.usage), rt.info, HelpEntry[])
+end
+
+function parse(
+        p::ModWithDefault{T, WithDefaultState{S}, _p, P},
+        ctx::Context{WithDefaultState{S}}
+    )::InnerParseResult{WithDefaultState{S}} where {T, S, _p, P <: AbstractParser{<:Any, S}}
 
     childstate = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))
     childctx = ctx_with_state(ctx, childstate)
@@ -63,7 +100,10 @@ function parse(p::ModWithDefault{T, WithDefaultState{S}}, ctx::Context{WithDefau
 
 end
 
-function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDefaultState{S})::ParseResult{T} where {T, S}
+function complete(
+        p::ModWithDefault{T, WithDefaultState{S}, _p, P},
+        maybestate::WithDefaultState{S}
+    )::ParseResult{T} where {T, S, _p, P <: AbstractParser{<:Any, S}}
 
     # The state can be missing (none), in which case return the default.
     if is_error(maybestate)
@@ -82,8 +122,10 @@ function complete(p::ModWithDefault{T, WithDefaultState{S}}, maybestate::WithDef
     Given that the user explicitly passed a value, he likely does not want the default value.=#
     result = complete(unwrapunion(p.parser), state)::ParseResult{tval(p.parser)}
     if is_error(result)
-        return typedErr(T,
-            error_with_context(result,
+        return typedErr(
+            T,
+            error_with_trace(
+                result,
                 CompletePhase,
                 ERR_ModWithDefault,
                 "default"
