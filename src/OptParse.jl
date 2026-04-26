@@ -55,6 +55,56 @@ export
     u8,
     uuid
 
+abstract type AbstractParser{T, S, p, P} end
+
+tval(::Type{<:AbstractParser{T}}) where {T} = T
+tval(::AbstractParser{T}) where {T} = T
+
+tstate(::Type{<:AbstractParser{T, S}}) where {T, S} = S
+tstate(::AbstractParser{T, S}) where {T, S} = S
+
+function priority(::Type{<:AbstractParser{T, S, _p}})::Int where {T, S, _p}
+    return _p
+end
+function priority(::AbstractParser{T, S, _p})::Int where {T, S, _p}
+    return _p
+end
+
+ptypes(::Type{<:AbstractParser{T, S, _p, P}}) where {T, S, _p, P} = P
+ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
+
+"""
+    resulttype(parser_or_type)
+
+Return the final value type produced by a parser.
+
+This is useful when you want to refer to a parser's output type in user code,
+for example to define method specializations on the result of a specific parser.
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> greet = command("greet", object((
+           cmd = @constant(:greet),
+           name = option("-n", str("NAME")),
+       )));
+
+julia> const Greet = resulttype(greet);
+
+julia> Greet
+@NamedTuple{name::String, cmd::Val{:greet}}
+```
+
+A common pattern is to define a stable alias once and dispatch on it later
+
+# See Also
+- [`optparse`](@ref)
+- [`tryoptparse`](@ref)
+"""
+resulttype(::Type{<:AbstractParser{T}}) where {T} = T
+resulttype(::AbstractParser{T}) where {T} = T
+
 include("utils.jl")
 include("core/usage/usage.jl")
 include("core/help/help.jl")
@@ -205,9 +255,13 @@ If you need stable non-throwing behavior across environments, use
         mayberes = tryoptparse(pp, args)::ParseResult{T}
 
         if is_error(mayberes)
-            errmsg = sprint(showerror, ParseException(unwrap_error(mayberes)))
-
-            err_ctx = recover_usage_context(pareser, args)
+            errmsg = sprint(
+                showerror, ParseException(
+                    pp,
+                    args,
+                    unwrap_error(mayberes)
+                )
+            )
 
             print(Core.stderr, "Error: ")
             println(Core.stderr, errmsg)
@@ -223,7 +277,13 @@ else
         mayberes = tryoptparse(pp, args)::ParseResult{T}
 
         if is_error(mayberes)
-            throw(ParseException(unwrap_error(mayberes)))
+            throw(
+                ParseException(
+                    pp,
+                    args,
+                    unwrap_error(mayberes)
+                )
+            )
         end
 
         return unwrap(mayberes)

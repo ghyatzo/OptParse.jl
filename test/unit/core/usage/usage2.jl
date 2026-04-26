@@ -336,6 +336,39 @@ end
     @test_opt OptParse.focused_helpdoc(parser, ctx, OptParse.root_overlay_context())
 end
 
+@testset "should append focused usage when rendering parse exceptions" begin
+    parser = object(
+        (;
+            verbose = flag("-v", "--verbose"),
+            action = or(
+                command(
+                    "cmd", object(
+                        (;
+                            dry_run = flag("--dry-run"),
+                            sub = command(
+                                "subcmd", object(
+                                    (;
+                                        force = flag("--force"),
+                                        file = arg(str("FILE")),
+                                    )
+                                )
+                            ),
+                        )
+                    )
+                ),
+                command("other", arg(str("OTHER"))),
+            ),
+        )
+    )
+
+    argv = ["-v", "cmd", "subcmd", "--unknown"]
+    err = parse_fail(parser, argv)
+    msg = sprint(showerror, OptParse.ParseException(parser, argv, err))
+
+    @test occursin("Unexpected option or argument: --unknown", msg)
+    @test occursin("\n\nUsage: cmd subcmd [OPTIONS] <FILE>", msg)
+end
+
 @testset "should keep local aggregate usage when focusing non-command alternatives" begin
     parser = command(
         "run", object(
