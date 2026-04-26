@@ -143,41 +143,46 @@ scope policy live.
 The earlier breadcrumb/cursor design became too complex and should not be the
 main path.
 
-The current direction is cold-path state recovery:
+The current direction is cold-path state recovery plus a second focused tree
+walk:
 
 ```julia
 recover_usage_context(parser, args)::Context
+build_help_doc(parser, args)::HelpDoc
+focused_helpdoc(parser, ctx, rt)::HelpDoc
 ```
 
-or a similar internal function.
+`recover_usage_context` replays parsing over normalized argv and returns the
+most useful recovered parser state/context for later help generation.
 
-The function should replay parsing over the same normalized argv and recover the
-most useful parser state/context for usage or help generation. This is only for
-errors and explicit help requests, not the normal successful parse path.
+`build_help_doc` is the current top-level helper:
+
+```julia
+ctx = recover_usage_context(parser, argv)
+focused_helpdoc(parser, ctx, root_overlay_context())
+```
+
+This is a cold path for explicit help and future error rendering, not part of
+the normal successful parse path.
 
 Normal parsing should stay lean:
 
 1. Parse normally.
 2. If parsing succeeds, do no help work.
 3. If parsing fails, render the structured error.
-4. Error rendering asks for usage/help context.
+4. Error/help policy asks for usage/help context.
 5. The cold path replays enough parser state to decide the relevant help scope.
-6. Rendering combines the original `ParseError` with focused usage/help.
+6. Rendering projects the resulting `HelpDoc` into a compact usage or a fuller
+   help page.
 
 The recovery function should not be responsible for rendering. Its job is to
 produce the state needed by a later focus step.
 
-A likely split is:
+The important split is:
 
 ```julia
 recover_usage_context(parser, args)::Context
-focused_usage(parser, ctx)::UsageNode
-```
-
-Later, when `Help` exists, the second function likely becomes:
-
-```julia
-focused_help(parser, ctx)::Help
+focused_helpdoc(parser, ctx, rt)::HelpDoc
 ```
 
 ## State-Based Focus
@@ -202,55 +207,78 @@ shape is ordered, but matching may still be priority-driven internally.
 
 `command(...)` and `or(...)` are the most important first focus boundaries.
 
-## Help Object Plan
+## Help Document Model
 
-Usage should remain the syntax synopsis. Help should be represented by a richer
-semantic object.
-
-A possible shape:
+Usage remains the syntax synopsis. Help is now represented by a separate
+document object:
 
 ```julia
-struct Help
-    usage::UsageNode
-    brief::String
-    description::String
-    entries::Vector{HelpEntry}
-    footer::String
-end
-
-@enum HelpEntryKind begin
-    HELP_Option
-    HELP_Argument
-    HELP_Command
-    HELP_Group
-end
-
 struct HelpEntry
-    kind::HelpEntryKind
-    names::Vector{String}
-    metavar::String
-    brief::String
-    help::String
     usage::UsageNode
+    info::HelpInfo
+end
+
+struct HelpDoc
+    prefix::Vector{String}
+    usage::UsageNode
+    info::HelpInfo
+    entries::Vector{HelpEntry}
 end
 ```
 
-The exact fields can change. The important point is the layer boundary:
+The exact renderer behavior is still provisional, but the layer boundary is now
+clear:
 
-- parser families build or combine `Help`
+- parser families build or combine `HelpDoc`
 - `UsageNode` remains only the synopsis AST
-- `render_help(io, help::Help)` renders the help document
+- `render_helpdoc(io, doc::HelpDoc)` renders the help document
 - `render_usage(io, usage::UsageNode)` remains independent
 
-This lets each parser family combine help according to its behavior:
+The current model is intentionally minimal:
 
-- `command` can prepend/select the command scope
-- `or` can list command alternatives or branch alternatives
-- `object` and `sequence` can collect child entries
-- modifiers can wrap usage or annotate optional/repeated behavior
-- hidden parsers can suppress entries without disappearing from parser semantics
+- `HelpInfo` holds prose and visibility for one focused node or one entry
+- `HelpEntry` is the parent-page representation of a child parser
+- `HelpDoc` is the focused scope that will be rendered
 
-This avoids overspecializing usage rendering to solve help problems.
+This is enough to exercise real help rendering without overloading the usage
+renderer.
+
+## Focused Documents And Entries
+
+One important split is now explicit:
+
+```julia
+focused_helpdoc(parser, ctx, rt)::HelpDoc
+helpentries(parser, rt)::Vector{HelpEntry}
+```
+
+These answer different questions:
+
+- `focused_helpdoc(...)`
+  - what help scope are we currently in?
+- `helpentries(...)`
+  - how should this parser contribute entries to its parent's help page?
+
+This avoids the earlier mistake of trying to derive parent-page entries by
+building a full focused document and then flattening it again.
+
+The current intended behavior is:
+
+- leaf parsers such as `arg`, `option`, `gate`, and `command`
+  - produce one `HelpEntry`
+- structural constructors such as `object` and `sequence`
+  - are entry-transparent and flatten child entries
+- `or`
+  - is currently kept flat as a practical first implementation, even though
+    branch-aware help semantics will likely need refinement later
+- wrappers such as `default` and `multiple`
+  - may transform atomic child entries
+  - should leave group-like child entries alone and express group semantics in
+    focused usage instead
+
+This flat-entry rule is deliberate. Nested parser structure should affect focus
+and usage shape, but not leak directly as nested `Vector{Vector{HelpEntry}}`
+into the renderer.
 
 ## Overlay Parsers And Auxiliary Environments
 
@@ -272,8 +300,8 @@ shell completion, suggestions, and diagnostics.
 More concretely:
 
 ```text
-An overlay parser may update one or more ScopedValues before delegating to its
-wrapped parser in an auxiliary interpreter.
+An overlay parser may update subsystem-specific auxiliary interpretation state
+before delegating to its wrapped parser in an auxiliary interpreter.
 ```
 
 An overlay parser should preserve the wrapped parser's primary semantics:
@@ -301,145 +329,86 @@ This suggests a future taxonomy:
 - behavioral modifiers change parse or complete behavior
 - overlays modify auxiliary environments for secondary tree interpreters
 
-### Scoped Auxiliary State
+### Current Overlay Transport
 
-The earlier manually threaded `env` idea is serviceable, but `ScopedValues`
-match overlay semantics more closely.
+The current implementation does not use `Base.ScopedValues`.
 
-Each auxiliary subsystem can own its own scoped state:
-
-```julia
-const HELP_INFO = ScopedValue(HelpInfo())
-const SECTION_INFO = ScopedValue(SectionInfo())
-```
-
-Overlay nodes then update only the scoped state they care about and delegate:
+Real rebinding with `with(...)` is not compatible with the trimming
+requirements, so the help path currently uses an explicit overlay context
+parameter:
 
 ```julia
-focused_helpdoc(p::HelpOverlay, ctx, prefix) =
-    with(HELP_INFO => merge_helpinfo(HELP_INFO[], p.info)) do
-        focused_helpdoc(p.parser, ctx, prefix)
-    end
+struct OverlayContext
+    info::HelpInfo
+end
 
-focused_helpdoc(p::SectionOverlay, ctx, prefix) =
-    with(SECTION_INFO => merge_sectioninfo(SECTION_INFO[], p.section)) do
-        focused_helpdoc(p.parser, ctx, prefix)
-    end
+root_overlay_context() = OverlayContext(HelpInfo())
+with_helpinfo(rt, info) = ...
+descend_child(rt) = ...
 ```
 
-This has a few desirable properties:
+That gives the current help walk a simple and trim-safe transport.
 
-- overlay composition stays orthogonal
-- adding a new overlay does not force new method parameters through every
-  traversal function
-- each subsystem sees only the scoped state it cares about
-- unrelated overlays do not couple independent auxiliary interpreters
-
-For example, help traversal may care about `HELP_INFO` and `SECTION_INFO`, while
-a future shell-completion interpreter may care about a different
-`SHELL_COMPLETION_INFO` scoped value and ignore the help-related ones entirely.
-
-### Parser-Owned Extraction Under Scoped State
-
-Scoped values should not make overlays responsible for building help entries.
-The underlying parser family still owns parser-specific extraction:
-
-```julia
-helpentry(p::ArgOption) =
-    HelpEntry(
-        usage = usage(p),
-        info = HELP_INFO[],
-        section = SECTION_INFO[],
-        kind = HELP_Option,
-    )
-```
-
-This keeps the syntax-specific knowledge with the parser family. An option knows
-how to expose its names and metavar. A command knows how to expose its command
-name and child scope. An object knows how to collect child entries. Overlays only
-change the scoped interpretation state those parsers are interpreted under.
-
-### HelpInfo, Sections, And Propagation
-
-`HelpInfo` should be node-local information:
-
-```julia
-HelpInfo(
-    hidden = false,
-    brief = "...",
-    description = "...",
-    footer = "...",
-)
-```
-
-It describes the parser node directly wrapped by `help(...)`. It should not
-blindly propagate to every child.
+The important rule is still the same: overlays update auxiliary interpretation
+state and delegate. Parser families still own syntax-specific extraction.
 
 For example:
 
 ```julia
-object((...)) |> help("Configuration")
+helpentries(p::ModHelp, rt) =
+    ishidden(p.info) ? HelpEntry[] : helpentries(p.parser, with_helpinfo(rt, p.info))
 ```
 
-describes the object help scope, not every option inside the object.
+### Propagation Semantics
 
-Sections are different. A section is intended to group entries below it, so it
-should propagate through constructor children:
+`HelpInfo` is currently treated as node-local information. Constructors clear it
+when they descend into children:
 
 ```julia
-object((;
-    port = option("-p", "--port", integer("PORT")),
-    tls = flag("--tls"),
-)) |> section("Network")
+descend_child(rt) = OverlayContext(HelpInfo())
 ```
 
-should place both child entries under a `Network` section.
+This matches the current intended semantics:
 
-This suggests two different propagation modes for scoped auxiliary state:
+- `object((...)) |> help("Configuration")`
+  - describes the object help scope
+  - not every child entry inside the object
+- child entries must pick up only the help information explicitly attached to
+  those child nodes
+
+If sections are added later, they will likely need inherited propagation, which
+means `OverlayContext` will probably grow beyond `HelpInfo` and the propagation
+helpers will become more semantic.
+
+### Renderer Status
+
+The help renderer is now a separate path:
 
 ```julia
-HELP_INFO[]      # node-local
-SECTION_INFO[]   # inherited / grouping
+render_usage(doc::HelpDoc)
+render_helpdoc(doc::HelpDoc)
 ```
 
-The likely rules are:
+`render_usage(doc)` renders the focused usage line using `doc.prefix` and
+`doc.usage`.
 
-- `HelpInfo` is node-local and is reset when constructors descend into children
-- `SectionInfo` is inherited and groups child entries until overridden
-- overlays update only the scoped values they own and then delegate
-- parser families produce `HelpDoc` / `HelpEntry` values under the currently
-  visible scoped state
+`render_helpdoc(doc)` renders a fuller help page using:
 
-In practice, that means constructors such as `object(...)` will likely need
-small scoped helper utilities so they can preserve inherited section state while
-clearing node-local help state before descending into each child.
+- `doc.info`
+- the focused usage line
+- `doc.entries`
 
-### Focused HelpDoc
-
-The current `focused_usage` direction probably wants to generalize to a focused
-help-document builder:
-
-```julia
-focused_helpdoc(parser, ctx)::HelpDoc
-```
-
-Error usage, `--help`, and help subcommands can all use the same focused
-document and render different projections of it:
-
-- error rendering may print only compact usage from the focused `HelpDoc`
-- ordinary help may render usage, description, entries, sections, and footer
-- future detailed help may render more entry-specific information
-
-This avoids creating a separate focus mechanism for errors and for explicit help
-requests.
+The current formatting is intentionally rough. Entry layout will likely need
+usage-kind-specific rendering later, but the architectural split is now in
+place.
 
 ### Future Auxiliary Environments
 
 The same overlay idea can be reused for other cold-path interpreters:
 
-- `HELP_INFO` / `SECTION_INFO` for help documents and usage focus
-- `SHELL_COMPLETION_INFO` for shell completion candidates
-- `SUGGESTION_INFO` for unknown-command or unknown-option suggestions
+- help info / section state for help documents and usage focus
+- shell-completion state for shell completion candidates
+- suggestion state for unknown-command or unknown-option suggestions
 - diagnostic scoped state for deprecation notes or richer error hints
 
 The boundary should stay explicit:
@@ -454,68 +423,8 @@ changes the final parsed value, so it is likely a behavioral modifier. But
 "document that this option can be completed from an environment variable" is an
 overlay.
 
-Scoped values should stay limited to these cold-path auxiliary interpreters.
-They should not leak into the primary `parse` / `complete` runtime.
-
-### Current Fallback Transport
-
-`Base.ScopedValues` turned out not to be compatible with `--trim=safe` for the
-actual rebinding path (`with(...)`), even though plain reads appear to trim.
-
-That means the current practical fallback is a manual, interpreter-local version
-of dynamic scope:
-
-```julia
-mutable struct HelpRuntime
-    info::HelpInfo
-    section::SectionInfo
-end
-```
-
-A fresh runtime object is created for one top-level auxiliary traversal:
-
-```julia
-rt = HelpRuntime(HelpInfo(), SectionInfo())
-focused_helpdoc(parser, ctx, rt)
-```
-
-Overlay nodes then update and restore runtime fields with explicit stack
-discipline:
-
-```julia
-function with_helpinfo(rt::HelpRuntime, info::HelpInfo, f)
-    old = rt.info
-    rt.info = merge_helpinfo(old, info)
-    try
-        return f()
-    finally
-        rt.info = old
-    end
-end
-```
-
-The same pattern applies to section state and any future auxiliary interpreter
-state.
-
-The intended invariants are:
-
-- runtime objects are created fresh per top-level auxiliary traversal
-- they are never stored globally
-- they are never shared across unrelated traversals
-- they are only used for cold-path auxiliary interpreters
-- `parse` / `complete` never depend on them
-
-This preserves most of the benefits of the `ScopedValues` model:
-
-- overlays still behave like dynamically scoped interpreters
-- parser families still own syntax-specific extraction
-- different auxiliary subsystems can have different runtime objects
-- migration to real `ScopedValues` should be mechanically straightforward later
-
-The migration story is intentionally simple: if `ScopedValues` become trim-safe
-in the future, the helper layer around `HelpRuntime` / `SectionRuntime` can be
-swapped for real scoped values with minimal changes to the higher-level overlay
-interpreter structure.
+These auxiliary environments should stay strictly out of the primary
+`parse` / `complete` runtime.
 
 ## Help Triggers
 
@@ -539,16 +448,19 @@ trigger model.
 
 The main unresolved questions are:
 
-- exact signature and name of the recovery function
-- how much of parse should be replayed for help requests
+- how error rendering should request and display focused help
+- how explicit `--help` and help-subcommand policy should be wired into
+  `optparse`
+- how much of parse should be replayed for help requests in the long term
 - whether recovery should stop at first failure or return the furthest useful
   state
-- how complete-phase errors should choose a focus scope
-- exact `HelpDoc`, `HelpEntry`, and `HelpEnv` field layout
+- exact long-term `HelpDoc` / `HelpEntry` field layout
 - whether `ModHelp` should eventually move to an `overlays/` parser family and
   be renamed to something like `HelpOverlay`
 - exact section propagation rules through `object`, `sequence`, `or`,
   `command`, and behavioral modifiers
+- whether entry atomicity / transparency should become an explicit parser-family
+  distinction in the type system
 
 ## Practical Next Steps
 
@@ -556,13 +468,15 @@ The next implementation steps are:
 
 1. Keep `usage(parser)::UsageNode` generation type-stable for all parser
    families.
-2. Add focused tests that build usage from real parsers, not only hand-written
-   `UsageNode`s.
-3. Add a cold-path recovery function that replays parser state from argv.
-4. Implement root/focused usage selection from recovered state.
-5. Formalize `HelpInfo` as node-local overlay information.
-6. Introduce a minimal `HelpEnv` / `HelpDoc` only after usage focus is working.
-7. Keep rendering as the final pure step over `UsageNode` or `HelpDoc`.
+2. Add focused tests that build `HelpDoc` from real parsers, not only
+   hand-written `UsageNode`s.
+3. Exercise `build_help_doc(parser, argv)` over realistic command/object/or
+   trees.
+4. Wire `HelpDoc` into actual help triggers and error rendering.
+5. Refine `render_helpdoc` once the current output has been evaluated on larger
+   examples.
+6. Decide whether entry atomicity / transparency should be encoded with
+   abstract parser families or traits.
 
 ## Summary
 
@@ -573,8 +487,10 @@ The intended architecture is:
 - `usage(parser)` generates usage on demand
 - root usage can be stored in `Context`
 - normal parsing does not maintain breadcrumbs or mutable usage focus
-- focused usage/help comes from cold-path state recovery
+- focused help comes from cold-path state recovery plus `focused_helpdoc`
+- `HelpDoc` is now the semantic help object for one focused parser scope
+- `helpentries` is a separate parent-page extraction path
 - overlays are transparent parser nodes interpreted through auxiliary
-  environments
-- help should become a semantic `HelpDoc` object, not an overloaded usage
-  renderer
+  overlay context
+- help rendering is a separate projection over `HelpDoc`, not an overloaded
+  usage renderer

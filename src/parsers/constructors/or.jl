@@ -67,12 +67,27 @@ ConstrOr(parsers::PTup) where {PTup <: Tuple} = let
 end
 
 @inline usage(p::ConstrOr) = UsageAlternative(_usage_children(p.parsers))
-function helpentries(p::ConstrOr, rt::OverlayContext)
-    entries = HelpEntry[]
-    for child in values(p.parsers)
-        append!(entries, helpentries(child, descend_child(rt)))
+function helpentries(p::ConstrOr{T, S, _p, PTup}, rt::OverlayContext) where {T, S <: OrState, _p, PTup <: Tuple}
+
+    if @generated
+        ex = quote
+            entries = HelpEntry[]
+        end
+        for (i, type) in enumerate(fieldtypes(PTup))
+            push!(
+                ex.args,
+                :(append!(entries, @unionsplit helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
+            )
+        end
+        push!(ex.args, :(return entries))
+        return ex
+    else
+        entries = HelpEntry[]
+        for (child, type) in zip(values(p.parsers), fieldtypes(PTup))
+            append!(entries, @unionsplit helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
+        end
+        return entries
     end
-    return entries
 end
 function focused_helpdoc(
         p::ConstrOr{T, OrState{U}},
@@ -84,7 +99,7 @@ function focused_helpdoc(
         prefix,
         usage(p),
         helpinfo(rt),
-        helpentries(p, descend_child(rt))
+        helpentries(p, descend_child(rt))::Vector{HelpEntry}
     )
 
     selected = unwrapunion(unwrap(ctx_state(ctx)))::U
@@ -113,7 +128,7 @@ end
     end
 
     # TODO: Also here is wrong.
-    push!(body.args, :(return HelpDoc(prefix, usage(p), helpinfo(rt), helpentries(p, descend_child(rt)))))
+    push!(body.args, :(return HelpDoc(prefix, usage(p), helpinfo(rt), @unionsplit helpentries(p, descend_child(rt)))))
     return body
 end
 

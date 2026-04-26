@@ -178,15 +178,19 @@ end
         UsageCommand(("add",), UsageArgument("PKG")),
         UsageCommand(("rm",), UsageArgument("PKG")),
         UsageCommand(("up",), UsageOptional(UsageArgument("PKG"))),
-        UsageCommand(("status",), UsageObject(
-            UsageOptional(UsageFlag(("-m", "--manifest"))),
-            UsageOptional(UsageFlag(("-d", "--diff"))),
-        )),
+        UsageCommand(
+            ("status",), UsageObject(
+                UsageOptional(UsageFlag(("-m", "--manifest"))),
+                UsageOptional(UsageFlag(("-d", "--diff"))),
+            )
+        ),
         UsageCommand(("pin",), UsageArgument("PKG")),
         UsageCommand(("free",), UsageArgument("PKG")),
-        UsageCommand(("gc",), UsageObject(
-            UsageOptional(UsageFlag(("-a", "--all"))),
-        )),
+        UsageCommand(
+            ("gc",), UsageObject(
+                UsageOptional(UsageFlag(("-a", "--all"))),
+            )
+        ),
         UsageCommand(("test",), UsageRepeat(UsageArgument("PKG"), 0, typemax(Int))),
     )
 
@@ -195,31 +199,39 @@ end
 end
 
 @testset "should build usage directly from a broad parser tree" begin
-    parser = object((;
-        tag = @constant(:root),
-        verbose = flag("-v", "--verbose"),
-        experimental = gate("--experimental"),
-        port = option("-p", "--port", integer("PORT")),
-        input = arg(str("INPUT")),
-        mode = optional(option("--mode", str("MODE"))),
-        fallback = default(option("--fallback", str("FALLBACK")), "fallback"),
-        extras = multiple(arg(str("EXTRA")); min = 1, max = 3),
-        coordinates = sequence(
-            option("--x", integer("X")),
-            option("--y", integer("Y")),
-        ),
-        action = or(
-            command("add", object((;
-                kind = @constant(:add),
-                name = arg(str("NAME")),
-            ))),
-            command("rm", sequence(
-                arg(str("TARGET")),
-                optional(gate("--force")),
-            )),
-            gate("--status"),
-        ),
-    ))
+    parser = object(
+        (;
+            tag = @constant(:root),
+            verbose = flag("-v", "--verbose"),
+            experimental = gate("--experimental"),
+            port = option("-p", "--port", integer("PORT")),
+            input = arg(str("INPUT")),
+            mode = optional(option("--mode", str("MODE"))),
+            fallback = default(option("--fallback", str("FALLBACK")), "fallback"),
+            extras = multiple(arg(str("EXTRA")); min = 1, max = 3),
+            coordinates = sequence(
+                option("--x", integer("X")),
+                option("--y", integer("Y")),
+            ),
+            action = or(
+                command(
+                    "add", object(
+                        (;
+                            kind = @constant(:add),
+                            name = arg(str("NAME")),
+                        )
+                    )
+                ),
+                command(
+                    "rm", sequence(
+                        arg(str("TARGET")),
+                        optional(gate("--force")),
+                    )
+                ),
+                gate("--status"),
+            ),
+        )
+    )
 
     usage = OptParse.usage(parser)
 
@@ -234,14 +246,18 @@ end
 
 @testset "should build usage directly from combine and concat parsers" begin
     combined = combine(
-        object((;
-            quiet = flag("-q", "--quiet"),
-            host = option("--host", str("HOST")),
-        )),
-        object((;
-            token = @constant(:token),
-            port = option("--port", integer("PORT")),
-        )),
+        object(
+            (;
+                quiet = flag("-q", "--quiet"),
+                host = option("--host", str("HOST")),
+            )
+        ),
+        object(
+            (;
+                token = @constant(:token),
+                port = option("--port", integer("PORT")),
+            )
+        ),
     )
 
     concatenated = concat(
@@ -270,12 +286,14 @@ end
 end
 
 @testset "should hide parser usage through help information modifiers" begin
-    parser = object((;
-        debug = flag("--debug") |> help("Debug mode", "Enable debug mode") |> hidden(),
-        input = arg(str("FILE")),
-    ))
+    parser = object(
+        (;
+            debug = flag("--debug") |> help("Debug mode", "Enable debug mode") |> hidden(),
+            input = arg(str("FILE")),
+        )
+    )
 
-    info = OptParse.helpinfo(parser.parsers.debug)
+    info = parser.parsers.debug.info
 
     @test info.hidden
     @test info.brief == "Debug mode"
@@ -286,43 +304,57 @@ end
 end
 
 @testset "should focus usage on selected nested commands" begin
-    parser = object((;
-        verbose = flag("-v", "--verbose"),
-        action = or(
-            command("cmd", object((;
-                dry_run = flag("--dry-run"),
-                sub = command("subcmd", object((;
-                    force = flag("--force"),
-                    file = arg(str("FILE")),
-                ))),
-            ))),
-            command("other", arg(str("OTHER"))),
-        ),
-    ))
+    parser = object(
+        (;
+            verbose = flag("-v", "--verbose"),
+            action = or(
+                command(
+                    "cmd", object(
+                        (;
+                            dry_run = flag("--dry-run"),
+                            sub = command(
+                                "subcmd", object(
+                                    (;
+                                        force = flag("--force"),
+                                        file = arg(str("FILE")),
+                                    )
+                                )
+                            ),
+                        )
+                    )
+                ),
+                command("other", arg(str("OTHER"))),
+            ),
+        )
+    )
 
     ctx = OptParse.recover_usage_context(parser, ["-v", "cmd", "subcmd", "--unknown"])
-    focused = OptParse.focused_usage(parser, ctx)
+    focused = OptParse.focused_helpdoc(parser, ctx, OptParse.root_overlay_context())
 
     @test focused.prefix == ["cmd", "subcmd"]
     @test render_usage(focused; progname = "prog") == "prog cmd subcmd [OPTIONS] <FILE>"
-    @test_opt OptParse.focused_usage(parser, ctx)
+    @test_opt OptParse.focused_helpdoc(parser, ctx, OptParse.root_overlay_context())
 end
 
 @testset "should keep local aggregate usage when focusing non-command alternatives" begin
-    parser = command("run", object((;
-        verbose = flag("-v", "--verbose"),
-        target = or(
-            arg(str("HOST")),
-            option("--socket", str("SOCKET")),
-        ),
-    )))
+    parser = command(
+        "run", object(
+            (;
+                verbose = flag("-v", "--verbose"),
+                target = or(
+                    arg(str("HOST")),
+                    option("--socket", str("SOCKET")),
+                ),
+            )
+        )
+    )
 
     ctx = OptParse.recover_usage_context(parser, ["run", "localhost", "--unknown"])
-    focused = OptParse.focused_usage(parser, ctx)
+    focused = OptParse.focused_helpdoc(parser, ctx, OptParse.root_overlay_context())
 
     @test focused.prefix == ["run"]
-    @test render_usage(focused; progname = "prog") == "prog run [OPTIONS] <HOST>"
-    @test_opt OptParse.focused_usage(parser, ctx)
+    @test render_usage(focused; progname = "prog") == "prog run [OPTIONS] (<HOST> | --socket <SOCKET>)"
+    @test_opt OptParse.focused_helpdoc(parser, ctx, OptParse.root_overlay_context())
 end
 
 @testset "should ignore hidden usage nodes inside sequences" begin

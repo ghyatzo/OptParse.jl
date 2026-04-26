@@ -105,7 +105,7 @@ Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
 
 usage(p::Parser)::UsageNode = @unionsplit usage(p)::UsageNode
 
-helpentries(p::Parser, rt::OverlayContext) = @unionsplit helpentries(p, rt)::Vector{HelpEntry}
+@inline helpentries(p::Parser{T, S}, rt::OverlayContext) where {T, S} = @unionsplit helpentries(p, rt)::Vector{HelpEntry}
 
 @inline function focused_helpdoc(p::Parser{T, S}, ctx::Context{S}, rt::OverlayContext) where {T, S}
     return @unionsplit focused_helpdoc(p, ctx, String[], rt)::HelpDoc

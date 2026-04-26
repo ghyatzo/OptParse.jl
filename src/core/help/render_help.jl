@@ -14,9 +14,9 @@ end
 function render_help_entry(io::IO, entry::HelpEntry)
     print(io, " ")
     render_usage(io, entry.usage)
-    print(io, "\t")
-    println(io, entry.info.brief)
-    print(io, "\t\t\t")
+    print(io, "\t\t")
+    print(io, entry.info.brief)
+    print(io, "\t\t")
     print(io, entry.info.description)
     println(io)
     return nothing

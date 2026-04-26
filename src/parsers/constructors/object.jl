@@ -77,10 +77,10 @@ Base.@assume_effects :foldable function _sort_obj_labels(
 end
 
 @inline usage(p::ConstrObject) = UsageObject(_usage_children(values(p.parsers)))
-function helpentries(p::ConstrObject, rt::OverlayContext)
+function helpentries(p::ConstrObject{T, S, _p, PTup}, rt::OverlayContext) where {T, S <: ObjectState, _p, PTup <: Tuple}
     entries = HelpEntry[]
-    for child in values(p.parsers)
-        append!(entries, helpentries(child, descend_child(rt)))
+    for (child, type) in zip(values(p.parsers), fieldtypes(PTup))
+        append!(entries, @unionsplit helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
     end
     return entries
 end
@@ -115,7 +115,7 @@ end
                     return child_helpdoc
                 end
 
-                append!(entries, (@unionsplit helpentries(parsers[$(QuoteNode(field))], descend_child(rt)))::Vector{HelpEntry})
+                append!(entries, @unionsplit helpentries(parsers[$(QuoteNode(field))], descend_child(rt))::Vector{HelpEntry})
                 children[$i] = usage(parsers[$(QuoteNode(field))])
             end
         )

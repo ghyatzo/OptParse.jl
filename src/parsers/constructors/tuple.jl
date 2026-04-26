@@ -39,10 +39,10 @@ ConstrTuple(parsers::PTup; label::String = "") where {PTup} = let
 end
 
 @inline usage(p::ConstrTuple) = UsageTuple(_usage_children(p.parsers))
-function helpentries(p::ConstrTuple, rt::OverlayContext)
+function helpentries(p::ConstrTuple{T, S, _p, PTup}, rt::OverlayContext) where {T, S <: Tuple, _p, PTup <: Tuple}
     entries = HelpEntry[]
-    for child in values(p.parsers)
-        append!(entries, helpentries(child, descend_child(rt)))
+    for (child, type) in zip(values(p.parsers), fieldtypes(PTup))
+        append!(entries, @unionsplit helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
     end
     return entries
 end
@@ -76,7 +76,7 @@ end
                     return child_helpdoc
                 end
 
-                append!(entries, helpentries(parsers[$i], descend_child(rt)))
+                append!(entries, @unionsplit helpentries(parsers[$i], descend_child(rt))::Vector{HelpEntry})
                 children[$i] = usage(parsers[$i])
             end
         )
