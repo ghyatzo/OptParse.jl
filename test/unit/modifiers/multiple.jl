@@ -12,8 +12,8 @@ end
 
     # Test all combinations of option forms. Cf. issue #2.
     for opt1 in (["-l", "en"], ["--locale", "en"], ["--locale=en"]),
-        opt2 in (["-l", "fr"], ["--locale", "fr"], ["--locale=fr"]),
-        opt3 in (["-l", "de"], ["--locale", "de"], ["--locale=de"])
+            opt2 in (["-l", "fr"], ["--locale", "fr"], ["--locale=fr"]),
+            opt3 in (["-l", "de"], ["--locale", "de"], ["--locale=de"])
 
         val = parse_ok(multipleParser, [opt1; opt2; opt3])
         @test val == ["en", "fr", "de"]
@@ -39,6 +39,13 @@ end
 
     val = parse_ok(multipleParser, ["file1.txt", "file2.txt", "file3.txt"])
     @test val == ["file1.txt", "file2.txt", "file3.txt"]
+end
+
+@testset "should allow zero matches when min=0" begin
+    parser = multiple(arg(str()); min = 0)
+
+    val = parse_ok(parser, String[])
+    @test val == String[]
 end
 
 @testset "should not count control-only consuming matches as repetitions" begin
@@ -75,8 +82,8 @@ end
     multipleParser = multiple(baseParser; max = 2)
 
     err = parse_fail(multipleParser, ["file1.txt", "file2.txt", "file3.txt"])
-    @test err.domain == OptParse.ERR_ModMultiple
-    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooMany
+    @test err.domain == OptParse.ERR_Main
+    @test OptParse.MainErrCode(err.code) == OptParse.MAIN_NoProgress
 
     val = parse_ok(multipleParser, ["file1.txt", "file2.txt"])
     @test val == ["file1.txt", "file2.txt"]
@@ -86,14 +93,14 @@ end
     baseParser = arg(str())
     multipleParser = multiple(baseParser; min = 1, max = 3)
 
-    # When used standalone, multiple() fails if it can't parse at least one occurrence
+    # With `min=1`, an empty input is now a proper `multiple` arity failure.
     err = parse_fail(multipleParser, String[])
-    @test err.domain == OptParse.ERR_ArgArgument
-    @test OptParse.ArgumentErrCode(err.code) == OptParse.ARGUMENT_EndOfInput
+    @test err.domain == OptParse.ERR_ModMultiple
+    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooFew
 
     err = parse_fail(multipleParser, ["a", "b", "c", "d"])
-    @test err.domain == OptParse.ERR_ModMultiple
-    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooMany
+    @test err.domain == OptParse.ERR_Main
+    @test OptParse.MainErrCode(err.code) == OptParse.MAIN_NoProgress
 
     val = parse_ok(multipleParser, ["a", "b"])
     @test val == ["a", "b"]
@@ -163,6 +170,19 @@ end
     val = parse_ok(parser, ["-n", "42", "-n", "100", "--other", "value"])
     @test val.numbers == [42, 100]
     @test val.other == "value"
+end
+
+@testset "should delegate to sibling parsers after reaching max" begin
+    parser = object(
+        (
+            files = multiple(arg(str()); max = 2),
+            mode = arg(str("MODE")),
+        )
+    )
+
+    val = parse_ok(parser, ["file1.txt", "file2.txt", "fast"])
+    @test val.files == ["file1.txt", "file2.txt"]
+    @test val.mode == "fast"
 end
 
 @testset "should work with boolean flag options" begin
@@ -278,10 +298,11 @@ end
     @test val2.title == "My Title"
     @test val2.ids == ["id1", "id2"]
 
-    # Constraint violation
+    # Constraint violation: once `max` is reached, the extra positional is left
+    # to the parent parser and surfaces as no further progress at top level.
     err = parse_fail(parser2, ["-t", "Title", "id1", "id2", "id3", "id4"])
-    @test err.domain == OptParse.ERR_ModMultiple
-    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooMany
+    @test err.domain == OptParse.ERR_Main
+    @test OptParse.MainErrCode(err.code) == OptParse.MAIN_NoProgress
 end
 
 @testset "should handle options terminator correctly" begin
@@ -332,8 +353,8 @@ end
     @test invalidErr.domain == OptParse.ERR_IntegerVal  # Should fail due to port 100 being below minimum
 
     tooManyErr = parse_fail(multipleParser, ["-p", "8080", "-p", "9000", "-p", "3000", "-p", "4000", "-p", "5000", "-p", "6000"])
-    @test tooManyErr.domain == OptParse.ERR_ModMultiple
-    @test OptParse.MultipleErrCode(tooManyErr.code) == OptParse.MULTIPLE_TooMany
+    @test tooManyErr.domain == OptParse.ERR_Main
+    @test OptParse.MainErrCode(tooManyErr.code) == OptParse.MAIN_NoProgress
 end
 
 @testset "should maintain type safety with different value types" begin

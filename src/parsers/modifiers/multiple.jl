@@ -44,7 +44,7 @@ end
 
 usage(p::ModMultiple) = UsageRepeat(usage(p.parser)::UsageNode, p.min, p.max)
 function helpentries(p::ModMultiple, rt::OverlayContext)
-    # if we have a group-like object then return the entries.
+    # For group-like children, keep the child entries unchanged.
     child = unwrapunion(p.parser)
     return if (
             child isa ArgGate
@@ -68,8 +68,8 @@ function focused_helpdoc(
     )::HelpDoc where {T, S}
     child_state = isempty(ctx_state(ctx)) ? p.parser.initialState : ctx_state(ctx)[end]
     child_ctx = widen_restate(S, ctx, child_state)
-    # we don't reset the OverlayContext because the modifiers are sort of "behavioural overlays"
-    # so they can't consume the node local informations.
+    # Behavioural modifiers do not introduce a new help scope, so node-local
+    # overlay information still belongs to the wrapped parser.
     child_focus = focused_helpdoc(p.parser, child_ctx, prefix, rt)
 
     child_focus.prefix != prefix && return child_focus
@@ -136,17 +136,21 @@ function parse(p::ModMultiple{T, MultipleState{S}}, ctx::Context{MultipleState{S
             current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
         end
     elseif !has_active
-        #=If there is no active repetition yet, a real failure on the first attempt
-		is final: there is no existing repetition to close and no second chance
-		to reinterpret the same token as the start of a new repetition.=#
-        return innerErr(ctx, result)
+        hasconsumed = !iszero(res_num_consumed(result))
+        #=If there is no active repetition yet, a consuming failure on the first
+			attempt is final: there is no current repetition to close and no second
+			chance to reinterpret the same token as the start of a new repetition.
+			A non-consuming failure simply means that no repetition starts here.=#
+        return hasconsumed ?
+            innerErr(ctx, result) : innerOk(current_ctx, consumed_empty(current_ctx), false)
     end
 
     #=Second attempt:
 	if there was already an active repetition, the first attempt may have failed
 	only because that repetition has finished. Reset the child to a blank slate
-	and see whether the same input starts a new repetition instead.=#
-    if has_active
+	and see whether the same input starts a new repetition instead.
+	But only if we haven't reached the maximum allowed number of matches already.=#
+    if has_active && length(ctx_state(ctx)) < p.max
         child_ctx = widen_restate(S, current_ctx, p.parser.initialState)
         retry = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
 
@@ -180,7 +184,8 @@ function parse(p::ModMultiple{T, MultipleState{S}}, ctx::Context{MultipleState{S
 
     #=No semantic repetition matched, but control state did propagate.
 	Bubble that progress outward so outer parsers see the updated context.=#
-    return innerOk(current_ctx, merge(allconsumed), false)
+    consumed = isempty(allconsumed) ? consumed_empty(current_ctx) : merge(allconsumed)
+    return innerOk(current_ctx, consumed, false)
 
 end
 
