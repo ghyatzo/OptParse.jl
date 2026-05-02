@@ -32,6 +32,7 @@ export
     flt32,
     flt64,
     gate,
+    generate_help,
     help,
     hidden,
     i16,
@@ -54,6 +55,9 @@ export
     u64,
     u8,
     uuid
+
+public build_help_doc, render_help
+
 
 abstract type AbstractParser{T, S, p, P} end
 
