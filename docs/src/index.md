@@ -112,6 +112,21 @@ Enhance parsers with additional behavior:
 - [`optional`](@ref) - Convenience wrapper for `default(p, nothing)`
 - [`default`](@ref) - Provides a fallback value
 - [`multiple`](@ref) - Allows repeated matches, returns a vector
+- [`help`](@ref) - Attaches help text to a parser without changing parsing semantics
+- [`hidden`](@ref) - Hides a parser from usage/help output without changing parsing semantics
+
+Help annotations compose directly with normal parsers:
+
+```julia
+parser = command("serve", object((
+    host = option("--host", str("HOST")) |> help("Host", "Hostname to bind"),
+    port = default(option("--port", integer("PORT")), 8080) |> help("Port", "TCP port to listen on"),
+    verbose = flag("-v", "--verbose") |> help("Verbose", "Enable verbose logging"),
+)))
+```
+
+Those annotations do not change how parsing works. They are used when OptParse
+renders usage and high-level parse failures.
 
 ### Constructors
 
@@ -225,6 +240,8 @@ result = tryoptparse(parser, ["-p", "3000"])
 `tryoptparse` returns a result object instead of throwing, which is useful if you want to inspect failures programmatically.
 
 Rendered error messages are produced centrally from structured internal diagnostics. The exact wording may evolve, but failures are surfaced with parser-specific context, for example invalid values, missing required inputs, or unexpected arguments.
+In the high-level `optparse` path, the exception renderer also appends a focused
+usage line derived from the parser tree.
 
 ```julia
 parser = option("-p", integer("PORT"; min=1000))

@@ -234,8 +234,12 @@ multiple(; kw...) = (p::Parser) -> multiple(p; kw...)
 Attach help information to a parser without changing parsing semantics.
 
 `help(...)` can be used either directly or as a pipeline modifier. The information
-is consumed by usage/help generation; parse and complete delegate to the wrapped
-parser unchanged.
+is consumed by usage and help generation; `parse` and `complete` delegate to the
+wrapped parser unchanged.
+
+This is the main way to annotate parsers with user-facing prose. The same parser
+tree still defines CLI behavior; `help(...)` only enriches that tree with
+documentation.
 
 # Arguments
 - `p::Parser`: The parser to annotate
@@ -250,10 +254,15 @@ parser unchanged.
 ```jldoctest
 julia> using OptParse
 
-julia> parser = flag("-v", "--verbose") |> help("Enable verbose output");
+julia> parser = object((
+           host = option("--host", str("HOST")) |> help("Host", "Hostname to bind"),
+           verbose = flag("-v", "--verbose") |> help("Verbose", "Enable verbose logging"),
+       ));
 
-julia> optparse(parser, ["-v"])
-true
+julia> result = optparse(parser, ["--host", "localhost", "-v"]);
+
+julia> (result.host, result.verbose)
+("localhost", true)
 ```
 
 # See Also
@@ -311,7 +320,8 @@ help(brief::AbstractString, description::AbstractString, footer::AbstractString;
 Hide a parser from usage/help output without changing parsing semantics.
 
 This is equivalent to `help(p; hidden=true)` and supports pipeline style via
-`hidden()`.
+`hidden()`. Hidden parsers still participate in parsing and still contribute
+their values to the final result.
 
 # Examples
 ```jldoctest
@@ -321,6 +331,9 @@ julia> parser = object((debug = flag("--debug") |> hidden(), file = arg(str("FIL
 
 julia> optparse(parser, ["--debug", "input.txt"]).debug
 true
+
+julia> OptParse.render_usage(OptParse.usage(parser))
+"<FILE>"
 ```
 
 # See Also

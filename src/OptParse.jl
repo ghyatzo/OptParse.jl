@@ -56,7 +56,7 @@ export
     u8,
     uuid
 
-public build_help_doc, render_help
+public build_help_doc, render_helpdoc
 
 
 abstract type AbstractParser{T, S, p, P} end
@@ -194,10 +194,80 @@ function recover_usage_context(pp::Parser{T, S}, argv::Vector{String})::Context{
     return ctx
 end
 
+"""
+    build_help_doc(parser, argv)
+
+Build a focused help document for `argv` from `parser`.
+
+This is a structured, cold-path helper used by OptParse's help and error
+rendering machinery. It replays enough parser state to determine the most
+relevant help scope, then returns a [`HelpDoc`](@ref) for that scope.
+
+Unlike `generate_help`, this function returns the intermediate help document
+rather than rendered text. It is useful if you want to inspect or render the
+focused help information yourself.
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> parser = command("serve", object((
+           host = option("--host", str("HOST")),
+           verbose = flag("-v", "--verbose"),
+       )));
+
+julia> doc = OptParse.build_help_doc(parser, ["serve", "--unknown"]);
+
+julia> doc.prefix
+String["serve"]
+```
+
+# See Also
+- `generate_help`
+- `OptParse.render_helpdoc`
+"""
 function build_help_doc(parser, argv)
     ctx = recover_usage_context(parser, argv)
     return focused_helpdoc(parser, ctx, root_overlay_context())
 end
+
+"""
+    generate_help(parser, argv; progname = "")
+
+Generate a rendered help page for `argv` from `parser`.
+
+This is a high-level convenience wrapper around `build_help_doc` and
+`OptParse.render_helpdoc`. It does not decide when help should be shown; it only
+derives and renders the focused help page for the given parser and argument
+vector.
+
+This is useful if you want to handle `--help`, help subcommands, or other
+application-specific help triggers yourself while still reusing OptParse's help
+generation.
+
+# Keyword Arguments
+- `progname::AbstractString = ""`: Program name prefix to render in the usage line
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> parser = command("serve", object((
+           host = option("--host", str("HOST")),
+           verbose = flag("-v", "--verbose"),
+       )));
+
+julia> print(OptParse.generate_help(parser, ["serve"]; progname = "prog"))
+Usage: prog serve --host <HOST> [OPTIONS]
+<BLANKLINE>
+```
+
+# See Also
+- `build_help_doc`
+- [`optparse`](@ref)
+- [`tryoptparse`](@ref)
+"""
+generate_help(parser, argv; progname = "") = render_helpdoc(build_help_doc(parser, argv); progname)
 
 """
     tryoptparse(parser, argv)

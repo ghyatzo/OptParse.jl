@@ -25,12 +25,12 @@ Base.getindex(c::Consumed, i::Int) = begin
 
     isnothing(nextbreak) && throw(BoundsError(c, i))
 
-    pad = nextbreak == 1 ? 0 : breaks[nextbreak-1]
+    pad = nextbreak == 1 ? 0 : breaks[nextbreak - 1]
 
-    return c.buffer[c.ranges[nextbreak][i-pad]]
+    return c.buffer[c.ranges[nextbreak][i - pad]]
 end
 
-Base.iterate(c::Consumed, st::Int=1) =
+Base.iterate(c::Consumed, st::Int = 1) =
     st > length(c) ? nothing : (c[st], st + 1)
 
 """
@@ -38,7 +38,7 @@ Base.iterate(c::Consumed, st::Int=1) =
 
 Construct an empty consumption at position `pos` (range `pos:pos-1`).
 """
-@inline consumed_empty(ctx; pos=ℒ_pos(ctx)) = Consumed(ctx_buffer(ctx), [pos:(pos-1)])
+@inline consumed_empty(ctx; pos = ℒ_pos(ctx)) = Consumed(ctx_buffer(ctx), [pos:(pos - 1)])
 
 # Optional convenience materializers (allocate on demand)
 @inline as_vector(c::Consumed) = collect(c)
@@ -88,8 +88,6 @@ function merge(consumed::Vector{Consumed})
 end
 
 
-
-
 #-----------------------------------------
 #   Results / Errors
 #--------------------------------------------
@@ -123,7 +121,7 @@ res_num_consumed(f::InnerParseFailure) = ℒ_consumed(f)
 res_num_consumed(s::InnerParseSuccess) = length(ℒ_consumed(s))
 res_num_consumed(r::InnerParseResult) =
     is_error(r) ? res_num_consumed(unwrap_error(r)) : res_num_consumed(unwrap(r))
-    
+
 res_nextctx(s::InnerParseSuccess) = ℒ_nextctx(s)
 res_matchcounts(s::InnerParseSuccess) = ℒ_matchcounts(s)
 
@@ -131,18 +129,17 @@ res_error(f::InnerParseFailure) = ℒ_error(f)
 res_error(r::InnerParseResult) = res_error(unwrap_error(r))
 
 
-
-@inline function innerOk(ctx::Context{S}, n::Int; nextctx::Context{S}=consume(ctx, n), counts_as_match=true)::InnerParseResult{S} where {S}
+@inline function innerOk(ctx::Context{S}, n::Int; nextctx::Context{S} = consume(ctx, n), counts_as_match = true)::InnerParseResult{S} where {S}
     p = ctx_pos(ctx)
-    consumed = Consumed(ctx_buffer(ctx), [p:p+n-1])
+    consumed = Consumed(ctx_buffer(ctx), [p:(p + n - 1)])
     return Ok(InnerParseSuccess{S}(consumed, nextctx, counts_as_match))
 end
 
-@inline function innerOk(next::Context{S}, cons::Consumed, counts_as_match=true)::InnerParseResult{S} where {S}
+@inline function innerOk(next::Context{S}, cons::Consumed, counts_as_match = true)::InnerParseResult{S} where {S}
     return Ok(InnerParseSuccess{S}(cons, next, counts_as_match))
 end
 
-@inline function innerErr(ctx::Context{S}, e::ParseError; consumed::Int=0)::InnerParseResult{S} where {S}
+@inline function innerErr(ctx::Context{S}, e::ParseError; consumed::Int = 0)::InnerParseResult{S} where {S}
     return Err(InnerParseFailure(consumed, e))
 end
 
@@ -153,7 +150,6 @@ end
 @inline function innerErr(ctx::Context{S}, res::InnerParseResult)::InnerParseResult{S} where {S}
     return innerErr(ctx, unwrap_error(res))
 end
-
 
 
 const ParseResult{T} = Result{T, ParseError}
@@ -180,5 +176,5 @@ end
 error_with_trace(err::ParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String) =
     error_with_trace(unwrap_error(err), phase, domain, subject)
 
-error_with_trace(err::InnerParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String)=
+error_with_trace(err::InnerParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String) =
     error_with_trace(res_error(err), phase, domain, subject)

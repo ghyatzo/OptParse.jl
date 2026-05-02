@@ -32,7 +32,7 @@ to reflect if it succeded or not. This is the `parse` step.
 
 ## Missing Features:
 
-- [ ] automatic usage and help printing
+- [ ] automatic `--help` / help-subcommand handling
 - [ ] more value parsers (like dates, URIs, date-times...)
 - [ ] `map` modifier, unfortunately until julia has something like `TypedCallabe`s it's impossible to
 ensure type stability with arbitrary functions.
@@ -146,6 +146,8 @@ Enhance parsers with additional behavior:
 - **`optional`** - Convenience wrapper for `default(p, nothing)`
 - **`default`** - Provides a fallback value
 - **`multiple`** - Allows repeated matches, returns a vector
+- **`help`** - Attaches help text to a parser
+- **`hidden`** - Hides a parser from usage/help output while still parsing it
 
 ```julia
 # Optional values
@@ -159,7 +161,17 @@ packages = multiple(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
 
 # Verbosity levels
 verbosity = multiple(gate("-v"))  # -v -v -v or -vvv
+
+# Help annotations
+serve = command("serve", object((
+    host = option("--host", str("HOST")) |> help("Host", "Hostname to bind"),
+    port = default(option("--port", integer("PORT")), 8080) |> help("Port", "TCP port to listen on"),
+    verbose = flag("-v", "--verbose") |> help("Verbose", "Enable verbose logging"),
+)))
 ```
+
+`help(...)` does not change parsing semantics. It annotates the parser tree so
+OptParse can derive richer usage/help output from the same definitions.
 
 ### Constructors
 
@@ -291,7 +303,7 @@ result = tryoptparse(parser, ["-p", "3000"])
 `optparse` returns the parsed value on success and throws `OptParse.ParseException` on failure.
 `tryoptparse` returns a result object instead of throwing, which is useful if you want to inspect failures programmatically.
 
-Rendered error messages are produced centrally from structured internal diagnostics. The exact wording may evolve, but failures are surfaced with parser-specific context, for example invalid values, missing required inputs, or unexpected arguments.
+Rendered error messages are produced centrally from structured internal diagnostics. The exact wording may evolve, but failures are surfaced with parser-specific context, for example invalid values, missing required inputs, or unexpected arguments. In the high-level `optparse` path, the rendered exception also appends a focused usage line derived from the parser tree.
 
 ```julia
 parser = option("-p", integer(min=1000))
