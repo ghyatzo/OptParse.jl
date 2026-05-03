@@ -79,7 +79,7 @@ function helpentries(p::ConstrOr{T, S, _p, PTup}, rt::OverlayContext) where {T, 
         for (i, type) in enumerate(fieldtypes(PTup))
             push!(
                 ex.args,
-                :(append!(entries, @unionsplit helpentries(unwrapunion(p.parsers[$i]), descend_child(rt))::Vector{HelpEntry}))
+                :(append!(entries, @unionsplit helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
             )
         end
         push!(ex.args, :(return entries))
@@ -126,14 +126,15 @@ end
         push!(
             body.args, quote
                 if selected isa $branch_t
-                    return (@unionsplit focused_helpdoc(unwrapunion(p.parsers[$i]), res_nextctx(selected.success), prefix, descend_child(rt)))::HelpDoc
+                    child_context = res_nextctx(selected.success)::Context{branch_state($branch_t)}
+                    return (@unionsplit focused_helpdoc(p.parsers[$i], child_context, prefix, descend_child(rt)))::HelpDoc
                 end
             end
         )
     end
 
     # TODO: Also here is wrong.
-    push!(body.args, :(return HelpDoc(prefix, usage(p), helpinfo(rt), @unionsplit helpentries(p, descend_child(rt)))))
+    push!(body.args, :(return HelpDoc(prefix, usage(p), helpinfo(rt), helpentries(p, descend_child(rt)))))
     return body
 end
 

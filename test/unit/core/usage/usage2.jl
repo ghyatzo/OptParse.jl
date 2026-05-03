@@ -10,6 +10,14 @@ using OptParse:
     UsageRepeat,
     render_usage
 
+focus_helpdoc(parser, ctx) =
+    OptParse.focused_helpdoc(
+        OptParse.unwrapunion(parser),
+        ctx,
+        String[],
+        OptParse.root_overlay_context()
+    )::OptParse.HelpDoc
+
 @testset "should render simple usage leaves" begin
     @test render_usage(UsageFlag(("-v", "--verbose"))) == "--verbose"
     @test render_usage(UsageOption(("--name",), "NAME")) == "--name <NAME>"
@@ -329,11 +337,10 @@ end
     )
 
     ctx = OptParse.recover_usage_context(parser, ["-v", "cmd", "subcmd", "--unknown"])
-    focused = OptParse.focused_helpdoc(parser, ctx, OptParse.root_overlay_context())
+    focused = focus_helpdoc(parser, ctx)
 
     @test focused.prefix == ["cmd", "subcmd"]
     @test render_usage(focused; progname = "prog") == "prog cmd subcmd [OPTIONS] <FILE>"
-    @test_opt OptParse.focused_helpdoc(parser, ctx, OptParse.root_overlay_context())
 end
 
 @testset "should append focused usage when rendering parse exceptions" begin
@@ -383,11 +390,10 @@ end
     )
 
     ctx = OptParse.recover_usage_context(parser, ["run", "localhost", "--unknown"])
-    focused = OptParse.focused_helpdoc(parser, ctx, OptParse.root_overlay_context())
+    focused = focus_helpdoc(parser, ctx)
 
     @test focused.prefix == ["run"]
     @test render_usage(focused; progname = "prog") == "prog run [OPTIONS] (<HOST> | --socket <SOCKET>)"
-    @test_opt OptParse.focused_helpdoc(parser, ctx, OptParse.root_overlay_context())
 end
 
 @testset "should ignore hidden usage nodes inside sequences" begin

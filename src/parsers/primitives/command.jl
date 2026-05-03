@@ -57,7 +57,7 @@ function focused_helpdoc(
             prefix,
             usage(p),
             helpinfo(rt),
-            helpentries(p.parser, descend_child(rt))::Vector{HelpEntry}
+            @unionsplit helpentries(p.parser, descend_child(rt))::Vector{HelpEntry}
         )
     end
 
@@ -66,7 +66,7 @@ function focused_helpdoc(
     child_ctx = widen_restate(tstate(p.parser), ctx, child_state)
     child_prefix = _usage_push_prefix(prefix, first(p.names))
 
-    return focused_helpdoc(p.parser, child_ctx, child_prefix, descend_child(rt))::HelpDoc
+    return @unionsplit focused_helpdoc(p.parser, child_ctx, child_prefix, descend_child(rt))::HelpDoc
 end
 
 function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState{PState}})::InnerParseResult{CommandState{PState}} where {T, PState}

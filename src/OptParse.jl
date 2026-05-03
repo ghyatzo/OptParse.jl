@@ -228,7 +228,7 @@ String["serve"]
 """
 function build_help_doc(parser, argv)
     ctx = recover_usage_context(parser, argv)
-    return focused_helpdoc(parser, ctx, root_overlay_context())
+    return @unionsplit focused_helpdoc(parser, ctx, String[], root_overlay_context())::HelpDoc
 end
 
 """

@@ -86,7 +86,7 @@ function helpentries(p::ConstrObject{T, S, _p, PObj}, rt::OverlayContext) where 
         for (i, type) in enumerate(fieldtypes(PObj))
             push!(
                 ex.args,
-                :(append!(entries, @unionsplit helpentries(unwrapunion(p.parsers[$i]), descend_child(rt))::Vector{HelpEntry}))
+                :(append!(entries, @unionsplit helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
             )
         end
         push!(ex.args, :(return entries))
@@ -125,13 +125,13 @@ end
             body.args, quote
                 child_state = ctx_state(ctx)[$(QuoteNode(field))]::$child_state_t
                 child_ctx = widen_restate($child_state_t, ctx, child_state)
-                child_helpdoc = (@unionsplit focused_helpdoc(unwrapunion(parsers[$(QuoteNode(field))]), child_ctx, prefix, descend_child(rt)))::HelpDoc
+                child_helpdoc = (@unionsplit focused_helpdoc(parsers[$(QuoteNode(field))], child_ctx, prefix, descend_child(rt)))::HelpDoc
 
                 if child_helpdoc.prefix != prefix
                     return child_helpdoc
                 end
 
-                append!(entries, @unionsplit helpentries(unwrapunion(parsers[$(QuoteNode(field))]), descend_child(rt))::Vector{HelpEntry})
+                append!(entries, @unionsplit helpentries(parsers[$(QuoteNode(field))], descend_child(rt))::Vector{HelpEntry})
                 children[$i] = usage(parsers[$(QuoteNode(field))])
             end
         )
