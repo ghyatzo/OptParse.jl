@@ -59,7 +59,7 @@ function focused_helpdoc(
     child_ctx = widen_restate(S, ctx, child_state)
     # we don't reset the OverlayContext because the modifiers are sort of "behavioural overlays"
     # so they can't consume the node local informations.
-    child_focus = focused_helpdoc(p.parser, child_ctx, prefix, rt)
+    child_focus = @unionsplit focused_helpdoc(unwrapunion(p.parser), child_ctx, prefix, rt)::HelpDoc
 
     child_focus.prefix != prefix && return child_focus
     return HelpDoc(prefix, UsageOptional(child_focus.usage), rt.info, HelpEntry[])

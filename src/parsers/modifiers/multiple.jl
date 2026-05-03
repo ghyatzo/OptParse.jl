@@ -70,7 +70,7 @@ function focused_helpdoc(
     child_ctx = widen_restate(S, ctx, child_state)
     # Behavioural modifiers do not introduce a new help scope, so node-local
     # overlay information still belongs to the wrapped parser.
-    child_focus = focused_helpdoc(p.parser, child_ctx, prefix, rt)
+    child_focus = @unionsplit focused_helpdoc(unwrapunion(p.parser), child_ctx, prefix, rt)::HelpDoc
 
     child_focus.prefix != prefix && return child_focus
     return HelpDoc(prefix, UsageRepeat(child_focus.usage, p.min, p.max), rt.info, HelpEntry[])

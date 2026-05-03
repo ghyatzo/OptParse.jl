@@ -1,4 +1,3 @@
-
 struct OverlayContext
     info::HelpInfo
 end

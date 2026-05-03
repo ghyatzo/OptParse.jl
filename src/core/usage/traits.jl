@@ -47,12 +47,20 @@ end
 
 function _tuple_renders_empty(nodes::Vector{UsageNode})
     isempty(nodes) && return true
-    return all(_usage_renders_empty(node) for node in nodes)
+    renders_empty = true
+    for node in nodes
+        renders_empty *= _usage_renders_empty(node)
+    end
+    return renders_empty
 end
 
 function _tuple_nvisible(nodes::Vector{UsageNode})
     isempty(nodes) && return 0
-    return count(!_usage_renders_empty(node) for node in nodes)
+    visibles = 0
+    for node in nodes
+        !_usage_renders_empty(node) && (visibles += 1)
+    end
+    return visibles
 end
 
 @inline _tuple_has_multiple_visible(nodes::Vector{UsageNode}) = _tuple_nvisible(nodes) > 1

@@ -6,6 +6,9 @@ struct OrBranchState{I, S}
     success::InnerParseSuccess{S}
 end
 
+branch_idx(::Type{OrBranchState{I, S}}) where {I, S} = I
+branch_state(::Type{OrBranchState{I, S}}) where {I, S} = S
+
 const OrState{U} = Option{InnerOrState{U}}
 
 @enum OrErrCode::UInt8 begin
@@ -76,7 +79,7 @@ function helpentries(p::ConstrOr{T, S, _p, PTup}, rt::OverlayContext) where {T, 
         for (i, type) in enumerate(fieldtypes(PTup))
             push!(
                 ex.args,
-                :(append!(entries, @unionsplit helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
+                :(append!(entries, @unionsplit helpentries(unwrapunion(p.parsers[$i]), descend_child(rt))::Vector{HelpEntry}))
             )
         end
         push!(ex.args, :(return entries))
@@ -88,8 +91,10 @@ function helpentries(p::ConstrOr{T, S, _p, PTup}, rt::OverlayContext) where {T, 
         end
         return entries
     end
+
 end
-function focused_helpdoc(
+
+@inline function focused_helpdoc(
         p::ConstrOr{T, OrState{U}},
         ctx::Context{OrState{U}},
         prefix::Vector{String},
@@ -117,11 +122,11 @@ end
     for branch_t in Base.uniontypes(U)
         branch_t <: OrBranchState || continue
 
-        i = branch_t.parameters[1]
+        i = branch_idx(branch_t)
         push!(
             body.args, quote
                 if selected isa $branch_t
-                    return focused_helpdoc(p.parsers[$i], res_nextctx(selected.success), prefix, descend_child(rt))
+                    return (@unionsplit focused_helpdoc(unwrapunion(p.parsers[$i]), res_nextctx(selected.success), prefix, descend_child(rt)))::HelpDoc
                 end
             end
         )

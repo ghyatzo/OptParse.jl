@@ -8,6 +8,7 @@ const TRIM_CASES = (
     (name = "tuple_defaults", file = joinpath(TRIM_VARIANTS_DIR, "tuple_defaults.jl"), project = TRIM_PROJ),
     (name = "object_multiple", file = joinpath(TRIM_VARIANTS_DIR, "object_multiple.jl"), project = TRIM_PROJ),
     (name = "nested_constructors", file = joinpath(TRIM_VARIANTS_DIR, "nested_constructors.jl"), project = TRIM_PROJ),
+    (name = "git like", file = joinpath(TRIM_VARIANTS_DIR, "gitlike.jl"), project = TRIM_PROJ),
 )
 
 @testset "Trimming" begin
@@ -32,9 +33,9 @@ const TRIM_CASES = (
                 )
 
             JuliaC.compile_products(img)
-            link = JuliaC.LinkRecipe(image_recipe=img, outname=exeout)
+            link = JuliaC.LinkRecipe(image_recipe = img, outname = exeout)
             JuliaC.link_products(link)
-            bun = JuliaC.BundleRecipe(link_recipe=link, output_dir=outdir)
+            bun = JuliaC.BundleRecipe(link_recipe = link, output_dir = outdir)
             JuliaC.bundle_products(bun)
 
             actual_exe = Sys.iswindows() ?

@@ -20,8 +20,8 @@ const status_cmd = command(
     ))
 )
 
-# const parser = or(sync_cmd, status_cmd)
-const parser = or(sync_cmd)
+const parser = or(sync_cmd, status_cmd)
+# const parser = or(sync_cmd)
 
 function @main(args::Vector{String})::Cint
     _ = optparse(parser, args)

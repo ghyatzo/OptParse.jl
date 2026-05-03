@@ -19,7 +19,10 @@ function usage(p::ModHelp{T, S, _p, P}) where {T, S, _p, P <: AbstractParser{<:A
     child_usage = usage(p.parser)::UsageNode
     return ishidden(p.info) ? UsageHidden(child_usage) : child_usage
 end
-helpentries(p::ModHelp, rt::OverlayContext) = ishidden(p.info) ? HelpEntry[] : helpentries(p.parser, with_helpinfo(rt, p.info))
+
+helpentries(p::ModHelp, rt::OverlayContext) = ishidden(p.info) ? HelpEntry[] :
+    @unionsplit helpentries(unwrapunion(p.parser), with_helpinfo(rt, p.info))::Vector{HelpEntry}
+
 function focused_helpdoc(
         p::ModHelp{T, S, _p, P},
         ctx::Context{S},
@@ -28,9 +31,12 @@ function focused_helpdoc(
     )::HelpDoc where {T, S, _p, P <: AbstractParser{<:Any, S}}
     info = p.info
     info.hidden && return HelpDoc(
-        prefix, UsageHidden(usage(p.parser)::UsageNode), info, helpentries(p.parser, with_helpinfo(rt, info))
+        prefix,
+        UsageHidden(usage(p.parser)::UsageNode),
+        info,
+        @unionsplit helpentries(unwrapunion(p.parser), with_helpinfo(rt, info))::Vector{HelpEntry}
     )
-    return focused_helpdoc(p.parser, ctx, prefix, with_helpinfo(rt, info))
+    return @unionsplit focused_helpdoc(unwrapunion(p.parser), ctx, prefix, with_helpinfo(rt, info))::HelpDoc
 end
 
 @inline function parse(

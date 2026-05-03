@@ -77,14 +77,30 @@ Base.@assume_effects :foldable function _sort_obj_labels(
 end
 
 @inline usage(p::ConstrObject) = UsageObject(_usage_children(values(p.parsers)))
-function helpentries(p::ConstrObject{T, S, _p, PTup}, rt::OverlayContext) where {T, S <: ObjectState, _p, PTup <: Tuple}
-    entries = HelpEntry[]
-    for (child, type) in zip(values(p.parsers), fieldtypes(PTup))
-        append!(entries, @unionsplit helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
+function helpentries(p::ConstrObject{T, S, _p, PObj}, rt::OverlayContext) where {T, S <: ObjectState, _p, PObj <: NamedTuple}
+
+    if @generated
+        ex = quote
+            entries = HelpEntry[]
+        end
+        for (i, type) in enumerate(fieldtypes(PObj))
+            push!(
+                ex.args,
+                :(append!(entries, @unionsplit helpentries(unwrapunion(p.parsers[$i]), descend_child(rt))::Vector{HelpEntry}))
+            )
+        end
+        push!(ex.args, :(return entries))
+        return ex
+    else
+        entries = HelpEntry[]
+        for (child, type) in zip(values(p.parsers), fieldtypes(PObj))
+            append!(entries, @unionsplit helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
+        end
+        return entries
     end
-    return entries
 end
-function focused_helpdoc(
+
+@inline function focused_helpdoc(
         p::ConstrObject{T, S},
         ctx::Context{S},
         prefix::Vector{String},
@@ -109,13 +125,13 @@ end
             body.args, quote
                 child_state = ctx_state(ctx)[$(QuoteNode(field))]::$child_state_t
                 child_ctx = widen_restate($child_state_t, ctx, child_state)
-                child_helpdoc = focused_helpdoc(parsers[$(QuoteNode(field))], child_ctx, prefix, descend_child(rt))::HelpDoc
+                child_helpdoc = (@unionsplit focused_helpdoc(unwrapunion(parsers[$(QuoteNode(field))]), child_ctx, prefix, descend_child(rt)))::HelpDoc
 
                 if child_helpdoc.prefix != prefix
                     return child_helpdoc
                 end
 
-                append!(entries, @unionsplit helpentries(parsers[$(QuoteNode(field))], descend_child(rt))::Vector{HelpEntry})
+                append!(entries, @unionsplit helpentries(unwrapunion(parsers[$(QuoteNode(field))]), descend_child(rt))::Vector{HelpEntry})
                 children[$i] = usage(parsers[$(QuoteNode(field))])
             end
         )
