@@ -107,35 +107,16 @@ end
         helpentries(p, descend_child(rt))::Vector{HelpEntry}
     )
 
-    selected = unwrapunion(unwrap(ctx_state(ctx)))::U
-    return _focused_helpdoc_or(p, selected, prefix, rt)
+    selected = unwrap(ctx_state(ctx))
+    # we unionsplit on the selected branch
+    return @unionsplit _focused_helpdoc_or(p, selected, prefix, rt)
 end
 
-@generated function _focused_helpdoc_or(
-        p::ConstrOr{T, OrState{U}, pprio, PTup},
-        selected::U,
-        prefix::Vector{String},
-        rt::OverlayContext
-    )::HelpDoc where {T, U, pprio, PTup <: Tuple}
-    body = Expr(:block)
-
-    for branch_t in Base.uniontypes(U)
-        branch_t <: OrBranchState || continue
-
-        i = branch_idx(branch_t)
-        push!(
-            body.args, quote
-                if selected isa $branch_t
-                    child_context = res_nextctx(selected.success)::Context{branch_state($branch_t)}
-                    return (@unionsplit focused_helpdoc(p.parsers[$i], child_context, prefix, descend_child(rt)))::HelpDoc
-                end
-            end
-        )
-    end
-
-    # TODO: Also here is wrong.
-    push!(body.args, :(return HelpDoc(prefix, usage(p), helpinfo(rt), helpentries(p, descend_child(rt)))))
-    return body
+function _focused_helpdoc_or(
+        p::ConstrOr, selected::OrBranchState{I, S}, prefix::Vector{String}, rt::OverlayContext
+    )::HelpDoc where {I, S}
+    # then recurse into the selected child pareser
+    return @unionsplit focused_helpdoc(p.parsers[I], res_nextctx(selected.success), prefix, descend_child(rt))
 end
 
 @generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}) where {PTup <: Tuple, U}
