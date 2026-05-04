@@ -119,182 +119,287 @@ function _focused_helpdoc_or(
     return @unionsplit focused_helpdoc(p.parsers[I], res_nextctx(selected.success), prefix, descend_child(rt))
 end
 
-@generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}) where {PTup <: Tuple, U}
-    #=
-    # General loop logic
-    #
-    # current_ctx starts as the original parse context. Unlike a normal branch match,
-    # a control-only success (for example consuming `--`) should not select an `or`
-    # branch, but it *should* mutate the running context for the rest of the search.
-    # This means that later branches are tried against the updated context.
-    #
-    # for branch in branches
-    #     result = parse(branch, current_ctx)
-    #
-    #     if semantic success
-    #         record branch selection
-    #         merge any previously consumed control tokens
-    #         return selected result
-    #
-    #     elseif control-only success
-    #         update current_ctx
-    #         accumulate consumed control tokens
-    #         continue trying later branches
-    #
-    #     else
-    #         maybe update best_error
-    #     end
-    # end
-    #
-    # if current_ctx changed
-    #     return control-only success with accumulated consumption
-    # else
-    #     return best_error
-    # end
-    =#
-    preamble = quote
-        error = ctx_haslessthan(1, ctx) ?
-            InnerParseFailure(0, constror_error(OR_EndOfInput)) :
-            InnerParseFailure(0, constror_error(OR_UnexpectedToken; token = ctx_peek(ctx)))
-        #=Control-only successes should update the running parse context without
-        selecting a branch. This is needed for things like `--`, which changes
-        the global parsing mode but is not itself a semantic branch match.=#
-        current_ctx = ctx
-        allconsumed = Consumed[consumed_empty(ctx)]
+# @generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}) where {PTup <: Tuple, U}
+#     #=
+#     # General loop logic
+#     #
+#     # current_ctx starts as the original parse context. Unlike a normal branch match,
+#     # a control-only success (for example consuming `--`) should not select an `or`
+#     # branch, but it *should* mutate the running context for the rest of the search.
+#     # This means that later branches are tried against the updated context.
+#     #
+#     # for branch in branches
+#     #     result = parse(branch, current_ctx)
+#     #
+#     #     if semantic success
+#     #         record branch selection
+#     #         merge any previously consumed control tokens
+#     #         return selected result
+#     #
+#     #     elseif control-only success
+#     #         update current_ctx
+#     #         accumulate consumed control tokens
+#     #         continue trying later branches
+#     #
+#     #     else
+#     #         maybe update best_error
+#     #     end
+#     # end
+#     #
+#     # if current_ctx changed
+#     #     return control-only success with accumulated consumption
+#     # else
+#     #     return best_error
+#     # end
+#     =#
+#     preamble = quote
+#         error = ctx_haslessthan(1, ctx) ?
+#             InnerParseFailure(0, constror_error(OR_EndOfInput)) :
+#             InnerParseFailure(0, constror_error(OR_UnexpectedToken; token = ctx_peek(ctx)))
+#         #=Control-only successes should update the running parse context without
+#         selecting a branch. This is needed for things like `--`, which changes
+#         the global parsing mode but is not itself a semantic branch match.=#
+#         current_ctx = ctx
+#         allconsumed = Consumed[consumed_empty(ctx)]
+#     end
+#     N = fieldcount(PTup)
+#     unrolled_loop = Expr(:block)
+
+#     for i in 1:N
+#         child_parser_t = fieldtype(PTup, i)
+#         child_parser_tstate = tstate(child_parser_t)
+
+#         push!(
+#             unrolled_loop.args, quote
+#                 parser = parsers[$i]::$child_parser_t
+#                 innerstate = ctx_state(current_ctx)
+#                 has_selection = !is_error(innerstate)
+#                 selected_state = has_selection ? unwrapunion(unwrap(innerstate)) : nothing
+
+#                 #=Once an `or` branch has been selected, it stays selected.
+#             Subsequent parse steps must keep feeding that same branch rather
+#             than letting the other branches compete again.=#
+#                 if !has_selection || (selected_state isa OrBranchState{$i, $child_parser_tstate})
+#                     childstate = has_selection ?
+#                         ℒ_nextstate(selected_state.success)::$child_parser_tstate :
+#                         parser.initialState
+#                     childctx = ctx_with_state(current_ctx, childstate)
+
+#                     result = (@unionsplit parse(parser, childctx))::InnerParseResult{tstate(parser)}
+#                     if !is_error(result) && length(unwrap(result).consumed) > 0
+#                         parse_ok = unwrap(result)
+
+#                         if !parse_ok.counts_as_match
+#                             #=The child parser succeeded, but not in a way that should count
+#                         as a semantic match for this `or`. Propagate the updated
+#                         context and keep looking for a real branch match.=#
+
+#                             if has_selection
+#                                 #=We are already inside this same branch. Preserve that
+#                             selection while surfacing the control-side-effect.=#
+#                                 new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
+#                                 newctx = widen_restate(OrState{$U}, res_nextctx(parse_ok), new_innerstate)
+#                                 push!(allconsumed, res_consumed(parse_ok))
+#                                 current_ctx = newctx
+#                             else
+#                                 #=No branch has been selected yet. Propagate the updated
+#                             context, but leave the `or` state unselected so later
+#                             branches still get a chance to match semantically.=#
+#                                 push!(allconsumed, res_consumed(parse_ok))
+#                                 current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
+#                             end
+#                         else
+#                             new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
+#                             newctx = widen_restate(OrState{$U}, ℒ_nextctx(parse_ok), new_innerstate)
+#                             push!(allconsumed, res_consumed(parse_ok))
+#                             return innerOk(newctx, merge(allconsumed))
+#                         end
+#                     elseif is_error(result)
+#                         if has_selection
+#                             #= the child parser has encountered an error, we should resurface that error instead of the generic =#
+#                             error = error_with_trace(
+#                                 result,
+#                                 ParsePhase,
+#                                 ERR_ConstrOr,
+#                                 "or"
+#                             )
+#                         elseif res_num_consumed(error) < res_num_consumed(result)
+#                             error = unwrap_error(result)
+#                         end
+#                     end
+#                 end
+#             end
+#         )
+#     end
+
+#     epilogue = quote
+#         if current_ctx != ctx
+#             return innerOk(current_ctx, merge(allconsumed), false)
+#         end
+#         return innerErr(current_ctx, error)
+#     end
+
+#     return quote
+#         $preamble
+#         $unrolled_loop
+#         $epilogue
+#     end
+# end
+
+function _parse_branch(
+        p::ConstrOr{T, <:OrState{U}}, selected::OrBranchState{I, S}, currctx::Context{OrState{U}},
+        allconsumed::Vector{Consumed}, error::InnerParseFailure
+    ) where {T, U, I, S}
+
+    child_state = ℒ_nextstate(selected.success)
+    child_ctx = ctx_with_state(currctx, child_state)
+
+    result = @unionsplit parse(p.parsers[I], child_ctx)
+    if !is_error(result) && res_num_consumed(result) > 0
+        parse_ok = unwrap(result)
+
+        new_innerstate = some(InnerOrState{U}(OrBranchState{I, S}(parse_ok)))
+        newctx = widen_restate(OrState{U}, res_nextctx(parse_ok), new_innerstate)
+        push!(allconsumed, res_consumed(parse_ok))
+
+        if !parse_ok.counts_as_match
+            #=The child parser succeeded, but not in a way that should count
+            as a semantic match for this `or`. Propagate the updated
+            context and keep looking for a real branch match.=#
+
+            #=We are already inside this same branch. Preserve that
+            selection while surfacing the control-side-effect.=#
+            if newctx != currctx
+                return innerOk(newctx, merge(allconsumed), false)
+            else
+                return innerErr(newctx, error)
+            end
+        else
+            return innerOk(newctx, merge(allconsumed))
+        end
+    elseif is_error(result)
+        #= the child parser has encountered an error, we should resurface that error instead of the generic =#
+        error = error_with_trace(
+            result, ParsePhase, ERR_ConstrOr, "or"
+        )
     end
+
+    return innerErr(currctx, error)
+end
+
+@generated function _gen_or_parse(
+        parsers::PTup, ctx::Context{OrState{U}}, allconsumed, error
+    ) where {PTup <: Tuple, U}
+
     N = fieldcount(PTup)
-    unrolled_loop = Expr(:block)
+    body = quote
+        currctx = ctx
+    end
 
     for i in 1:N
         child_parser_t = fieldtype(PTup, i)
         child_parser_tstate = tstate(child_parser_t)
 
         push!(
-            unrolled_loop.args, quote
+            body.args, quote
                 parser = parsers[$i]::$child_parser_t
-                innerstate = ctx_state(current_ctx)
-                has_selection = !is_error(innerstate)
-                selected_state = has_selection ? unwrapunion(unwrap(innerstate)) : nothing
+                child_state = parser.initialState::$child_parser_tstate
+                child_ctx = ctx_with_state(currctx, child_state)
 
-                #=Once an `or` branch has been selected, it stays selected.
-            Subsequent parse steps must keep feeding that same branch rather
-            than letting the other branches compete again.=#
-                if !has_selection || (selected_state isa OrBranchState{$i, $child_parser_tstate})
-                    childstate = has_selection ?
-                        ℒ_nextstate(selected_state.success)::$child_parser_tstate :
-                        parser.initialState
-                    childctx = ctx_with_state(current_ctx, childstate)
+                result = @unionsplit parse(parser, child_ctx)
+                if !is_error(result) && res_num_consumed(result) > 0
+                    parse_ok = unwrap(result)
 
-                    result = (@unionsplit parse(parser, childctx))::InnerParseResult{tstate(parser)}
-                    if !is_error(result) && length(unwrap(result).consumed) > 0
-                        parse_ok = unwrap(result)
+                    if !parse_ok.counts_as_match
+                        #=The child parser succeeded, but not in a way that should count
+                    as a semantic match for this `or`. Propagate the updated
+                    context and keep looking for a real branch match.=#
 
-                        if !parse_ok.counts_as_match
-                            #=The child parser succeeded, but not in a way that should count
-                        as a semantic match for this `or`. Propagate the updated
-                        context and keep looking for a real branch match.=#
+                        #=No branch has been selected yet. Propagate the updated
+                    context, but leave the `or` state unselected so later
+                    branches still get a chance to match semantically.=#
 
-                            if has_selection
-                                #=We are already inside this same branch. Preserve that
-                            selection while surfacing the control-side-effect.=#
-                                new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
-                                newctx = widen_restate(OrState{$U}, res_nextctx(parse_ok), new_innerstate)
-                                push!(allconsumed, res_consumed(parse_ok))
-                                current_ctx = newctx
-                            else
-                                #=No branch has been selected yet. Propagate the updated
-                            context, but leave the `or` state unselected so later
-                            branches still get a chance to match semantically.=#
-                                push!(allconsumed, res_consumed(parse_ok))
-                                current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
-                            end
-                        else
-                            new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
-                            newctx = widen_restate(OrState{$U}, ℒ_nextctx(parse_ok), new_innerstate)
-                            push!(allconsumed, res_consumed(parse_ok))
-                            return innerOk(newctx, merge(allconsumed))
-                        end
-                    elseif is_error(result)
-                        if has_selection
-                            #= the child parser has encountered an error, we should resurface that error instead of the generic =#
-                            error = error_with_trace(
-                                result,
-                                ParsePhase,
-                                ERR_ConstrOr,
-                                "or"
-                            )
-                        elseif res_num_consumed(error) < res_num_consumed(result)
-                            error = unwrap_error(result)
-                        end
+                        push!(allconsumed, res_consumed(parse_ok))
+                        currctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(currctx))
+                    else
+                        new_innerstate = some(InnerOrState{U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
+                        newctx = widen_restate(OrState{U}, res_nextctx(parse_ok), new_innerstate)
+                        push!(allconsumed, res_consumed(parse_ok))
+                        return innerOk(newctx, merge(allconsumed))
+                    end
+                elseif is_error(result)
+                    if res_num_consumed(error) < res_num_consumed(result)
+                        error = unwrap_error(result)
                     end
                 end
             end
         )
+
     end
 
     epilogue = quote
-        if current_ctx != ctx
-            return innerOk(current_ctx, merge(allconsumed), false)
+        if currctx != ctx
+            return innerOk(currctx, merge(allconsumed), false)
         end
-        return innerErr(current_ctx, error)
+        return innerErr(currctx, error)
     end
 
     return quote
-        $preamble
-        $unrolled_loop
+        $body
         $epilogue
     end
+
 end
 
-parse(p::ConstrOr{T, OrState{U}}, ctx::Context{OrState{U}}) where {T, U} = let
+parse(p::ConstrOr{T, OrState{U}, _p, PTup}, ctx::Context{OrState{U}}) where {T, U, _p, PTup <: Tuple} = let
 
-    innerstate_U = _or_inner_branch_union(typeof(p.parsers))
+    error = ctx_haslessthan(1, ctx) ?
+        InnerParseFailure(0, constror_error(OR_EndOfInput)) :
+        InnerParseFailure(0, constror_error(OR_UnexpectedToken; token = ctx_peek(ctx)))
+    #=Control-only successes should update the running parse context without
+    selecting a branch. This is needed for things like `--`, which changes
+    the global parsing mode but is not itself a semantic branch match.=#
+    current_ctx = ctx
+    allconsumed = Consumed[consumed_empty(ctx)]
 
-    convert(InnerParseResult{OrState{innerstate_U}}, _generated_or_parse(p.parsers, ctx))
+    innerstate = ctx_state(ctx)
+    has_selection = !is_error(innerstate)
+
+    #=Once an `or` branch has been selected, it stays selected.
+    Subsequent parse steps must keep feeding that same branch rather
+    than letting the other branches compete again.=#
+    if has_selection
+        selected = unwrap(innerstate)
+        res = @unionsplit _parse_branch(p, selected, current_ctx, allconsumed, error)
+    else
+        res = _gen_or_parse(p.parsers, ctx, allconsumed, error)
+    end
+
+    innerstate_U = _or_inner_branch_union(PTup)
+    return convert(InnerParseResult{OrState{innerstate_U}}, res)
 end
 
 function complete(p::ConstrOr{T}, orstate::OrState{U})::ParseResult{T} where {T, U}
     is_error(orstate) &&
         return typedErr(T, constror_error(OR_NoMatch))
 
-    selected = unwrapunion(unwrap(orstate))::U
-    return _gencomplete(p, selected)
+    selected = unwrap(orstate)
+    return @unionsplit _complete(p, selected)
 end
 
-@generated function _gencomplete(
-        p::ConstrOr{T, OrState{U}, pprio, PTup},
-        selected::U,
-    )::ParseResult{T} where {T, U, pprio, PTup <: Tuple}
-    ex = Expr(:block)
+function _complete(
+        p::ConstrOr{T, <:OrState{U}},
+        selected::OrBranchState{I, S}
+    ) where {T, I, S, U}
 
-    for branch_t in Base.uniontypes(U)
-        branch_t <: OrBranchState || continue
-
-        i = branch_t.parameters[1]
-        ptype = fieldtype(PTup, i)
-        out_t = tval(ptype)
-
-        push!(
-            ex.args, quote
-                if selected isa $branch_t
-                    child_result = (@unionsplit complete(p.parsers[$i], ℒ_nextstate(selected.success)))::ParseResult{$out_t}
-                    if is_error(child_result)
-                        return typedErr(
-                            T,
-                            error_with_trace(
-                                child_result,
-                                CompletePhase,
-                                ERR_ConstrOr,
-                                "or"
-                            )
-                        )
-                    end
-                    return typedOk(T, unwrap(child_result)::T)
-                end
-            end
+    child_result = @unionsplit complete(p.parsers[I], ℒ_nextstate(selected.success))
+    if is_error(child_result)
+        return typedErr(
+            T, error_with_trace(
+                child_result, CompletePhase, ERR_ConstrOr, "or"
+            )
         )
     end
 
-    push!(ex.args, :(return typedErr(T, constror_error(OR_Unreachable))))
-    return ex
+    return typedOk(T, unwrap(child_result))
 end
