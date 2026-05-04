@@ -7,6 +7,13 @@
 # function parse end # String -> ParseResult{T}
 # function format end # T -> String
 
+abstract type AbstractValueParser{T} end
+
+metavar(v::AbstractValueParser) = v.metavar
+trymetavar(v::AbstractValueParser) = isempty(metavar(v)) ? default_metavar(v) : metavar(v)
+
+((v::AbstractValueParser{T})(input::String)::ParseResult{T}) where {T} = tryparse(v, input)
+
 
 include("string.jl")
 include("choice.jl")
@@ -14,26 +21,6 @@ include("integer.jl")
 include("float.jl")
 include("uuid.jl")
 include("path.jl")
-
-
-@wrapped struct ValueParser{T}
-    union::Union{
-        StringVal{T},
-        IntegerVal{T},
-        FloatVal{T},
-        Choice{T},
-        UUIDVal{T},
-        PathVal{T}
-    }
-end
-
-Base.getproperty(v::ValueParser, f::Symbol) = @unionsplit Base.getproperty(v, f)
-
-metavar(v::ValueParser) = v.metavar
-trymetavar(v::ValueParser) = isempty(metavar(v)) ? default_metavar(unwrapunion(v)) : metavar(v)
-
-((v::ValueParser{T})(input::String)::ParseResult{T}) where {T} = @unionsplit v(input)
-
 
 """
     str(; kw...)
@@ -66,8 +53,8 @@ julia> optparse(arg(txt), ["readme.md"])
 - [`arg`](@ref): consume a positional value using this parser
 - [`option`](@ref): consume an option value using this parser
 """
-str(; kw...) = ValueParser{String}(StringVal{String}(; kw...))
-str(meta::AbstractString; kw...) = ValueParser{String}(StringVal{String}(; metavar = String(meta), kw...))
+str(; kw...) = StringVal{String}(; kw...)
+str(meta::AbstractString; kw...) = StringVal{String}(; metavar = String(meta), kw...)
 
 """
     choice(values::AbstractVector{<:AbstractString}; kw...)
@@ -101,12 +88,12 @@ julia> optparse(arg(level), ["warn"])
 warn::LogLevel = 1
 ```
 """
-choice(values::AbstractVector{<:AbstractString}; kw...) = ValueParser{String}(Choice(String.(values); kw...))
+choice(values::AbstractVector{<:AbstractString}; kw...) = Choice(String.(values); kw...)
 choice(metavar::AbstractString, values::AbstractVector{<:AbstractString}; kw...) =
-    ValueParser{String}(Choice(String.(values); metavar = String(metavar), kw...))
-choice(::Type{AnEnum}; kw...) where {AnEnum <: Enum} = ValueParser{AnEnum}(Choice(AnEnum; kw...))
+    Choice(String.(values); metavar = String(metavar), kw...)
+choice(::Type{AnEnum}; kw...) where {AnEnum <: Enum} = Choic(AnEnum; kw...)
 choice(metavar::AbstractString, ::Type{AnEnum}; kw...) where {AnEnum <: Enum} =
-    ValueParser{AnEnum}(Choice(AnEnum; metavar = String(metavar), kw...))
+    Choice(AnEnum; metavar = String(metavar), kw...)
 
 """
     integer(::Type{T}; kw...) where {T <: Integer}
@@ -142,11 +129,11 @@ julia> optparse(arg(small), ["12"])
 - [`i8`](@ref), [`i16`](@ref), [`i32`](@ref), [`i64`](@ref)
 - [`u8`](@ref), [`u16`](@ref), [`u32`](@ref), [`u64`](@ref)
 """
-integer(::Type{T}; kw...) where {T <: Integer} = ValueParser{T}(IntegerVal{T}(; type = T, kw...))
+integer(::Type{T}; kw...) where {T <: Integer} = IntegerVal{T}(; type = T, kw...)
 integer(metavar::AbstractString, ::Type{T}; kw...) where {T <: Integer} =
-    ValueParser{T}(IntegerVal{T}(; metavar = String(metavar), type = T, kw...))
-integer(; kw...) = ValueParser{Int}(IntegerVal{Int}(; kw...))
-integer(metavar::AbstractString; kw...) = ValueParser{Int}(IntegerVal{Int}(; metavar = String(metavar), kw...))
+    IntegerVal{T}(; metavar = String(metavar), type = T, kw...)
+integer(; kw...) = IntegerVal{Int}(; kw...)
+integer(metavar::AbstractString; kw...) = IntegerVal{Int}(; metavar = String(metavar), kw...)
 
 """
     i8(; kw...)
@@ -261,9 +248,9 @@ Float32
 - [`flt32`](@ref)
 - [`flt64`](@ref)
 """
-flt(::Type{T}; kw...) where {T} = ValueParser{T}(FloatVal{T}(; type = T, kw...))
+flt(::Type{T}; kw...) where {T} = FloatVal{T}(; type = T, kw...)
 flt(metavar::AbstractString, ::Type{T}; kw...) where {T} =
-    ValueParser{T}(FloatVal{T}(; metavar = String(metavar), type = T, kw...))
+    FloatVal{T}(; metavar = String(metavar), type = T, kw...)
 flt(; kw...) = flt64(; kw...)
 flt(metavar::AbstractString; kw...) = flt64(metavar; kw...)
 
@@ -312,8 +299,8 @@ julia> typeof(val)
 UUID
 ```
 """
-uuid(; kw...) = ValueParser{UUID}(UUIDVal{UUID}(; kw...))
-uuid(metavar::AbstractString; kw...) = ValueParser{UUID}(UUIDVal{UUID}(; metavar = String(metavar), kw...))
+uuid(; kw...) = UUIDVal{UUID}(; kw...)
+uuid(metavar::AbstractString; kw...) = UUIDVal{UUID}(; metavar = String(metavar), kw...)
 
 # TODO: maybe add also file and directory
 """
@@ -339,5 +326,5 @@ julia> typeof(file)
 OptParse.ValueParser{String}
 ```
 """
-path(; kw...) = ValueParser{String}(PathVal{String}(; kw...))
-path(metavar::AbstractString; kw...) = ValueParser{String}(PathVal{String}(; metavar = String(metavar), kw...))
+path(; kw...) = PathVal{String}(; kw...)
+path(metavar::AbstractString; kw...) = PathVal{String}(; metavar = String(metavar), kw...)

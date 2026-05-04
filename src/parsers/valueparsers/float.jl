@@ -1,4 +1,4 @@
-@kwdef struct FloatVal{T}
+@kwdef struct FloatVal{T} <: AbstractValueParser{T}
     metavar::String = ""
     #
     type::Type = T
@@ -18,15 +18,16 @@ default_metavar(::FloatVal) = "FLOAT"
     FLOAT_NoNaN
 end
 
-floatval_error(code::FloatErrCode; token="", detail="", subject="") =
-    mkerror(ValuePhase, ERR_FloatVal, UInt8(code);
-        token,
-        detail,
-        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_FloatVal, subject)]
-    )
+floatval_error(code::FloatErrCode; token = "", detail = "", subject = "") =
+    mkerror(
+    ValuePhase, ERR_FloatVal, UInt8(code);
+    token,
+    detail,
+    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_FloatVal, subject)]
+)
 
 function floatval_render_error(io::IO, code::FloatErrCode, err::ParseError)
-    if code == FLOAT_Invalid
+    return if code == FLOAT_Invalid
         print(io, "Expected a valid float, got $(err.token)")
     elseif code == FLOAT_BelowMin
         print(io, "Value $(err.token) is below the minimum allowed: $(err.detail)")
@@ -45,22 +46,22 @@ end
 ((f::FloatVal{T})(input::String)::ParseResult{T}) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
-        return typedErr(floatval_error(FLOAT_Invalid; token=input))
+        return typedErr(floatval_error(FLOAT_Invalid; token = input))
         # return typedErr("Expected valid float, got `$input`")
     end
 
     if isinf(val) && !f.allowInfinity
-        return typedErr(floatval_error(FLOAT_NoInf; token=input))
+        return typedErr(floatval_error(FLOAT_NoInf; token = input))
         # return typedErr("Infinite floats are not allowed.")
     end
 
     if isnan(val) && !f.allowNan
-        return typedErr(floatval_error(FLOAT_NoNaN; token=input))
+        return typedErr(floatval_error(FLOAT_NoNaN; token = input))
         # return typedErr("NaNs are not allowed.")
     end
 
-    (!isnothing(f.min) && val < f.min) && return typedErr(floatval_error(FLOAT_BelowMin; token=input, detail=string(f.min)))
-    (!isnothing(f.max) && val > f.max) && return typedErr(floatval_error(FLOAT_AboveMax; token=input, detail=string()))
+    (!isnothing(f.min) && val < f.min) && return typedErr(floatval_error(FLOAT_BelowMin; token = input, detail = string(f.min)))
+    (!isnothing(f.max) && val > f.max) && return typedErr(floatval_error(FLOAT_AboveMax; token = input, detail = string()))
     # (!isnothing(f.min) && val < f.min) && return typedErr("Value $input is below the minimum: $(f.min)")
     # (!isnothing(f.max) && val > f.max) && return typedErr("Value $input is above the maximum: $(f.max)")
 

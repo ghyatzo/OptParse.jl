@@ -412,16 +412,16 @@ Release::Mode = 1
 """
 function option end
 
-option(names::Tuple{Vararg{String}}, valparser::ValueParser{T}) where {T} =
+option(names::Tuple{Vararg{String}}, valparser::AbstractValueParser) =
     _parser(ArgOption(names, valparser))
-option(opt1::String, valparser::ValueParser{T}) where {T} =
+option(opt1::String, valparser::AbstractValueParser) =
     _parser(ArgOption((opt1,), valparser))
-option(opt1::String, opt2::String, valparser::ValueParser{T}) where {T} =
+option(opt1::String, opt2::String, valparser::AbstractValueParser) =
     _parser(ArgOption((opt1, opt2), valparser))
-option(opt1::String, opt2::String, opt3::String, valparser::ValueParser{T}) where {T} =
+option(opt1::String, opt2::String, opt3::String, valparser::AbstractValueParser) =
     _parser(ArgOption((opt1, opt2, opt3), valparser))
 
-option(names::Tuple{Vararg{String}}) = (valp::ValueParser) -> option(names, valp)
+option(names::Tuple{Vararg{String}}) = (valp::AbstractValueParser) -> option(names, valp)
 
 ## Gate
 
@@ -703,8 +703,8 @@ julia> result.input
 """
 function arg end
 
-arg(valparser::ValueParser{T}) where {T} = _parser(ArgArgument(valparser))
-arg() = (valp::ValueParser) -> arg(valp)
+arg(valparser::AbstractValueParser) = _parser(ArgArgument(valparser))
+arg() = (valp::AbstractValueParser) -> arg(valp)
 
 ## command
 

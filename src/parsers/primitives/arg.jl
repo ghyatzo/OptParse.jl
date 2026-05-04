@@ -36,13 +36,10 @@ end
 
 struct ArgArgument{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S
-    _dummy::P
-    #
-    valparser::ValueParser{T}
+    valparser::P
 
-
-    ArgArgument(valparser::ValueParser{T}) where {T} =
-        new{T, ArgumentState{T}, 5, Nothing}(none(ParseResult{T}), nothing, valparser)
+    ArgArgument(valparser::AbstractValueParser{T}) where {T} =
+        new{T, ArgumentState{T}, 5, typeof(valparser)}(none(ParseResult{T}), valparser)
 end
 
 usage(p::ArgArgument) = UsageArgument(trymetavar(p.valparser))

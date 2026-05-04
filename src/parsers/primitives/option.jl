@@ -38,13 +38,12 @@ end
 # options with values: -o 123 / --option valu
 struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S
-    _dummy::P
+    valparser::P
     #
-    valparser::ValueParser{T}
     names::Vector{String}
 
 
-    ArgOption(names::Tuple{Vararg{String}}, valparser::ValueParser{T}) where {T} = begin
+    ArgOption(names::Tuple{Vararg{String}}, valparser::AbstractValueParser{T}) where {T} = begin
         for name in names
             if !startswith(name, r"^--?[^-]")
                 throw(ArgumentError("Flags and option names must start with `-` or `--`."))
@@ -54,9 +53,8 @@ struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
             end
         end
 
-        new{T, OptionState{T}, 10, Nothing}(
+        new{T, OptionState{T}, 10, typeof(valparser)}(
             typedErr(argoption_error(OPTION_Missing; detail = "$(names)")),
-            nothing,
             valparser,
             [names...]
         )

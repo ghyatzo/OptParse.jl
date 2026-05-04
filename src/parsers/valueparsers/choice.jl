@@ -1,4 +1,4 @@
-struct Choice{T}
+struct Choice{T} <: AbstractValueParser{T}
     metavar::String
     caseInsensitive::Bool
     values::Vector{String}
@@ -9,7 +9,7 @@ struct Choice{T}
         new{String}(metavar, caseInsensitive, normvals, normvals)
     end
 
-    Choice(enumtype::Type{<:Enum}; metavar = "", caseInsensitive = true ) = let
+    Choice(enumtype::Type{<:Enum}; metavar = "", caseInsensitive = true) = let
         enumtypes = instances(enumtype)
         values = collect(string.(enumtypes))
         outputs = collect(enumtypes)
@@ -24,15 +24,16 @@ default_metavar(::Choice) = "CHOICE"
     CHOICE_Invalid
 end
 
-choice_error(code::ChoiceErrCode; token="", detail="", subject="") =
-    mkerror(ValuePhase, ERR_ChoiceVal, UInt8(code);
-        token,
-        detail,
-        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_ChoiceVal, subject)]
-    )
+choice_error(code::ChoiceErrCode; token = "", detail = "", subject = "") =
+    mkerror(
+    ValuePhase, ERR_ChoiceVal, UInt8(code);
+    token,
+    detail,
+    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_ChoiceVal, subject)]
+)
 
 function choice_render_error(io::IO, code::ChoiceErrCode, err::ParseError)
-    if code == CHOICE_Invalid
+    return if code == CHOICE_Invalid
         print(io, "Expected one of [$(err.detail)], got $(err.token)")
     else
         print(io, "unreachable")
@@ -43,11 +44,13 @@ end
     norminput = c.caseInsensitive ? uppercase(input) : input
     index = findfirst(==(norminput), c.values)
 
-    isnothing(index) && return typedErr(choice_error(
-        CHOICE_Invalid;
-        token = input,
-        detail = join(c.values, ',')
-    ))
+    isnothing(index) && return typedErr(
+        choice_error(
+            CHOICE_Invalid;
+            token = input,
+            detail = join(c.values, ',')
+        )
+    )
 
     return typedOk(c.outputs[index])
 

@@ -1,4 +1,4 @@
-@kwdef struct IntegerVal{T}
+@kwdef struct IntegerVal{T} <: AbstractValueParser{T}
     metavar::String = ""
     #
     type::Type = T
@@ -14,15 +14,16 @@ default_metavar(::IntegerVal) = "INTEGER"
     INTEGER_AboveMax
 end
 
-integerval_error(code::IntegerErrCode; token="", detail="", subject="") =
-    mkerror(ValuePhase, ERR_IntegerVal, UInt8(code);
-        token,
-        detail,
-        trace= isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_IntegerVal, subject)]
-    )
+integerval_error(code::IntegerErrCode; token = "", detail = "", subject = "") =
+    mkerror(
+    ValuePhase, ERR_IntegerVal, UInt8(code);
+    token,
+    detail,
+    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_IntegerVal, subject)]
+)
 
 function integerval_render_error(io::IO, code::IntegerErrCode, err::ParseError)
-    if code == INTEGER_Invalid
+    return if code == INTEGER_Invalid
         print(io, "Expected a valid integer, got $(err.token)")
     elseif code == INTEGER_BelowMin
         print(io, "Value $(err.token) is below the minimum allowed: $(err.detail)")
@@ -37,14 +38,16 @@ end
 ((iv::IntegerVal{T})(input::String)::ParseResult{T}) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
-        return typedErr(integerval_error(
-            INTEGER_Invalid;
-            token=input
-        ))
+        return typedErr(
+            integerval_error(
+                INTEGER_Invalid;
+                token = input
+            )
+        )
     end
 
-    (!isnothing(iv.min) && val < iv.min) && return typedErr(integerval_error(INTEGER_BelowMin; token=input, detail=string(iv.min)))
-    (!isnothing(iv.max) && val > iv.max) && return typedErr(integerval_error(INTEGER_AboveMax; token=input, detail=string(iv.max)))
+    (!isnothing(iv.min) && val < iv.min) && return typedErr(integerval_error(INTEGER_BelowMin; token = input, detail = string(iv.min)))
+    (!isnothing(iv.max) && val > iv.max) && return typedErr(integerval_error(INTEGER_AboveMax; token = input, detail = string(iv.max)))
 
     return typedOk(val)
 end
