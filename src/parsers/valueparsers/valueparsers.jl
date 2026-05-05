@@ -91,7 +91,7 @@ warn::LogLevel = 1
 choice(values::AbstractVector{<:AbstractString}; kw...) = Choice(String.(values); kw...)
 choice(metavar::AbstractString, values::AbstractVector{<:AbstractString}; kw...) =
     Choice(String.(values); metavar = String(metavar), kw...)
-choice(::Type{AnEnum}; kw...) where {AnEnum <: Enum} = Choic(AnEnum; kw...)
+choice(::Type{AnEnum}; kw...) where {AnEnum <: Enum} = Choice(AnEnum; kw...)
 choice(metavar::AbstractString, ::Type{AnEnum}; kw...) where {AnEnum <: Enum} =
     Choice(AnEnum; metavar = String(metavar), kw...)
 

@@ -69,15 +69,15 @@ end
         prefix::Vector{String},
         rt::OverlayContext
     )::HelpDoc where {T, S <: Tuple}
-    return _focused_helpdoc_tuple(p.parsers, ctx, prefix, rt)
+    return _focused_helpdoc_tuple(p, ctx, prefix, rt)
 end
 
 @generated function _focused_helpdoc_tuple(
-        parsers::PTup,
+        p::ConstrTuple{T, S, _p, PTup},
         ctx::Context{S},
         prefix::Vector{String},
         rt::OverlayContext
-    ) where {PTup <: Tuple, S <: Tuple}
+    ) where {T, _p, PTup <: Tuple, S <: Tuple}
     N = fieldcount(PTup)
     body = Expr(:block)
 
@@ -87,23 +87,21 @@ end
             body.args, quote
                 child_state = ctx_state(ctx)[$i]::$child_state_t
                 child_ctx = widen_restate($child_state_t, ctx, child_state)
-                child_helpdoc = (@unionsplit focused_helpdoc(parsers[$i], child_ctx, prefix, descend_child(rt)))::HelpDoc
+                child_helpdoc = (@unionsplit focused_helpdoc(p.parsers[$i], child_ctx, prefix, descend_child(rt)))::HelpDoc
 
                 if child_helpdoc.prefix != prefix
                     return child_helpdoc
                 end
 
-                append!(entries, @unionsplit helpentries(parsers[$i], descend_child(rt))::Vector{HelpEntry})
-                children[$i] = usage(parsers[$i])
+                append!(entries, @unionsplit helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry})
             end
         )
     end
 
     return quote
-        children = Vector{UsageNode}(undef, $N)
         entries = HelpEntry[]
         $body
-        return HelpDoc(prefix, UsageTuple(children), helpinfo(rt), entries)
+        return HelpDoc(prefix, usage(p), helpinfo(rt), entries)
     end
 end
 

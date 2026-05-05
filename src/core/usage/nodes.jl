@@ -95,9 +95,12 @@ end
 
 @generated function _usage_children(parsers::PTup) where {PTup <: Tuple}
     N = fieldcount(PTup)
+
+    perm = tupsortperm(fieldtypes(PTup); by = priority, rev = true)
+
     body = Expr(:block)
     for i in 1:N
-        push!(body.args, :(children[$i] = usage(parsers[$i])::UsageNode))
+        push!(body.args, :(children[$i] = usage(parsers[$(perm[i])])::UsageNode))
     end
 
     return quote
