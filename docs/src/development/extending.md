@@ -12,11 +12,10 @@ The shortest path is:
 3. define its call overload `(::YourValueParser)(input::String)::ParseResult{T}`
 4. define `default_metavar(::YourValueParser)` if applicable
 5. include it from `src/parsers/valueparsers/valueparsers.jl`
-6. add it to the wrapped `ValueParser` union
-7. add exported constructor functions and docstrings in `valueparsers.jl`
-8. add compact display support in `src/display/parser_show.jl` if needed
-9. add unit tests
-10. add it to `docs/src/reference.md` if it is public
+6. add exported constructor functions and docstrings in `valueparsers.jl`
+7. add compact display support in `src/display/parser_show.jl` if needed
+8. add unit tests
+9. add it to `docs/src/reference.md` if it is public
 
 ### Expected shape
 
@@ -73,7 +72,6 @@ Before considering a value parser done, verify:
 
 - parse returns `ParseResult{T}`
 - errors are family-specific and rendered through `render_error`
-- the constructor is in the wrapped `ValueParser` union
 - the public constructor is exported if intended to be public
 - `show` output is readable
 - docstrings exist
@@ -92,7 +90,7 @@ The shortest path is:
 6. implement `parse`
 7. implement `complete`
 8. include it from the family include file
-9. add it to the wrapped `Parser` union in `src/parsers/parser.jl`
+9. make sure child parser fields stay concrete and parametric
 10. add the public constructor function and docstring in `src/parsers/parser.jl`
 11. add `show_compact` / `show_pretty` support if needed
 12. add tests
@@ -140,7 +138,7 @@ Before considering a parser family done, verify:
 - the state alias is explicit
 - `parse` and `complete` signatures reflect the real invariant state type
 - family-specific errors render correctly
-- the family was added to the wrapped `Parser` union
+- child parser fields stay concrete and parametric
 - the public constructor exists and is exported if public
 - `show` output is useful
 - docs/examples/reference mention the new parser if public
@@ -174,4 +172,3 @@ Documenter will complain if:
 So when adding a public constructor, always update:
 
 - `docs/src/reference.md`
-

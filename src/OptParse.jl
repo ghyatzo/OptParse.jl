@@ -168,7 +168,7 @@ function no_progress(previous_buffer, ctx)
 end
 
 
-function recover_usage_context(pp::Parser{T, S}, argv::Vector{String})::Context{S} where {T, S}
+function recover_usage_context(pp::AbstractParser{T, S}, argv::Vector{String})::Context{S} where {T, S}
     canonical_argv, _ = normalize_argv(argv)
     ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = @unionsplit usage(pp))
 
@@ -278,7 +278,7 @@ Lower-level parsing entrypoint.
 Returns a result object containing either the parsed value or a structured parse failure.
 Unlike [`optparse`](@ref), this function does not throw on parse failures.
 """
-function tryoptparse(pp::Parser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}
+function tryoptparse(pp::AbstractParser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}
 
     canonical_argv, _ = normalize_argv(args)
     ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = @unionsplit usage(pp))
@@ -326,7 +326,7 @@ If you need stable non-throwing behavior across environments, use
 """
 @static if juliac
 
-    function optparse(pp::Parser{T}, args::Vector{String})::Union{T, Nothing} where {T}
+    function optparse(pp::AbstractParser{T}, args::Vector{String})::Union{T, Nothing} where {T}
         mayberes = tryoptparse(pp, args)::ParseResult{T}
 
         if is_error(mayberes)
@@ -348,7 +348,7 @@ If you need stable non-throwing behavior across environments, use
 
 else
 
-    function optparse(pp::Parser{T}, args::Vector{String})::T where {T}
+    function optparse(pp::AbstractParser{T}, args::Vector{String})::T where {T}
         mayberes = tryoptparse(pp, args)::ParseResult{T}
 
         if is_error(mayberes)

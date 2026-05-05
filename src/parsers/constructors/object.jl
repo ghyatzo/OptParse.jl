@@ -33,8 +33,11 @@ struct ConstrObject{T, S, p, P} <: AbstractParser{T, S, p, P}
     label::String
 end
 
-function ConstrObject(parsers_obj::NamedTuple; label = "")
-    labels = keys(parsers_obj)
+
+function ConstrObject(parsers_obj::NT; label = "") where {NT <: NamedTuple}
+    labels = fieldnames(NT)
+    N = fieldcount(NT)
+
     parsers_t = fieldtypes(typeof(parsers_obj))
     parsers = values(parsers_obj)
     parsers_tvals = map(tval, parsers_t)
@@ -86,7 +89,7 @@ function helpentries(p::ConstrObject{T, S, _p, PObj}, rt::OverlayContext) where 
         for (i, type) in enumerate(fieldtypes(PObj))
             push!(
                 ex.args,
-                :(append!(entries, @unionsplit helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
+                :(append!(entries, helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
             )
         end
         push!(ex.args, :(return entries))
@@ -94,7 +97,7 @@ function helpentries(p::ConstrObject{T, S, _p, PObj}, rt::OverlayContext) where 
     else
         entries = HelpEntry[]
         for (child, type) in zip(values(p.parsers), fieldtypes(PObj))
-            append!(entries, @unionsplit helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
+            append!(entries, helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
         end
         return entries
     end
@@ -125,13 +128,13 @@ end
             body.args, quote
                 child_state = ctx_state(ctx)[$i]::$child_state_t
                 child_ctx = widen_restate($child_state_t, ctx, child_state)
-                child_helpdoc = (@unionsplit focused_helpdoc(p.parsers[$i], child_ctx, prefix, descend_child(rt)))::HelpDoc
+                child_helpdoc = (focused_helpdoc(p.parsers[$i], child_ctx, prefix, descend_child(rt)))::HelpDoc
 
                 if child_helpdoc.prefix != prefix
                     return child_helpdoc
                 end
 
-                append!(entries, @unionsplit helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry})
+                append!(entries, helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry})
             end
         )
     end
@@ -157,7 +160,7 @@ end
                 child_state = child_state_lens(current_ctx)
                 child_ctx = widen_restate(tstate(child_parser), current_ctx, child_state)
 
-                result = (@unionsplit parse(child_parser, child_ctx))::InnerParseResult{tstate(child_parser)}
+                result = (parse(child_parser, child_ctx))::InnerParseResult{tstate(child_parser)}
 
                 if is_error(result)
                     parse_err = unwrap_error(result)
@@ -263,7 +266,7 @@ end
                 child_state = state[$(QuoteNode(field))]::$S
                 child_parser = p[$(QuoteNode(field))]
 
-                result = (@unionsplit complete(child_parser, child_state))::ParseResult{$Ti}
+                result = (complete(child_parser, child_state))::ParseResult{$Ti}
                 if is_error(result)
                     return false, ParseResult{$T}(typedErr(unwrap_error(result)))
                 else

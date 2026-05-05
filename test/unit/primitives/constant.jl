@@ -33,10 +33,10 @@ end
     boolconst = @constant(true)
     namedtupleconst = @constant((key = :value,))
 
-    @test val(@? complete(unwrapunion(stringconst), Val(:hello))) == :hello
-    @test val(@? complete(unwrapunion(intconst), Val(123))) == 123
-    @test val(@? complete(unwrapunion(boolconst), Val(true))) == true
-    @test val(@? complete(unwrapunion(namedtupleconst), Val((key = :value,)))) == (key = :value,)
+    @test val(@? complete(stringconst, Val(:hello))) == :hello
+    @test val(@? complete((intconst), Val(123))) == 123
+    @test val(@? complete((boolconst), Val(true))) == true
+    @test val(@? complete((namedtupleconst), Val((key = :value,)))) == (key = :value,)
 end
 
 @testset "should be type stable" begin

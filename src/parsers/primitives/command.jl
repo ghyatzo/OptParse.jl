@@ -33,7 +33,7 @@ struct ArgCommand{T, S, _p, P} <: AbstractParser{T, S, _p, P}
     #
     names::Vector{String}
 
-    ArgCommand(names::Tuple{Vararg{String}}, parser::P) where {P} =
+    ArgCommand(names::Tuple{Vararg{String}}, parser::P) where {P <: AbstractParser} =
         new{tval(P), CommandState{tstate(P)}, 15, P}(
         none(Option{tstate(P)}),
         parser,
@@ -57,7 +57,7 @@ function focused_helpdoc(
             prefix,
             usage(p),
             helpinfo(rt),
-            @unionsplit helpentries(p.parser, descend_child(rt))::Vector{HelpEntry}
+            helpentries(p.parser, descend_child(rt))::Vector{HelpEntry}
         )
     end
 
@@ -66,7 +66,7 @@ function focused_helpdoc(
     child_ctx = widen_restate(tstate(p.parser), ctx, child_state)
     child_prefix = _usage_push_prefix(prefix, first(p.names))
 
-    return @unionsplit focused_helpdoc(p.parser, child_ctx, child_prefix, descend_child(rt))::HelpDoc
+    return focused_helpdoc(p.parser, child_ctx, child_prefix, descend_child(rt))::HelpDoc
 end
 
 function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState{PState}})::InnerParseResult{CommandState{PState}} where {T, PState}
@@ -92,7 +92,7 @@ function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState
         childstate = isnothing(maybestate) ? p.parser.initialState : @something maybestate
         childctx = widen_restate(tstate(p.parser), ctx, childstate)
 
-        result = parse(unwrapunion(p.parser), childctx)::InnerParseResult{PState}
+        result = parse(p.parser, childctx)::InnerParseResult{PState}
 
         if !is_error(result)
             parse_ok = unwrap(result)
@@ -119,9 +119,9 @@ function complete(p::ArgCommand{T, CommandState{PState}}, maybemaybestate::Comma
         maybestate = unwrap(maybemaybestate)
         result = if is_error(maybestate)
             # command matched but the inner parser never started: pass in the initialState
-            complete(unwrapunion(p.parser), p.parser.initialState)
+            complete(p.parser, p.parser.initialState)
         else
-            complete(unwrapunion(p.parser), unwrap(maybestate))
+            complete(p.parser, unwrap(maybestate))
         end
         return !is_error(result) ? result : typedErr(
                 error_with_trace(

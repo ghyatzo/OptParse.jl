@@ -28,7 +28,7 @@ When adding a parser family, add:
 ## JET-Specific Lesson
 
 A runtime path may be perfectly fine while JET still reports a dispatch problem if
-wrapped-union branches are not trimmed by method signatures.
+impossible parser-family instantiations are not ruled out by method signatures.
 
 When that happens, check:
 
@@ -40,9 +40,9 @@ Do not paper over this with assertions first. Tighten the family invariants firs
 
 ## Why Tight State Dispatch Matters
 
-The public `Parser` wrapper is a `@wrapped` union over all parser families.
-That means inference will consider many possible parser-family arms unless your
-method signatures rule impossible ones out early.
+Even with a concrete parser tree, inference will consider many possible
+parser-family instantiations unless your method signatures rule impossible ones
+out early.
 
 This is why a family-specific method like:
 
@@ -59,7 +59,7 @@ function parse(p::ArgOption, ctx::Context)
 The tight version:
 
 - documents the actual invariant of the family
-- trims impossible union arms sooner
+- trims impossible instantiations sooner
 - keeps JET focused on reachable execution paths
 - usually improves trimming behavior as well
 
@@ -76,7 +76,7 @@ function parse(p::ModHelp{T,S,_p,P}, ctx::Context{S}) where {T,S,_p,P}
 
 Runtime construction may guarantee that `P` is a parser whose state is `S`, but
 the method signature does not say that. JET can then explore impossible
-instantiations of `P`, such as a wrapped parser whose state does not match
+instantiations of `P`, such as a child parser whose state does not match
 `Context{S}`.
 
 Prefer:

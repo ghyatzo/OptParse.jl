@@ -79,7 +79,7 @@ function helpentries(p::ConstrOr{T, S, _p, PTup}, rt::OverlayContext) where {T, 
         for (i, type) in enumerate(fieldtypes(PTup))
             push!(
                 ex.args,
-                :(append!(entries, @unionsplit helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
+                :(append!(entries, helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
             )
         end
         push!(ex.args, :(return entries))
@@ -87,7 +87,7 @@ function helpentries(p::ConstrOr{T, S, _p, PTup}, rt::OverlayContext) where {T, 
     else
         entries = HelpEntry[]
         for (child, type) in zip(values(p.parsers), fieldtypes(PTup))
-            append!(entries, @unionsplit helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
+            append!(entries, helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
         end
         return entries
     end
@@ -116,7 +116,7 @@ function _focused_helpdoc_or(
         p::ConstrOr, selected::OrBranchState{I, S}, prefix::Vector{String}, rt::OverlayContext
     )::HelpDoc where {I, S}
     # then recurse into the selected child pareser
-    return @unionsplit focused_helpdoc(p.parsers[I], res_nextctx(selected.success), prefix, descend_child(rt))
+    return focused_helpdoc(p.parsers[I], res_nextctx(selected.success), prefix, descend_child(rt))
 end
 
 # @generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}) where {PTup <: Tuple, U}
@@ -254,7 +254,7 @@ function _parse_branch(
     child_state = ℒ_nextstate(selected.success)
     child_ctx = ctx_with_state(currctx, child_state)
 
-    result = @unionsplit parse(p.parsers[I], child_ctx)
+    result = parse(p.parsers[I], child_ctx)
     if !is_error(result) && res_num_consumed(result) > 0
         parse_ok = unwrap(result)
 
@@ -306,7 +306,7 @@ end
                 child_state = parser.initialState::$child_parser_tstate
                 child_ctx = ctx_with_state(currctx, child_state)
 
-                result = @unionsplit parse(parser, child_ctx)
+                result = parse(parser, child_ctx)
                 if !is_error(result) && res_num_consumed(result) > 0
                     parse_ok = unwrap(result)
 
@@ -392,7 +392,7 @@ function _complete(
         selected::OrBranchState{I, S}
     ) where {T, I, S, U}
 
-    child_result = @unionsplit complete(p.parsers[I], ℒ_nextstate(selected.success))
+    child_result = complete(p.parsers[I], ℒ_nextstate(selected.success))
     if is_error(child_result)
         return typedErr(
             T, error_with_trace(

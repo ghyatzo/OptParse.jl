@@ -2,7 +2,7 @@
     parser = arg(str(; metavar = "FILE"))
 
     @test priority(parser) == 5
-    @test getproperty(unwrapunion(parser), :initialState) === none(OptParse.ParseResult{String})
+    @test getproperty((parser), :initialState) === none(OptParse.ParseResult{String})
 end
 
 @testset "should parse a string argument" begin
@@ -62,7 +62,7 @@ end
 
 @testset "should propagate value parser failures" begin
     parser = arg(integer(; min = 1, max = 100))
-    state = getproperty(unwrapunion(parser), :initialState)
+    state = getproperty((parser), :initialState)
     buffer = ["invalid"]
     ctx = mkctx(buffer, state)
 
@@ -121,7 +121,7 @@ end
     ctx = mkctx(["abc", "--"], parser.initialState)
     presult = splitparse(parser, ctx)
     @test !is_error(presult)
-    
+
     pok = unwrap(presult)
     @test as_tuple(res_consumed(pok)) == ("abc",)
     @test ctx_remaining(res_nextctx(pok)) == ["--"]

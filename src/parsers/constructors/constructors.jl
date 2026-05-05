@@ -28,7 +28,7 @@ function _merge(objs::TObjs) where {TObjs <: Tuple}
     end
     labels = map(first, l_t_pairs)
     types = map(last, l_t_pairs)
-    parsers = ntuple(Val(Nfields)) do i
+    parsers = ntuple(Nfields) do i
         objI = findfirst(>=(i), objsplit) - 1
         inner_I = i - objsplit[objI]
 

@@ -1,6 +1,4 @@
-Base.show(io::IO, p::Parser) = @unionsplit show_compact(io, p)
-Base.show(io::IO, v::AbstractValueParser) = @unionsplit show_compact(io, v)
-Base.show(io::IO, ::MIME"text/plain", p::Parser) = @unionsplit show_pretty(io, p, 0)
+Base.show(io::IO, v::AbstractValueParser) = show_compact(io, v)
 Base.show(io::IO, ::MIME"text/plain", v::AbstractValueParser) = show_pretty(io, v, 0)
 
 function _print_indent(io::IO, indent::Int)
@@ -10,7 +8,6 @@ function _print_indent(io::IO, indent::Int)
     return
 end
 
-show_compact(io::IO, p::Parser) = @unionsplit show_compact(io, p)
 show_compact(io::IO, v::AbstractValueParser) = let
     print(io, typeof(v), "()")
 end
@@ -128,7 +125,7 @@ show_compact(io::IO, p::ConstrTuple) = let
 end
 
 function _show_optional_flag(io::IO, p::ModWithDefault)
-    inner = unwrapunion(p.parser)
+    inner = p.parser
     if p.default === false && inner isa ArgGate
         print(io, "flag(")
         print(io, join(inner.names, ", "))
@@ -168,7 +165,7 @@ show_compact(io::IO, p::ModHelp) = let
     print(io, ")")
 end
 
-show_pretty(io::IO, p::Parser, _indent::Int = 0) = @unionsplit show_pretty(io, p)
+
 show_pretty(io::IO, v::AbstractValueParser, _indent::Int = 0) = show_compact(io, v)
 show_pretty(io::IO, p::Choice, _indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::StringVal, _indent::Int = 0) = show_compact(io, p)
@@ -181,7 +178,6 @@ show_pretty(io::IO, p::ArgOption, _indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::ArgConstant, _indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::ArgArgument, _indent::Int = 0) = show_compact(io, p)
 
-show_pretty_after_prefix(io::IO, p, _indent::Int) = @unionsplit show_compact(io, p)
 
 function show_pretty_after_prefix(io::IO, p::ArgCommand, indent::Int)
     show_compact(io, p)

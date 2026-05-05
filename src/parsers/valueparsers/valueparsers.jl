@@ -1,5 +1,5 @@
 # Value Parser interface
-# struct ValueParser{T}
+# struct SomeValueParser{T} <: AbstractValueParser{T}
 # 	metavar::String
 # 	# ... custom vars
 # end
@@ -322,8 +322,8 @@ julia> using OptParse
 
 julia> file = path("FILE");
 
-julia> typeof(file)
-OptParse.ValueParser{String}
+julia> file isa OptParse.AbstractValueParser{String}
+true
 ```
 """
 path(; kw...) = PathVal{String}(; kw...)

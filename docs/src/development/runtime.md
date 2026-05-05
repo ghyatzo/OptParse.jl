@@ -4,8 +4,8 @@
 
 OptParse is organized around two related but distinct abstractions:
 
-- `ValueParser{T}` converts a single raw string token into a value of type `T`
-- `Parser{T,S,p,P}` consumes command-line structure and eventually produces a value of type `T`
+- `AbstractValueParser{T}` converts a single raw string token into a value of type `T`
+- `AbstractParser{T,S,p,P}` consumes command-line structure and eventually produces a value of type `T`
 
 The high-level split in the source tree is:
 
@@ -30,12 +30,12 @@ The central entrypoints live in `src/OptParse.jl`:
 - `optparse(parser, argv)`
 - `normalize_argv(argv)`
 
-## `Parser{T,S,p,P}` Type Parameters
+## `AbstractParser{T,S,p,P}` Type Parameters
 
-The wrapped public parser type is:
+The core parser abstraction is:
 
 ```julia
-Parser{T,S,p,P}
+AbstractParser{T,S,p,P}
 ```
 
 The parameters mean:
@@ -169,15 +169,13 @@ const MultipleState{S} = Vector{S}
 Those are implementation details, but they encode the parser family’s conceptual
 state machine.
 
-## Wrapped Unions And Why State Signatures Matter
+## Concrete Parser Trees And Why State Signatures Matter
 
-The public `Parser` wrapper is a `@wrapped` union over all parser families.
-Likewise, `ValueParser` is a wrapped union over all value parser families.
+The parser tree is now made of concrete `AbstractParser` family nodes. Internal
+parser fields should stay parametric and concrete, rather than erasing children
+to abstract parser types.
 
-This design keeps the public surface simple while still allowing family-specific
-concrete implementations underneath.
-
-One important consequence is that parser families must constrain their
+One important consequence is that parser families must still constrain their
 `parse` and `complete` signatures to their real state invariants.
 
 For example:
@@ -195,7 +193,7 @@ function parse(p::ArgOption, ctx::Context)
 because the tight signature:
 
 - documents the actual invariant of the parser family
-- avoids impossible `Parser` union branches surviving too long in inference
+- avoids impossible parser-family instantiations surviving too long in inference
 - gives JET less nonsense to analyze
 - makes trimming behavior much more predictable
 
@@ -206,7 +204,7 @@ remain tied to the child state they pass around.
 
 It is not enough for the constructor to build only valid values. The method
 signature must also express the relationship, otherwise inference can still
-consider impossible wrapped-union arms.
+consider impossible child parser / child state combinations.
 
 For a transparent wrapper whose state is exactly the child state, write methods
 like:

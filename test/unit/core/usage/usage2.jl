@@ -12,7 +12,7 @@ using OptParse:
 
 focus_helpdoc(parser, ctx) =
     OptParse.focused_helpdoc(
-    OptParse.unwrapunion(parser),
+    parser,
     ctx,
     String[],
     OptParse.root_overlay_context()

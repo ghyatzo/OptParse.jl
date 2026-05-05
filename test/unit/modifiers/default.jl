@@ -300,7 +300,7 @@ end
         )
     )
 
-    @test_opt parse(unwrapunion(parser), mkctx(["-c", "start", "-p", "3000", "-d"], parser.initialState))
+    @test_opt parse((parser), mkctx(["-c", "start", "-p", "3000", "-d"], parser.initialState))
 
 
     @test_opt optparse(parser, ["-c", "start", "-p", "3000", "-d"])

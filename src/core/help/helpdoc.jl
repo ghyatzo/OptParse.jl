@@ -59,7 +59,7 @@ end
 # - upon request or when needed We will reconstruct our position in the parser tree using the list of arguments.
 # - From there we will return the context after we finish parsing either due to an error or due to exhausting the tokens
 # in the input buffer.
-# - This context will then be used by a function like "focused_helpdoc(p::Parser, ctx::Context, rt::Runtime)"
+# - This context will then be used by a function like "focused_helpdoc(p::AbstractParser, ctx::Context, rt::Runtime)"
 # - the function will then begin descending the tree again, unpacking the context as it goes and gathering information
 # from the overlays on the nodes.
 # - The function does not know how to handle all types of states and contexts, instead it will delegate to each parser to go through with the focusing

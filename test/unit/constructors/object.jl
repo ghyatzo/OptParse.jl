@@ -170,10 +170,10 @@ end
 
     ctx = mkctx(["--verbose", "--host", "me", "--test", "--", "--test"], obj.initialState)
 
-    @test_opt parse(unwrapunion(obj), ctx)
+    @test_opt parse((obj), ctx)
 
     res = splitparse(obj, ctx)
     succ = unwrap(res)
 
-    @test_opt complete(unwrapunion(obj), res_nextstate(succ))
+    @test_opt complete((obj), res_nextstate(succ))
 end

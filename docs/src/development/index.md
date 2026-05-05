@@ -18,7 +18,7 @@ For the user-facing API, see:
 ## Guide Structure
 
 - [Runtime Model](runtime.md)
-  - `Parser{T,S,p,P}`
+  - `AbstractParser{T,S,p,P}`
   - parse vs complete
   - parser state
   - `Context`, `Consumed`, and parse results
@@ -32,7 +32,7 @@ For the user-facing API, see:
   - how to add a parser family
   - public API / docs / test checklist
 - [Inference And Trimming](inference.md)
-  - wrapped unions
+  - concrete parser trees
   - tight state signatures
   - common inference traps
   - JET / trimming notes
@@ -45,6 +45,5 @@ If you only need the shortest version:
 - keep `parse` and `complete` signatures tight
 - interact with `Context` through the helper API
 - add family-specific errors and a renderer
-- add the family to the wrapped union
+- keep child parser fields concrete and parametric
 - keep public names, display output, docs, and tests in sync
-

@@ -31,21 +31,22 @@ struct ModMultiple{T, S, _p, P} <: AbstractParser{T, S, _p, P}
     #
     min::Int
     max::Int
+
+    ModMultiple(parser::P; min::Integer = 0, max::Integer = typemax(Int)) where {P <: AbstractParser} = let
+        new{
+            Vector{tval(P)},
+            MultipleState{tstate(P)},
+            priority(P),
+            P,
+        }(tstate(P)[], parser, min, max)
+    end
 end
 
-ModMultiple(parser::P; min::Integer = 0, max::Integer = typemax(Int)) where {P <: AbstractParser} = let
-    ModMultiple{
-        Vector{tval(P)},
-        MultipleState{tstate(P)},
-        priority(P),
-        P,
-    }(tstate(P)[], parser, min, max)
-end
 
 usage(p::ModMultiple) = UsageRepeat(usage(p.parser)::UsageNode, p.min, p.max)
 function helpentries(p::ModMultiple, rt::OverlayContext)
     # For group-like children, keep the child entries unchanged.
-    child = unwrapunion(p.parser)
+    child = p.parser
     return if (
             child isa ArgGate
                 || child isa ArgOption
@@ -70,7 +71,7 @@ function focused_helpdoc(
     child_ctx = widen_restate(S, ctx, child_state)
     # Behavioural modifiers do not introduce a new help scope, so node-local
     # overlay information still belongs to the wrapped parser.
-    child_focus = @unionsplit focused_helpdoc(p.parser, child_ctx, prefix, rt)::HelpDoc
+    child_focus = focused_helpdoc(p.parser, child_ctx, prefix, rt)::HelpDoc
 
     child_focus.prefix != prefix && return child_focus
     return HelpDoc(prefix, UsageRepeat(child_focus.usage, p.min, p.max), rt.info, HelpEntry[])
@@ -111,7 +112,7 @@ function parse(p::ModMultiple{T, MultipleState{S}}, ctx::Context{MultipleState{S
 	otherwise try to start the first repetition.=#
     child_state = has_active ? ctx_state(ctx)[end] : p.parser.initialState
     child_ctx = widen_restate(S, current_ctx, child_state)
-    result = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
+    result = parse(p.parser, child_ctx)::InnerParseResult{S}
 
     if !is_error(result)
         parse_ok = unwrap(result)
@@ -152,7 +153,7 @@ function parse(p::ModMultiple{T, MultipleState{S}}, ctx::Context{MultipleState{S
 	But only if we haven't reached the maximum allowed number of matches already.=#
     if has_active && length(ctx_state(ctx)) < p.max
         child_ctx = widen_restate(S, current_ctx, p.parser.initialState)
-        retry = parse(unwrapunion(p.parser), child_ctx)::InnerParseResult{S}
+        retry = parse(p.parser, child_ctx)::InnerParseResult{S}
 
         if is_error(retry)
             #=No new repetition started either.
@@ -192,7 +193,7 @@ end
 function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleState{S})::ParseResult{T} where {T, S, _p, P}
     result = tval(P)[]
     for s in state
-        val = complete(unwrapunion(p.parser), s)::ParseResult{tval(p.parser)}
+        val = complete(p.parser, s)::ParseResult{tval(p.parser)}
         if is_error(val)
             return typedErr(
                 T,

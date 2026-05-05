@@ -30,6 +30,7 @@ function constrtuple_render_error(io::IO, code::TupleErrCode, err::ParseError)
 end
 
 ConstrTuple(parsers::PTup; label::String = "") where {PTup} = let
+
     ConstrTuple{
         Tuple{map(tval, parsers)...},
         Tuple{map(tstate, parsers)...},
@@ -48,7 +49,7 @@ function helpentries(p::ConstrTuple{T, S, _p, PTup}, rt::OverlayContext) where {
         for (i, type) in enumerate(fieldtypes(PTup))
             push!(
                 ex.args,
-                :(append!(entries, @unionsplit helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
+                :(append!(entries, helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
             )
         end
         push!(ex.args, :(return entries))
@@ -56,7 +57,7 @@ function helpentries(p::ConstrTuple{T, S, _p, PTup}, rt::OverlayContext) where {
     else
         entries = HelpEntry[]
         for (child, type) in zip(values(p.parsers), fieldtypes(PTup))
-            append!(entries, @unionsplit helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
+            append!(entries, helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
         end
         return entries
     end
@@ -87,13 +88,13 @@ end
             body.args, quote
                 child_state = ctx_state(ctx)[$i]::$child_state_t
                 child_ctx = widen_restate($child_state_t, ctx, child_state)
-                child_helpdoc = (@unionsplit focused_helpdoc(p.parsers[$i], child_ctx, prefix, descend_child(rt)))::HelpDoc
+                child_helpdoc = (focused_helpdoc(p.parsers[$i], child_ctx, prefix, descend_child(rt)))::HelpDoc
 
                 if child_helpdoc.prefix != prefix
                     return child_helpdoc
                 end
 
-                append!(entries, @unionsplit helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry})
+                append!(entries, helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry})
             end
         )
     end
@@ -128,7 +129,7 @@ end
                     child_state = (IndexLens($(perm[i])) ∘ ℒ_state)(current_ctx)::$child_parser_tstate
                     child_ctx = ctx_with_state(current_ctx, child_state)
 
-                    result = parse(unwrapunion(parser), child_ctx)::InnerParseResult{$child_parser_tstate}
+                    result = parse(parser, child_ctx)::InnerParseResult{$child_parser_tstate}
 
                     if !is_error(result) && length(unwrap(result).consumed) > 0
                         parse_ok = unwrap(result)
@@ -167,7 +168,7 @@ end
                     child_state = (IndexLens($(perm[i])) ∘ ℒ_state)(current_ctx)::$child_parser_tstate
                     child_ctx = ctx_with_state(current_ctx, child_state)
 
-                    result = parse(unwrapunion(parser), child_ctx)::InnerParseResult{tstate(parser)}
+                    result = parse(parser, child_ctx)::InnerParseResult{tstate(parser)}
 
                     if !is_error(result) && length(unwrap(result).consumed) < 1
                         #=parser succeded without consuming - match it as success=#
@@ -258,7 +259,7 @@ end
                 child_state = state[$i]::$S
                 child_parser = p[$i]
 
-                result = (@unionsplit complete(child_parser, child_state))::ParseResult{$Ti}
+                result = (complete(child_parser, child_state))::ParseResult{$Ti}
                 if is_error(result)
                     return false, ParseResult{$T}(typedErr(unwrap_error(result)))
                 end

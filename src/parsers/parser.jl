@@ -21,52 +21,19 @@ include("primitives/primitives.jl")
 include("constructors/constructors.jl")
 include("modifiers/modifiers.jl")
 
-# Developer note:
-# `Parser` is a wrapped union over all parser families, so analysis tools like JET
-# may explore union arms that are impossible for a given concrete parser value. To
-# keep those impossible branches from introducing spurious runtime dispatch, each
-# parser family's `parse`/`complete` methods should constrain the state parameter
-# to the parser's real invariant state shape, rather than accepting an unconstrained
-# `S`. In practice this means using the parser-specific state aliases in method
-# signatures, even when looser signatures would happen to work at runtime.
-@wrapped struct Parser{T, S, p, P} <: AbstractParser{T, S, p, P}
-    union::Union{
-        ArgGate{T, S, p, P},
-        ArgOption{T, S, p, P},
-        ArgConstant{T, S, p, P},
-        ArgArgument{T, S, p, P},
-        ArgCommand{T, S, p, P},
-
-        ConstrObject{T, S, p, P},
-        ConstrOr{T, S, p, P},
-        ConstrTuple{T, S, p, P},
-
-        ModWithDefault{T, S, p, P},
-        ModMultiple{T, S, p, P},
-        ModHelp{T, S, p, P},
-    }
-end
-
-_parser(x::AbstractParser{T, S, p, P}) where {T, S, p, P} = Parser{T, S, p, P}(x)
-
-Base.getproperty(p::Parser, f::Symbol) = @unionsplit Base.getproperty(p, f)
-Base.hasproperty(p::Parser, f::Symbol) = @unionsplit Base.hasproperty(p, f)
-
-usage(p::Parser)::UsageNode = @unionsplit usage(p)::UsageNode
-
 # modifiers
 
 ## Default
 
 """
-    default(p::Parser, value)
+    default(p::AbstractParser, value)
     default(value)
 
 Modifier that provides a default value for a parser when it fails to match or is not present
 in the command-line arguments.
 
 # Arguments
-- `p::Parser`: The parser to apply the default value to
+- `p::AbstractParser`: The parser to apply the default value to
 - `value`: The default value to return if parsing fails (can be any type)
 
 # Returns
@@ -103,13 +70,13 @@ julia> result
 """
 function default end
 
-default(p::Parser, value) = _parser(ModWithDefault(p, value))
-default(value) = (p::Parser) -> default(p, value)
+default(p::AbstractParser, value) = ModWithDefault(p, value)
+default(value) = (p::AbstractParser) -> default(p, value)
 
 ## Optional
 
 """
-    optional(p::Parser)
+    optional(p::AbstractParser)
 
 Modifier that makes a parser optional, returning `nothing` if the parser fails to match.
 
@@ -117,7 +84,7 @@ Transforms a parser returning type `T` into a parser returning `Union{Nothing, T
 This is equivalent to `default(p, nothing)` and is mainly provided as a convenience wrapper.
 
 # Arguments
-- `p::Parser`: The parser to make optional
+- `p::AbstractParser`: The parser to make optional
 
 # Returns
 A modified parser that returns `nothing` if parsing fails, or the parsed value otherwise.
@@ -145,13 +112,13 @@ julia> result
 """
 function optional end
 
-optional(p::Parser) = default(p, nothing)
+optional(p::AbstractParser) = default(p, nothing)
 optional() = default(nothing)
 
 ## Multiple
 
 """
-    multiple(p::Parser; kw...)
+    multiple(p::AbstractParser; kw...)
 
 Modifier that allows a parser to match multiple times, collecting results in a vector.
 
@@ -159,7 +126,7 @@ Useful for parsers that should accept repeated values, such as multiple argument
 repeated flags for verbosity levels, or collecting multiple options.
 
 # Arguments
-- `p::Parser`: The parser to apply multiple matching to
+- `p::AbstractParser`: The parser to apply multiple matching to
 
 # Keywords
 Additional keyword arguments are passed to tweak the behaviour
@@ -211,13 +178,13 @@ julia> result
 """
 function multiple end
 
-multiple(p::Parser; kw...) = _parser(ModMultiple(p; kw...))
-multiple(; kw...) = (p::Parser) -> multiple(p; kw...)
+multiple(p::AbstractParser; kw...) = ModMultiple(p; kw...)
+multiple(; kw...) = (p::AbstractParser) -> multiple(p; kw...)
 
 ## Help Information
 
 """
-    help(p::Parser, brief="", description="", footer=""; hidden=false)
+    help(p::AbstractParser, brief="", description="", footer=""; hidden=false)
     help(brief="", description="", footer=""; hidden=false)
 
 Attach help information to a parser without changing parsing semantics.
@@ -231,7 +198,7 @@ tree still defines CLI behavior; `help(...)` only enriches that tree with
 documentation.
 
 # Arguments
-- `p::Parser`: The parser to annotate
+- `p::AbstractParser`: The parser to annotate
 - `brief::String`: Short one-line summary
 - `description::String`: Longer help text
 - `footer::String`: Footer or epilog text
@@ -260,19 +227,19 @@ julia> (result.host, result.verbose)
 function help end
 
 function help(
-        p::Parser;
+        p::AbstractParser;
         hidden::Bool = false,
         brief::AbstractString = "",
         description::AbstractString = "",
         footer::AbstractString = "",
     )
     info = HelpInfo(; brief = String(brief), description = String(description), footer = String(footer), hidden)
-    inner = unwrapunion(p)
-    return inner isa ModHelp ? _parser(ModHelp(inner, info)) : _parser(ModHelp(p, info))
+
+    return ModHelp(p, info)
 end
 
 help(
-    p::Parser,
+    p::AbstractParser,
     brief::AbstractString;
     hidden::Bool = false,
     description::AbstractString = "",
@@ -280,7 +247,7 @@ help(
 ) = help(p; hidden, brief, description, footer)
 
 help(
-    p::Parser,
+    p::AbstractParser,
     brief::AbstractString,
     description::AbstractString;
     hidden::Bool = false,
@@ -288,22 +255,22 @@ help(
 ) = help(p; hidden, brief, description, footer)
 
 help(
-    p::Parser,
+    p::AbstractParser,
     brief::AbstractString,
     description::AbstractString,
     footer::AbstractString;
     hidden::Bool = false,
 ) = help(p; hidden, brief, description, footer)
 
-help(; kw...) = (p::Parser) -> help(p; kw...)
-help(brief::AbstractString; kw...) = (p::Parser) -> help(p, brief; kw...)
+help(; kw...) = (p::AbstractParser) -> help(p; kw...)
+help(brief::AbstractString; kw...) = (p::AbstractParser) -> help(p, brief; kw...)
 help(brief::AbstractString, description::AbstractString; kw...) =
-    (p::Parser) -> help(p, brief, description; kw...)
+    (p::AbstractParser) -> help(p, brief, description; kw...)
 help(brief::AbstractString, description::AbstractString, footer::AbstractString; kw...) =
-    (p::Parser) -> help(p, brief, description, footer; kw...)
+    (p::AbstractParser) -> help(p, brief, description, footer; kw...)
 
 """
-    hidden(p::Parser)
+    hidden(p::AbstractParser)
     hidden()
 
 Hide a parser from usage/help output without changing parsing semantics.
@@ -330,8 +297,8 @@ julia> OptParse.render_usage(OptParse.usage(parser))
 """
 function hidden end
 
-hidden(p::Parser) = help(p; hidden = true)
-hidden() = (p::Parser) -> hidden(p)
+hidden(p::AbstractParser) = help(p; hidden = true)
+hidden() = (p::AbstractParser) -> hidden(p)
 
 
 # primitives
@@ -339,7 +306,7 @@ hidden() = (p::Parser) -> hidden(p)
 ## Option
 
 """
-    option(names..., valparser::ValueParser{T}) where {T}
+    option(names..., valparser::AbstractValueParser{T}) where {T}
 
 Primitive parser that matches command-line options with associated values.
 
@@ -350,7 +317,7 @@ Options can be specified in multiple formats:
 # Arguments
 - `names`: One or more option names (strings). Typically includes short (`"-o"`) and/or
   long (`"--option"`) forms. Can be provided as individual arguments or as a tuple.
-- `valparser::ValueParser{T}`: Value parser that determines how to parse the option's value
+- `valparser::AbstractValueParser{T}`: Value parser that determines how to parse the option's value
 
 # Returns
 A parser that matches the specified option patterns and returns a value of type `T`.
@@ -413,13 +380,13 @@ Release::Mode = 1
 function option end
 
 option(names::Tuple{Vararg{String}}, valparser::AbstractValueParser) =
-    _parser(ArgOption(names, valparser))
+    ArgOption(names, valparser)
 option(opt1::String, valparser::AbstractValueParser) =
-    _parser(ArgOption((opt1,), valparser))
+    ArgOption((opt1,), valparser)
 option(opt1::String, opt2::String, valparser::AbstractValueParser) =
-    _parser(ArgOption((opt1, opt2), valparser))
+    ArgOption((opt1, opt2), valparser)
 option(opt1::String, opt2::String, opt3::String, valparser::AbstractValueParser) =
-    _parser(ArgOption((opt1, opt2, opt3), valparser))
+    ArgOption((opt1, opt2, opt3), valparser)
 
 option(names::Tuple{Vararg{String}}) = (valp::AbstractValueParser) -> option(names, valp)
 
@@ -478,7 +445,7 @@ true
 """
 function gate end
 
-gate(names...) = _parser(ArgGate(names))
+gate(names...) = ArgGate(names)
 
 ## Flag
 
@@ -545,7 +512,7 @@ This is implemented as: `default(gate(names...), false)`
 """
 function flag end
 
-flag(names...) = default(gate(names...), false)
+flag(names...) = default(ArgGate(names), false)
 
 ## Constant
 
@@ -613,13 +580,13 @@ julia> result.name
 - Useful for discriminating between branches in an `or` combinator
 """
 macro constant(val)
-    return :(_parser(ArgConstant($val)))
+    return :(ArgConstant($val))
 end
 
 ## Arg
 
 """
-    arg(valparser::ValueParser{T}) where {T}
+    arg(valparser::AbstractValueParser{T}) where {T}
 
 Primitive parser for positional arguments not associated with a flag or option.
 
@@ -627,7 +594,7 @@ Arguments are parsed based on their position in the command line and must appear
 in the order they're defined (though they can be interspersed with options).
 
 # Arguments
-- `valparser::ValueParser{T}`: Value parser that determines how to parse the argument's value
+- `valparser::AbstractValueParser{T}`: Value parser that determines how to parse the argument's value
 
 # Returns
 A parser that matches a positional argument and returns a value of type `T`.
@@ -703,14 +670,14 @@ julia> result.input
 """
 function arg end
 
-arg(valparser::AbstractValueParser) = _parser(ArgArgument(valparser))
+arg(valparser::AbstractValueParser) = ArgArgument(valparser)
 arg() = (valp::AbstractValueParser) -> arg(valp)
 
 ## command
 
 """
-    command(name::String, p::Parser)
-    command(name::String, alias::String, p::Parser)
+    command(name::String, p::AbstractParser)
+    command(name::String, alias::String, p::AbstractParser)
 
 Primitive parser that matches a subcommand and its associated arguments.
 
@@ -720,7 +687,7 @@ the primary way to implement subcommands in CLI applications.
 
 # Arguments
 - `name::String`: The command name to match
-- `p::Parser`: The parser to use for arguments following the command
+- `p::AbstractParser`: The parser to use for arguments following the command
 
 # Returns
 A parser that matches the command name and then parses the remaining arguments
@@ -782,9 +749,9 @@ julia> result.packages
 """
 function command end
 
-command(names::Tuple{Vararg{String}}, p::Parser) = _parser(ArgCommand(names, p))
-command(name::String, p::Parser) = _parser(ArgCommand((name,), p))
-command(name::String, alias::String, p::Parser) = _parser(ArgCommand((name, alias), p))
+command(names::Tuple{Vararg{String}}, p::AbstractParser) = ArgCommand(names, p)
+command(name::String, p::AbstractParser) = ArgCommand((name,), p)
+command(name::String, alias::String, p::AbstractParser) = ArgCommand((name, alias), p)
 
 
 # constructors
@@ -874,8 +841,8 @@ julia> result.timeout
 """
 function object end
 
-object(obj::NamedTuple) = _parser(ConstrObject(obj))
-object(objlabel, obj::NamedTuple) = _parser(ConstrObject(obj; label = objlabel))
+object(obj::NamedTuple) = ConstrObject(obj)
+object(objlabel, obj::NamedTuple) = ConstrObject(obj; label = objlabel)
 
 ## Combine
 
@@ -947,8 +914,8 @@ julia> result.host
 function combine end
 
 
-combine(objs...) = _parser(ConstrObject(_merge(objs)))
-combine(label::String, objs...) = _parser(ConstrObject(_merge(objs); label))
+combine(objs...) = ConstrObject(_merge(objs))
+combine(label::String, objs...) = ConstrObject(_merge(objs); label)
 
 ## Or
 
@@ -1048,7 +1015,7 @@ julia> result.file
 """
 function or end
 
-or(parsers...) = _parser(ConstrOr(parsers))
+or(parsers...) = ConstrOr(parsers)
 
 ## Sequence
 
@@ -1122,10 +1089,10 @@ julia> result
 """
 function sequence end
 
-sequence(parsers...; kw...) = _parser(ConstrTuple(parsers; kw...))
-sequence(parsers::Tuple{Vararg{Parser}}; kw...) = _parser(ConstrTuple(parsers; kw...))
-sequence(label::String, parsers...; kw...) = _parser(ConstrTuple(parsers; label, kw...))
-sequence(label::String, parsers::Tuple{Vararg{Parser}}; kw...) = _parser(ConstrTuple(parsers; label, kw...))
+sequence(parsers...; kw...) = ConstrTuple(parsers; kw...)
+sequence(parsers::Tuple{Vararg{AbstractParser}}; kw...) = ConstrTuple(parsers; kw...)
+sequence(label::String, parsers...; kw...) = ConstrTuple(parsers; label, kw...)
+sequence(label::String, parsers::Tuple{Vararg{AbstractParser}}; kw...) = ConstrTuple(parsers; label, kw...)
 
 ## Concat
 
@@ -1207,4 +1174,4 @@ julia> result
 """
 function concat end
 
-concat(seqs...; label = "") = _parser(ConstrTuple(_concat(seqs); label))
+concat(seqs...; label = "") = ConstrTuple(_concat(seqs); label)

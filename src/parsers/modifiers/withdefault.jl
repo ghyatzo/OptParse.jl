@@ -26,7 +26,7 @@ struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
     #
     default::T
 
-    ModWithDefault(parser::P, default::T) where {T, P} = let
+    ModWithDefault(parser::P, default::T) where {T, P <: AbstractParser} = let
         retval_t = tval(P) == T ? T : Union{tval(P), T}
         new{retval_t, WithDefaultState{tstate(P)}, priority(P), P}(none(tstate(P)), parser, default)
     end
@@ -34,7 +34,7 @@ end
 
 usage(p::ModWithDefault) = UsageOptional(usage(p.parser))
 function helpentries(p::ModWithDefault, rt::OverlayContext)
-    child = unwrapunion(p.parser)
+    child = p.parser
     return if (
             child isa ArgGate
                 || child isa ArgOption
@@ -59,7 +59,7 @@ function focused_helpdoc(
     child_ctx = widen_restate(S, ctx, child_state)
     # we don't reset the OverlayContext because the modifiers are sort of "behavioural overlays"
     # so they can't consume the node local informations.
-    child_focus = @unionsplit focused_helpdoc(p.parser, child_ctx, prefix, rt)::HelpDoc
+    child_focus = focused_helpdoc(p.parser, child_ctx, prefix, rt)::HelpDoc
 
     child_focus.prefix != prefix && return child_focus
     return HelpDoc(prefix, UsageOptional(child_focus.usage), rt.info, HelpEntry[])
@@ -73,7 +73,7 @@ function parse(
     childstate = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))
     childctx = ctx_with_state(ctx, childstate)
 
-    result = parse(unwrapunion(p.parser), childctx)::InnerParseResult{S}
+    result = parse(p.parser, childctx)::InnerParseResult{S}
 
     if is_error(result)
         parse_err = unwrap_error(result)
@@ -120,7 +120,7 @@ function complete(
     #= Otherwise just ask the inner state to complete itself.
     In case of validation errors from the value parser, we want to return an error instead of the default.
     Given that the user explicitly passed a value, he likely does not want the default value.=#
-    result = complete(unwrapunion(p.parser), state)::ParseResult{tval(p.parser)}
+    result = complete(p.parser, state)::ParseResult{tval(p.parser)}
     if is_error(result)
         return typedErr(
             T,

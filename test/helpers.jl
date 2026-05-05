@@ -1,6 +1,7 @@
 using Test
 using OptParse
 using OptParse:
+    AbstractParser,
     Context,
     Parser,
     as_tuple,
@@ -28,9 +29,9 @@ using JET
 using UUIDs
 
 # define it here for ease of use
-splitparse(p::Parser, ctx::Context) = @unionsplit parse(p, ctx)
-splitcomplete(p::Parser, st) = @unionsplit complete(p, st)
-function mkctx(buffer::Vector{String}, state; options_terminated::Bool=false)
+splitparse(p::AbstractParser, ctx::Context) = parse(p, ctx)
+splitcomplete(p::AbstractParser, st) = complete(p, st)
+function mkctx(buffer::Vector{String}, state; options_terminated::Bool = false)
     ctx = Context(; buffer, state)
     options_terminated && (ctx = ctx_with_options_terminated(ctx, true))
     return ctx
@@ -51,7 +52,7 @@ render_fail(p, argv) = sprint() do io
 end
 
 macro test_parse_error(parser, argv, domain, code)
-    quote
+    return quote
         err = parse_fail($(esc(parser)), $(esc(argv)))
         _code = $(esc(code))
         @test err.domain == $(esc(domain))
