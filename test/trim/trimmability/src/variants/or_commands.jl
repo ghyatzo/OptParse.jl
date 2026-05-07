@@ -2,7 +2,7 @@ using OptParse
 
 const show_cmd = command(
     "show",
-    object((;
+    record((;
         kind = @constant(:show),
         id = arg(str()),
         verbose = optional(gate("-v", "--verbose")),
@@ -11,7 +11,7 @@ const show_cmd = command(
 
 const edit_cmd = command(
     "edit",
-    object((;
+    record((;
         kind = @constant(:edit),
         id = arg(str()),
         editor = optional(option("-e", "--editor", str())),

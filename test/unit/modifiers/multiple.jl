@@ -20,8 +20,8 @@ end
     end
 end
 
-@testset "should return empty array when no matches found in object context" begin
-    parser = object(
+@testset "should return empty array when no matches found in record context" begin
+    parser = record(
         (
             locales = multiple(option(("-l", "--locale"), str())),
             verbose = gate("-v", "--verbose"),
@@ -107,14 +107,14 @@ end
 end
 
 @testset "should work with default options (min=0, max=Infinity)" begin
-    parser = object(
+    parser = record(
         (
             options = multiple(option("-x", str())),
             help = gate("-h", "--help"),
         )
     )
 
-    # When min=0, should allow empty array in object context
+    # When min=0, should allow empty array in record context
     resEmpty = parse_ok(parser, ["-h"])
     valEmpty = resEmpty
     @test valEmpty.options == []
@@ -134,8 +134,8 @@ end
     @test valMany.help == true
 end
 
-@testset "should work in object combinations" begin
-    parser = object(
+@testset "should work in record combinations" begin
+    parser = record(
         (
             locales = multiple(option(("-l", "--locale"), str())),
             verbose = gate("-v", "--verbose"),
@@ -159,8 +159,8 @@ end
     @test OptParse.IntegerErrCode(err.code) == OptParse.INTEGER_Invalid
 end
 
-@testset "should handle mixed successful and failed parsing attempts in object context" begin
-    parser = object(
+@testset "should handle mixed successful and failed parsing attempts in record context" begin
+    parser = record(
         (
             numbers = multiple(option("-n", "--number", integer())),
             other = option("--other", str()),
@@ -173,7 +173,7 @@ end
 end
 
 @testset "should delegate to sibling parsers after reaching max" begin
-    parser = object(
+    parser = record(
         (
             files = multiple(arg(str()); max = 2),
             mode = arg(str("MODE")),
@@ -275,7 +275,7 @@ end
 
 @testset "should reproduce example usage patterns" begin
     # Example 1
-    parser1 = object(
+    parser1 = record(
         (
             name = option("-n", "--name", str()),
             locales = multiple(option(("-l", "--locale"), str())),
@@ -288,7 +288,7 @@ end
     @test val1.id == "user123"
 
     # Example 2: constrained multiple arguments
-    parser2 = object(
+    parser2 = record(
         (
             title = option("-t", "--title", str()),
             ids = multiple(arg(str()); min = 1, max = 3),
@@ -306,7 +306,7 @@ end
 end
 
 @testset "should handle options terminator correctly" begin
-    parser = object(
+    parser = record(
         (
             locales = multiple(option(("-l", "--locale"), str())),
             args = multiple(arg(str())),

@@ -41,7 +41,7 @@ export
     i8,
     integer,
     multiple,
-    object,
+    record,
     option,
     optional,
     or,
@@ -89,7 +89,7 @@ for example to define method specializations on the result of a specific parser.
 ```jldoctest
 julia> using OptParse
 
-julia> greet = command("greet", object((
+julia> greet = command("greet", record((
            cmd = @constant(:greet),
            name = option("-n", str("NAME")),
        )));
@@ -211,7 +211,7 @@ focused help information yourself.
 ```jldoctest
 julia> using OptParse
 
-julia> parser = command("serve", object((
+julia> parser = command("serve", record((
            host = option("--host", str("HOST")),
            verbose = flag("-v", "--verbose"),
        )));
@@ -253,7 +253,7 @@ generation.
 ```jldoctest
 julia> using OptParse
 
-julia> parser = command("serve", object((
+julia> parser = command("serve", record((
            host = option("--host", str("HOST")),
            verbose = flag("-v", "--verbose"),
        )));
@@ -280,7 +280,7 @@ generate_help(parser, argv; progname = "") = render_helpdoc(build_help_doc(parse
 
 Lower-level parsing entrypoint.
 
-Returns a result object containing either the parsed value or a structured parse failure.
+Returns a result container containing either the parsed value or a structured parse failure.
 Unlike [`optparse`](@ref), this function does not throw on parse failures.
 """
 function tryoptparse(pp::AbstractParser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}

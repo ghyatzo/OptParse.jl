@@ -15,7 +15,7 @@ const globalhelp = help(
     """
 )
 
-const globoptions = object((;
+const globoptions = record((;
     cwd      = option("-C", str("PATH"))      |> help("Working directory") |> multiple(),
     config   = option("-c", str("KEY=VALUE")) |> help("Config override")   |> multiple(),
     paginate = flag("-p", "--paginate")       |> help("Paginate"),
@@ -51,7 +51,7 @@ const statushelp = help(
     """
 )
 
-const statuscmd = object((;
+const statuscmd = record((;
     short      = flag("-s", "--short")     |> help("Short"),
     branch     = flag("-b", "--branch")    |> help("Branch"),
     porcelain  = flag("--porcelain")       |> help("Porcelain"),
@@ -75,7 +75,7 @@ const addhelp = help(
     """
 )
 
-const addcmd = object((;
+const addcmd = record((;
     dryrun    = flag("-n", "--dry-run")    |> help("Dry run"),
     verbose   = flag("-v", "--verbose")    |> help("Verbose") |> multiple(),
     patch     = flag("-p", "--patch")      |> help("Patch"),
@@ -137,7 +137,7 @@ const commithelp = help(
     """
 )
 
-const commitcmd = object((;
+const commitcmd = record((;
     message_file = commit_message_source,
     all          = flag("-a", "--all")        |> help("All"),
     amend        = flag("--amend")            |> help("Amend"),
@@ -193,7 +193,7 @@ const clonehelp = help(
     """
 )
 
-const clonecmd = object((;
+const clonecmd = record((;
     quiet        = flag("-q", "--quiet")            |> help("Quiet"),
     verbose      = flag("-v", "--verbose")          |> help("Verbose") |> multiple(),
     branch       = clone_branch,
@@ -232,7 +232,7 @@ const pushhelp = help(
     """
 )
 
-const pushcmd = object((;
+const pushcmd = record((;
     upstream   = flag("-u", "--set-upstream") |> help("Set upstream"),
     force      = flag("-f", "--force")        |> help("Force"),
     forcelease = push_forcelease,
@@ -273,7 +273,7 @@ const remote_addhelp = help(
     """
 )
 
-const remote_add = object((;
+const remote_add = record((;
     fetch    = flag("-f", "--fetch")   |> help("Fetch"),
     branches = remote_add_branches,
     tags     = remote_add_tag_policy,
@@ -296,7 +296,7 @@ const remote_geturlhelp = help(
     """
 )
 
-const remote_geturl = object((
+const remote_geturl = record((
     push = flag("--push")              |> help("Push URL"),
     all  = flag("--all")               |> help("All URLs"),
     name = arg(str("NAME"))            |> help("Remote name"),
@@ -314,7 +314,7 @@ const remote_seturlhelp = help(
     """
 )
 
-const remote_seturl = object((
+const remote_seturl = record((
     push   = flag("--push")            |> help("Push URL"),
     name   = arg(str("NAME"))          |> help("Remote name"),
     newurl = arg(str("NEWURL"))        |> help("New URL"),
@@ -341,7 +341,7 @@ const remotehelp = help(
     """
 )
 
-const remotecmd = object((
+const remotecmd = record((
     verbose = flag("-v", "--verbose")  |> help("Verbose") |> multiple(),
     subcmd  = or(
         command("add",     remote_add)     |> help("Add a new remote"),
@@ -374,7 +374,7 @@ const gitlikehelp = help(
     """
 )
 
-const parser = object((
+const parser = record((
     options = globoptions,
     cmd     = or(
         command("status", statuscmd)  |> help("Show working tree status"),

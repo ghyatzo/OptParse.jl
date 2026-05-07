@@ -1,4 +1,4 @@
-include("object.jl")
+include("record.jl")
 include("or.jl")
 include("tuple.jl")
 
@@ -8,7 +8,7 @@ __get_ith_l_t_pair(::Type{NamedTuple{l, ts}}, ::Val{i}) where {l, ts, i} =
 
 
 function _merge(objs::TObjs) where {TObjs <: Tuple}
-    # we just need to construct a bigass object
+    # we just need to construct a bigass record
 
     child_parsers_t = map(ptypes, fieldtypes(TObjs))
     fieldcounts = map(fieldcount, child_parsers_t)
@@ -18,7 +18,7 @@ function _merge(objs::TObjs) where {TObjs <: Tuple}
     l_t_pairs = ntuple(Val(Nfields)) do i
         # we add a phantom 0 to allow for branchless indexing.
         # i starts from 1, and the first bigger elements is at position 2.
-        # the actual object position is at position 1,
+        # the actual record position is at position 1,
         # and the inner index is i minus all the elements of the blocks we completed already (cumsum, one position behind).
         objI = findfirst(>=(i), objsplit) - 1
         inner_I = i - objsplit[objI]
@@ -44,7 +44,7 @@ end
 # basically flatten the tuple.
 
 function _concat(objs::TTups) where {TTups <: Tuple}
-    # we just need to construct a bigass object
+    # we just need to construct a bigass record
 
     child_parsers_t = map(ptypes, fieldtypes(TTups))
     fieldcounts = map(fieldcount, child_parsers_t)

@@ -6,7 +6,7 @@ export @main
 
 const greet = command(
 	"greet",
-	object((;
+	record((;
 		cmd = @constant(:greet),
 		name = option("-n", str()),
 		port = option("-p", integer())
@@ -15,7 +15,7 @@ const greet = command(
 
 const goodbye = command(
 	"bye",
-	object((;
+	record((;
 		cmd = @constant(:bye),
 		name = option("-n", str()),
 		port = option("-p", integer())

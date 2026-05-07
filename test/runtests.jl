@@ -44,8 +44,8 @@ end
         include("unit/constructors/combine.jl")
     end
 
-    @testset "Objects" begin
-        include("unit/constructors/object.jl")
+    @testset "Records" begin
+        include("unit/constructors/record.jl")
     end
 
     @testset "Or" begin

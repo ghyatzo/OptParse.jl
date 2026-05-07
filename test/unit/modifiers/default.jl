@@ -94,8 +94,8 @@ end
     @test ctx_remaining(res_nextctx(pf)) == ["--help"]
 end
 
-@testset "should work in object combinations - main use case" begin
-    parser = object(
+@testset "should work in record combinations - main use case" begin
+    parser = record(
         (
             verbose = gate("-v", "--verbose"),
             port = (default(8080) ∘ option)(("--port", "-p"), integer()),
@@ -200,8 +200,8 @@ end
     @test unwrap(unwrap(st)) == "test"
 end
 
-@testset "should work with argument parsers in object context" begin
-    parser = object(
+@testset "should work with argument parsers in record context" begin
+    parser = record(
         (
             verbose = gate("-v", "--verbose"),
             file = default(arg(str(; metavar = "FILE")), "input.txt"),
@@ -219,7 +219,7 @@ end
 end
 
 @testset "should work in complex combinations with validation" begin
-    parser = object(
+    parser = record(
         (
             command = option(("-c", "--command"), str()),
             port = default(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080),
@@ -284,7 +284,7 @@ end
     @test_opt default(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080)
     @test_opt default(gate("-d", "--debug"), false)
 
-    @test_opt object(
+    @test_opt record(
         (
             command = option(("-c", "--command"), str()),
             port = default(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080),
@@ -292,7 +292,7 @@ end
         )
     )
 
-    parser = object(
+    parser = record(
         (
             port = option(("-p", "--port"), integer(; min = 1024, max = 0xffff)),
             command = option(("-c", "--command"), str()),

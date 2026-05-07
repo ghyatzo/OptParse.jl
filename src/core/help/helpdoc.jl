@@ -1,4 +1,4 @@
-# The HelpInfo object holds auxiliary information used in the rendering of help messages.
+# The HelpInfo record holds auxiliary information used in the rendering of help messages.
 # This is associated to a parser node by means of the Help Overlay.
 # The help overlay should be the only one modifying this information.
 # Help information in principle is not really associated to a specific kind of node but

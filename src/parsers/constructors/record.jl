@@ -20,7 +20,7 @@ function constrobject_render_error(io::IO, code::ObjectErrCode, err::ParseError)
     elseif code == OBJECT_EndOfInput
         print(io, "Expected an option or argument, got end of input")
     elseif code == OBJECT_MaxIter
-        print(io, "Internal error: object parser reached its iteration limit")
+        print(io, "Internal error: record parser reached its iteration limit")
     else
         print(io, "unreachable")
     end
@@ -195,7 +195,7 @@ end
     end
 
     return quote
-        #= if nothing inside the object can match our token, then it's "unexpected" =#
+        #= if nothing inside the record can match our token, then it's "unexpected" =#
         error = ctx_hasmore(ctx) > 0 ?
             InnerParseFailure(0, constrobject_error(OBJECT_UnexpectedToken; token = ctx_peek(ctx))) :
             InnerParseFailure(0, constrobject_error(OBJECT_EndOfInput))
@@ -230,7 +230,7 @@ function parse(p::ConstrObject{T, S}, ctx::Context{S})::InnerParseResult{S} wher
 
     outctx, error, allconsumed, anysuccess = _generated_object_parse(p.parsers, ctx)
 
-    #= we must coalesce all the consumed tokens into a single Consumed object =#
+    #= we must coalesce all the consumed tokens into a single Consumed record =#
     mergedcons = merge(allconsumed)
 
     # TODO: continue.
@@ -291,7 +291,7 @@ function complete(p::ConstrObject{T}, st::ObjectState)::ParseResult{T} where {T}
     cancomplete, _result = _generated_object_complete(p.parsers, st)
 
     if !cancomplete
-        subject = isempty(p.label) ? "object" : p.label
+        subject = isempty(p.label) ? "record" : p.label
         return typedErr(
             T,
             error_with_trace(
@@ -307,7 +307,7 @@ function complete(p::ConstrObject{T}, st::ObjectState)::ParseResult{T} where {T}
 end
 
 
-# # object parser return a named tuple, that can be tagged by a @constant value ie (tag=Val(:some_action), value=10, ...)
+# # record parser return a named tuple, that can be tagged by a @constant value ie (tag=Val(:some_action), value=10, ...)
 # # we can dispatch on that tag like so:
 
 # const Tagged{tag} = NamedTuple{N, <: Tuple{Val{tag}, Vararg}} where {N}

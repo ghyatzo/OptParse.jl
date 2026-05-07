@@ -1,5 +1,5 @@
-@testset "should combine multiple parsers into an object" begin
-    parser = object(
+@testset "should combine multiple parsers into an record" begin
+    parser = record(
         (
             verbose = gate("-v", "--verbose"),
             port = option(("-p", "--port"), integer()),
@@ -15,7 +15,7 @@
 end
 
 @testset "should parse multiple options in sequence" begin
-    parser = object(
+    parser = record(
         (
             verbose = gate("-v"),
             port = option("-p", integer()),
@@ -35,8 +35,8 @@ end
     @test (@? getfield(st, :port)) == 8080
 end
 
-@testset "should work with labeled objects" begin
-    parser = object(
+@testset "should work with labeled records" begin
+    parser = record(
         "Test Group", (
             flag = gate("-f"),
         )
@@ -47,7 +47,7 @@ end
 end
 
 @testset "should handle parsing failure in nested parser" begin
-    parser = object(
+    parser = record(
         (
             port = option("-p", integer(; min = 1)),
         )
@@ -58,7 +58,7 @@ end
 end
 
 @testset "should fail when no option matches" begin
-    parser = object(
+    parser = record(
         (
             verbose = gate("-v"),
         )
@@ -78,7 +78,7 @@ end
 end
 
 @testset "should handle empty arguments gracefully when required options are present" begin
-    parser = object(
+    parser = record(
         (
             verbose = gate("-v"),
             port = option("-p", integer()),
@@ -95,9 +95,9 @@ end
     @test OptParse.ObjectErrCode(pf.error.code) == OptParse.OBJECT_EndOfInput
 end
 
-@testset "handles complex objects" begin
+@testset "handles complex records" begin
 
-    obj = object(
+    obj = record(
         "test", (
             cst = @constant(10),
             option = option("--host", str(; metavar = "HOST")),
@@ -127,7 +127,7 @@ end
 end
 
 @testset "should handle -- edge cases" begin
-    obj = object(
+    obj = record(
         "test", (
             option = option("--host", str(; metavar = "HOST")),
             flag = optional(gate("--verbose", "-v")),
@@ -139,7 +139,7 @@ end
 
     err = parse_fail(obj, ["ARG", "--host", "host", "--", "-v"])
     # the "-v" is correctly interpreted not as an option but as an argument.
-    # in this case the object will fail to match any of its inner parsers, raising a NoProgress error
+    # in this case the record will fail to match any of its inner parsers, raising a NoProgress error
     @test err.domain == OptParse.ERR_Main
 
     @test parse_ok(obj, ["--host", "host", "ARG", "--"]) == (option = "host", flag = nothing, arg = "ARG")
@@ -148,7 +148,7 @@ end
 
 @testset "should be type stable" begin
 
-    @test_opt object(
+    @test_opt record(
         "test", (
             cst = @constant(10),
             option = option("--host", str(; metavar = "HOST")),
@@ -158,7 +158,7 @@ end
         )
     )
 
-    obj = object(
+    obj = record(
         "test", (
             cst = @constant(10),
             option = option("--host", str(; metavar = "HOST")),

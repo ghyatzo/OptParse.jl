@@ -23,7 +23,7 @@ end
 end
 
 @testset "should process all arguments" begin
-    parser = object(
+    parser = record(
         (
             verbose = gate("-v"),
             name = option("-n", str()),
@@ -36,7 +36,7 @@ end
 end
 
 @testset "should handle option terminator" begin
-    parser = object(
+    parser = record(
         (
             verbose = gate("-v"),
         )
@@ -46,7 +46,7 @@ end
 end
 
 @testset "should handle complex nested parser combinations" begin
-    server_parser = object(
+    server_parser = record(
         "Server", (
             port = option("-p", "--port", integer(min = 1, max = 25500)),
             host = option("-h", "--host", str(metavar = "HOST")),
@@ -54,7 +54,7 @@ end
         )
     )
 
-    client_parser = object(
+    client_parser = record(
         "Client", (
             connect = option("-c", "--connect", str(metavar = "URL")),
             timeout = option("-t", "--timeout", integer(min = 10)),
@@ -79,14 +79,14 @@ end
 
 @testset "should enforce mutual exclusivity in complex scenarios" begin
 
-    group1 = object(
+    group1 = record(
         "Group 1", (;
             allow = gate("--allow"),
             value = option("-v", integer()),
         )
     )
 
-    group2 = object(
+    group2 = record(
         "Group 2", (;
             foo = gate("--foo"),
             bar = option("--bar", str()),
@@ -102,7 +102,7 @@ end
 
 @testset "should handle mixed option styles" begin
 
-    parser = object(
+    parser = record(
         (;
             unixshort = gate("-u"),
             unixlong = gate("--long"),
@@ -118,7 +118,7 @@ end
 
 @testset "should handle bundled short flags" begin
 
-    parser = object(
+    parser = record(
         (;
             u = gate("-u"),
             v = gate("-v"),
@@ -133,7 +133,7 @@ end
 end
 
 @testset "should validate value parsers constraints in complex scenarios" begin
-    server_parser = object(
+    server_parser = record(
         "Server", (
             port = option("-p", "--port", integer(min = 1000, max = 25500)),
             host = option("-h", "--host", str(pattern = r"^[a-zA-Z][a-zA-Z0-9_]*$")),
@@ -159,9 +159,9 @@ end
 end
 
 @testset "should handle three way mutually exclusive options" begin
-    modeA = object("Mode A", (; optionA = gate("-a")))
-    modeB = object("Mode B", (; optionB = gate("-b")))
-    modeC = object("Mode C", (; optionC = gate("-c")))
+    modeA = record("Mode A", (; optionA = gate("-a")))
+    modeB = record("Mode B", (; optionB = gate("-b")))
+    modeC = record("Mode C", (; optionC = gate("-c")))
 
     parser = or(modeA, modeB, modeC)
 
@@ -192,7 +192,7 @@ end
 end
 
 @testset "should handle edge cases with options terminator" begin
-    parser = object(
+    parser = record(
         (
             verbose = default(false)(gate("-v")),
         )
@@ -205,8 +205,8 @@ end
     @test val2.verbose == false
 end
 
-@testset "should handle argument parsers in object combinations" begin
-    parser = object(
+@testset "should handle argument parsers in record combinations" begin
+    parser = record(
         (
             verbose = gate("-v"),
             output = option("-o", str(; metavar = "FILE")),
@@ -221,7 +221,7 @@ end
 end
 
 @testset "should reproduce example behavior with arguments" begin
-    group1 = object(
+    group1 = record(
         "Group 1", (
             type = @constant(:group1),
             allow = gate("-a", "--allow"),
@@ -230,7 +230,7 @@ end
         )
     )
 
-    group2 = object(
+    group2 = record(
         "Group 2", (
             type = @constant(:group2),
             foo = gate("-f", "--foo"),

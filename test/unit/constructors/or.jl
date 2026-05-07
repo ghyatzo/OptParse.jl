@@ -70,9 +70,9 @@ end
 
 @testset "should allow same options in nested or branches" begin
     parser = or(
-        object((verbose = gate("-v"),)),
-        object((version = gate("-v"),)),
-        object((verify = gate("-v"),)),
+        record((verbose = gate("-v"),)),
+        record((version = gate("-v"),)),
+        record((verify = gate("-v"),)),
     )
 
     # Should succeed - first matching branch wins
@@ -104,7 +104,7 @@ end
 
 @testset "should treat everything after -- as positional input rather than command syntax" begin
     parser = or(
-        command("test", object((opt = option("-v", integer()),))),
+        command("test", record((opt = option("-v", integer()),))),
         arg(str()),
     )
 
@@ -114,7 +114,7 @@ end
 
 @testset "should keep parsing the already selected branch after command match" begin
     parser = or(
-        command("bye", object((
+        command("bye", record((
             name = option("-n", str()),
             port = option("-p", integer()),
         ))),
@@ -129,7 +129,7 @@ end
 
 @testset "should keep parsing selected alternative state after branch selection" begin
     parser = or(
-        command("bye", object((
+        command("bye", record((
             name = option("-n", str()),
             port = option("-p", integer()),
         ))),
@@ -148,15 +148,15 @@ end
 
 @testset "should be type stable" begin
     @test_opt or(
-        object((verbose = gate("-v"),)),
-        object((version = gate("-v"),)),
-        object((verify = gate("-v"),)),
+        record((verbose = gate("-v"),)),
+        record((version = gate("-v"),)),
+        record((verify = gate("-v"),)),
     )
 
     parser = or(
-        object((verbose = gate("-v"),)),
-        object((version = gate("-v"),)),
-        object((verify = gate("-v"),)),
+        record((verbose = gate("-v"),)),
+        record((version = gate("-v"),)),
+        record((verify = gate("-v"),)),
     )
 
     @test_opt optparse(parser, ["-v"])

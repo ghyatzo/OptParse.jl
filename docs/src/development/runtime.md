@@ -18,7 +18,7 @@ The high-level split in the source tree is:
 - `src/parsers/primitives/`
   - leaf parser families such as `gate`, `flag`, `option`, `arg`, `command`
 - `src/parsers/constructors/`
-  - combinators that combine child parsers such as `object`, `or`, `sequence`, `concat`, `combine`
+  - combinators that combine child parsers such as `record`, `or`, `sequence`, `concat`, `combine`
 - `src/parsers/modifiers/`
   - wrappers that transform parser behavior, such as `default`, `optional`, `multiple`
 - `src/display/`

@@ -109,7 +109,7 @@ show_compact(io::IO, p::ArgCommand) = let
 end
 
 show_compact(io::IO, p::ConstrObject) = let
-    print(io, "object(")
+    print(io, "record(")
     print(io, join(string.(keys(p.parsers)), ", "))
     print(io, ")")
 end
@@ -190,7 +190,7 @@ show_pretty(io::IO, p::ArgCommand, indent::Int = 0) = show_pretty_after_prefix(i
 show_pretty(io::IO, p::ModHelp, indent::Int = 0) = show_compact(io, p)
 
 function show_pretty(io::IO, p::ConstrObject, indent::Int = 0)
-    print(io, "object")
+    print(io, "record")
     for (field, child) in pairs(p.parsers)
         print(io, "\n")
         _print_indent(io, indent + 1)

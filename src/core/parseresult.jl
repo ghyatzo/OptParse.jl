@@ -66,9 +66,9 @@ end
 """
     merge(consumed::Vector{Consumed})
 
-merges all the consumed into a single Consumed object. The buffer of each consumed can only increase.
+merges all the consumed into a single Consumed record. The buffer of each consumed can only increase.
 In particular, it only changes when boundled options "-abc" are expanded into "-a" "-b" "-c".
-all the ranges in each consumed object are relative to its buffer. what must happen is that those ranges must be
+all the ranges in each consumed record are relative to its buffer. what must happen is that those ranges must be
 modified accordingly to the most expanded buffer (longest).
 """
 function merge(consumed::Vector{Consumed})

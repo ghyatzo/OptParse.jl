@@ -14,7 +14,7 @@ result = optparse(port, ["-p", "8080"])   # Short form
 
 ```julia
 # Flags can be bundled
-parser = object((
+parser = record((
     all = flag("-a"),
     long = flag("-l"),
     human = flag("-h")
@@ -28,7 +28,7 @@ result = optparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
 ```julia
 # After `--`, flags and options stop being recognized
 parser = or(
-    command("test", object((opt = option("-v", integer("LEVEL")),))),
+    command("test", record((opt = option("-v", integer("LEVEL")),))),
     arg(str("ARG"))
 )
 
@@ -67,10 +67,10 @@ packages = multiple(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
 verbosity = multiple(flag("-v"))  # -v -v -v or -vvv
 ```
 
-### Object Composition
+### Record Composition
 
 ```julia
-parser = object((
+parser = record((
     input = arg(str("INPUT")),
     output = option("-o", "--output", str("OUTPUT")),
     force = flag("-f", "--force")
@@ -83,12 +83,12 @@ result = optparse(parser, ["input.txt", "-o", "output.txt", "-f"])
 
 ```julia
 # Define commands
-addCmd = command("add", object((
+addCmd = command("add", record((
     action = @constant(:add),
     packages = multiple(arg(str("PACKAGE")))
 )))
 
-removeCmd = command("remove", object((
+removeCmd = command("remove", record((
     action = @constant(:remove),
     packages = multiple(arg(str("PACKAGE")))
 )))
