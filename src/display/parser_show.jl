@@ -109,7 +109,7 @@ show_compact(io::IO, p::ArgCommand) = let
 end
 
 show_compact(io::IO, p::ConstrObject) = let
-    print(io, "object(")
+    print(io, "record(")
     print(io, join(string.(keys(p.parsers)), ", "))
     print(io, ")")
 end
@@ -146,13 +146,22 @@ show_compact(io::IO, p::ModWithDefault) = let
     print(io, ")")
 end
 show_compact(io::IO, p::ModMultiple) = let
-    print(io, "multiple(")
-    if p.min != 0 || p.max != typemax(Int)
-        lb = p.min == 0 ? "" : "$(p.min)"
-        ub = p.max == typemax(Int) ? "" : "$(p.max)"
-        print(io, "$lb..$ub, ")
+    if p.min == 0 && p.max == typemax(Int)
+        print(io, "many(")
+        show_compact(io, p.parser)
+        print(io, ")")
+        return
+    elseif p.min == 1 && p.max == typemax(Int)
+        print(io, "many1(")
+        show_compact(io, p.parser)
+        print(io, ")")
+        return
     end
+
+    print(io, "repeated(")
     show_compact(io, p.parser)
+    print(io, "; min = ", p.min)
+    p.max != typemax(Int) && print(io, ", max = ", p.max)
     print(io, ")")
 end
 show_compact(io::IO, p::ModHelp) = let
@@ -190,7 +199,7 @@ show_pretty(io::IO, p::ArgCommand, indent::Int = 0) = show_pretty_after_prefix(i
 show_pretty(io::IO, p::ModHelp, indent::Int = 0) = show_compact(io, p)
 
 function show_pretty(io::IO, p::ConstrObject, indent::Int = 0)
-    print(io, "object")
+    print(io, "record")
     for (field, child) in pairs(p.parsers)
         print(io, "\n")
         _print_indent(io, indent + 1)

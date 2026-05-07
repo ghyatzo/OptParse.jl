@@ -179,7 +179,7 @@ end
 
 
 ##=----------------------------=##
-#   compact object rendering
+#   compact record rendering
 ##=----------------------------=##
 
 function _render_usage_object_compact(
@@ -204,7 +204,7 @@ function _render_usage_object_compact(
                 return nothing
             end
 
-            # Compact object rendering coalesces any number of optional option-like
+            # Compact record rendering coalesces any number of optional option-like
             # entries into a single `[OPTIONS]` segment.
 
             print(io, "[OPTIONS] ")

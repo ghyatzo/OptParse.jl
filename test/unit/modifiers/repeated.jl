@@ -1,29 +1,29 @@
 @testset "should create a parser with same priority as wrapped parser" begin
     baseParser = option(("-l", "--locale"), str())
-    multipleParser = multiple(baseParser)
+    repeatedParser = many(baseParser)
 
-    @test priority(multipleParser) == priority(baseParser)
-    @test multipleParser.initialState == tval(baseParser)[]
+    @test priority(repeatedParser) == priority(baseParser)
+    @test repeatedParser.initialState == tval(baseParser)[]
 end
 
-@testset "should parse multiple occurrences of wrapped parser" begin
+@testset "should parse repeated occurrences of wrapped parser" begin
     baseParser = option(("-l", "--locale"), str())
-    multipleParser = multiple(baseParser)
+    repeatedParser = many(baseParser)
 
     # Test all combinations of option forms. Cf. issue #2.
     for opt1 in (["-l", "en"], ["--locale", "en"], ["--locale=en"]),
             opt2 in (["-l", "fr"], ["--locale", "fr"], ["--locale=fr"]),
             opt3 in (["-l", "de"], ["--locale", "de"], ["--locale=de"])
 
-        val = parse_ok(multipleParser, [opt1; opt2; opt3])
+        val = parse_ok(repeatedParser, [opt1; opt2; opt3])
         @test val == ["en", "fr", "de"]
     end
 end
 
-@testset "should return empty array when no matches found in object context" begin
-    parser = object(
+@testset "should return empty array when no matches found in record context" begin
+    parser = record(
         (
-            locales = multiple(option(("-l", "--locale"), str())),
+            locales = many(option(("-l", "--locale"), str())),
             verbose = gate("-v", "--verbose"),
         )
     )
@@ -35,21 +35,21 @@ end
 
 @testset "should work with argument parsers" begin
     baseParser = arg(str())
-    multipleParser = multiple(baseParser)
+    repeatedParser = many(baseParser)
 
-    val = parse_ok(multipleParser, ["file1.txt", "file2.txt", "file3.txt"])
+    val = parse_ok(repeatedParser, ["file1.txt", "file2.txt", "file3.txt"])
     @test val == ["file1.txt", "file2.txt", "file3.txt"]
 end
 
 @testset "should allow zero matches when min=0" begin
-    parser = multiple(arg(str()); min = 0)
+    parser = many(arg(str()))
 
     val = parse_ok(parser, String[])
     @test val == String[]
 end
 
 @testset "should not count control-only consuming matches as repetitions" begin
-    parser = multiple(gate("-a"); min = 1)
+    parser = many1(gate("-a"))
 
     # `--` is consumed only to propagate option termination.
     # It must not count as satisfying the minimum repetition count.
@@ -59,7 +59,7 @@ end
 end
 
 @testset "should keep parsing positional repetitions after --" begin
-    parser = multiple(arg(str()); min = 1)
+    parser = many1(arg(str()))
 
     val = parse_ok(parser, ["--", "hello", "world"])
     @test val == ["hello", "world"]
@@ -67,54 +67,54 @@ end
 
 @testset "should enforce minimum constraint" begin
     baseParser = option(("-l", "--locale"), str())
-    multipleParser = multiple(baseParser; min = 2)
+    repeatedParser = repeated(baseParser; min = 2)
 
-    err1 = parse_fail(multipleParser, ["-l", "en"])
+    err1 = parse_fail(repeatedParser, ["-l", "en"])
     @test err1.domain == OptParse.ERR_ModMultiple
     @test OptParse.MultipleErrCode(err1.code) == OptParse.MULTIPLE_TooFew
 
-    val = parse_ok(multipleParser, ["-l", "en", "-l", "fr"])
+    val = parse_ok(repeatedParser, ["-l", "en", "-l", "fr"])
     @test val == ["en", "fr"]
 end
 
 @testset "should enforce maximum constraint" begin
     baseParser = arg(str())
-    multipleParser = multiple(baseParser; max = 2)
+    repeatedParser = repeated(baseParser; max = 2)
 
-    err = parse_fail(multipleParser, ["file1.txt", "file2.txt", "file3.txt"])
+    err = parse_fail(repeatedParser, ["file1.txt", "file2.txt", "file3.txt"])
     @test err.domain == OptParse.ERR_Main
     @test OptParse.MainErrCode(err.code) == OptParse.MAIN_NoProgress
 
-    val = parse_ok(multipleParser, ["file1.txt", "file2.txt"])
+    val = parse_ok(repeatedParser, ["file1.txt", "file2.txt"])
     @test val == ["file1.txt", "file2.txt"]
 end
 
 @testset "should enforce both min and max constraints" begin
     baseParser = arg(str())
-    multipleParser = multiple(baseParser; min = 1, max = 3)
+    repeatedParser = repeated(baseParser; min = 1, max = 3)
 
-    # With `min=1`, an empty input is now a proper `multiple` arity failure.
-    err = parse_fail(multipleParser, String[])
+    # With `min=1`, an empty input is now a proper `repeated` arity failure.
+    err = parse_fail(repeatedParser, String[])
     @test err.domain == OptParse.ERR_ModMultiple
     @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooFew
 
-    err = parse_fail(multipleParser, ["a", "b", "c", "d"])
+    err = parse_fail(repeatedParser, ["a", "b", "c", "d"])
     @test err.domain == OptParse.ERR_Main
     @test OptParse.MainErrCode(err.code) == OptParse.MAIN_NoProgress
 
-    val = parse_ok(multipleParser, ["a", "b"])
+    val = parse_ok(repeatedParser, ["a", "b"])
     @test val == ["a", "b"]
 end
 
 @testset "should work with default options (min=0, max=Infinity)" begin
-    parser = object(
+    parser = record(
         (
-            options = multiple(option("-x", str())),
+            options = many(option("-x", str())),
             help = gate("-h", "--help"),
         )
     )
 
-    # When min=0, should allow empty array in object context
+    # When min=0, should allow empty array in record context
     resEmpty = parse_ok(parser, ["-h"])
     valEmpty = resEmpty
     @test valEmpty.options == []
@@ -134,12 +134,12 @@ end
     @test valMany.help == true
 end
 
-@testset "should work in object combinations" begin
-    parser = object(
+@testset "should work in record combinations" begin
+    parser = record(
         (
-            locales = multiple(option(("-l", "--locale"), str())),
+            locales = many(option(("-l", "--locale"), str())),
             verbose = gate("-v", "--verbose"),
-            files = multiple(arg(str()); min = 1),
+            files = many1(arg(str())),
         )
     )
 
@@ -151,18 +151,18 @@ end
 
 @testset "should propagate wrapped parser failures" begin
     baseParser = option(("-p", "--port"), integer(; min = 1, max = 0xffff))
-    multipleParser = multiple(baseParser)
+    repeatedParser = many(baseParser)
 
-    err = parse_fail(multipleParser, ["-p", "8080", "-p", "invalid"])
+    err = parse_fail(repeatedParser, ["-p", "8080", "-p", "invalid"])
     # The failure should come from the invalid integer parsing
     @test err.domain == OptParse.ERR_IntegerVal
     @test OptParse.IntegerErrCode(err.code) == OptParse.INTEGER_Invalid
 end
 
-@testset "should handle mixed successful and failed parsing attempts in object context" begin
-    parser = object(
+@testset "should handle mixed successful and failed parsing attempts in record context" begin
+    parser = record(
         (
-            numbers = multiple(option("-n", "--number", integer())),
+            numbers = many(option("-n", "--number", integer())),
             other = option("--other", str()),
         )
     )
@@ -173,9 +173,9 @@ end
 end
 
 @testset "should delegate to sibling parsers after reaching max" begin
-    parser = object(
+    parser = record(
         (
-            files = multiple(arg(str()); max = 2),
+            files = repeated(arg(str()); max = 2),
             mode = arg(str("MODE")),
         )
     )
@@ -187,20 +187,20 @@ end
 
 @testset "should work with boolean flag options" begin
     baseParser = gate("-v", "--verbose")
-    multipleParser = multiple(baseParser)
+    repeatedParser = many(baseParser)
 
-    val = parse_ok(multipleParser, ["-v", "-v", "-v"])
+    val = parse_ok(repeatedParser, ["-v", "-v", "-v"])
     @test val == [true, true, true]
 end
 
 @testset "should handle parse context state management correctly" begin
     baseParser = option(("-l", "--locale"), str())
-    multipleParser = multiple(baseParser)
+    repeatedParser = many(baseParser)
 
-    state = multipleParser.initialState
+    state = repeatedParser.initialState
     ctx1 = mkctx(["-l", "en", "-l", "fr"], state)
 
-    parseRes1 = splitparse(multipleParser, ctx1)
+    parseRes1 = splitparse(repeatedParser, ctx1)
     @test !is_error(parseRes1)
     succ1 = unwrap(parseRes1)
 
@@ -211,7 +211,7 @@ end
     nextState1 = res_nextstate(succ1)
     ctx2 = mkctx(["-l", "fr"], nextState1)
 
-    parseRes2 = splitparse(multipleParser, ctx2)
+    parseRes2 = splitparse(repeatedParser, ctx2)
     @test !is_error(parseRes2)
     succ2 = unwrap(parseRes2)
 
@@ -221,21 +221,21 @@ end
 
 @testset "should complete with proper value array" begin
     baseParser = option("-n", "--number", integer())
-    multipleParser = multiple(baseParser)
+    repeatedParser = many(baseParser)
 
 
     mockStates = OptParse.ParseResult{Int}[Ok(42), Ok(100), Ok(7)]
-    comp = splitcomplete(multipleParser, mockStates)
+    comp = splitcomplete(repeatedParser, mockStates)
     @test !is_error(comp)
     @test unwrap(comp) == [42, 100, 7]
 end
 
 @testset "should fail completion if wrapped parser completion fails" begin
     baseParser = option("-n", "--number", integer())
-    multipleParser = multiple(baseParser)
+    repeatedParser = many(baseParser)
 
     mockStates = OptParse.ParseResult{Int}[Ok(42), Err(OptParse.integerval_error(OptParse.INTEGER_Invalid)), Ok(7)]
-    comp = splitcomplete(multipleParser, mockStates)
+    comp = splitcomplete(repeatedParser, mockStates)
     @test is_error(comp)
     err = unwrap_error(comp)
     @test err.domain == OptParse.ERR_IntegerVal
@@ -243,9 +243,9 @@ end
 
 @testset "should handle empty state array with min constraint" begin
     baseParser = option(("-l", "--locale"), str())
-    multipleParser = multiple(baseParser; min = 1)
+    repeatedParser = many1(baseParser)
 
-    comp = splitcomplete(multipleParser, OptParse.ParseResult{String}[])
+    comp = splitcomplete(repeatedParser, OptParse.ParseResult{String}[])
     @test is_error(comp)
     err = unwrap_error(comp)
     @test err.domain == OptParse.ERR_ModMultiple
@@ -254,10 +254,10 @@ end
 
 @testset "should handle max constraint at completion" begin
     baseParser = option(("-l", "--locale"), str())
-    multipleParser = multiple(baseParser; max = 2)
+    repeatedParser = repeated(baseParser; max = 2)
 
     mockStates = OptParse.ParseResult{String}[Ok("en"), Ok("fr"), Ok("de")]
-    comp = splitcomplete(multipleParser, mockStates)
+    comp = splitcomplete(repeatedParser, mockStates)
     @test is_error(comp)
     err = unwrap_error(comp)
     @test err.domain == OptParse.ERR_ModMultiple
@@ -266,19 +266,19 @@ end
 
 @testset "should work with constant parsers" begin
     baseParser = @constant(:fixed)
-    multipleParser = multiple(baseParser; min = 1, max = 3)
+    repeatedParser = repeated(baseParser; min = 1, max = 3)
 
     # Since constant parser does not consume input, implementation should avoid infinite loops
-    val = parse_ok(multipleParser, String[])
+    val = parse_ok(repeatedParser, String[])
     @test val == [Val(:fixed)]
 end
 
 @testset "should reproduce example usage patterns" begin
     # Example 1
-    parser1 = object(
+    parser1 = record(
         (
             name = option("-n", "--name", str()),
-            locales = multiple(option(("-l", "--locale"), str())),
+            locales = many(option(("-l", "--locale"), str())),
             id = arg(str()),
         )
     )
@@ -287,11 +287,11 @@ end
     @test val1.locales == ["en-US", "fr-FR"]
     @test val1.id == "user123"
 
-    # Example 2: constrained multiple arguments
-    parser2 = object(
+    # Example 2: constrained repeated arguments
+    parser2 = record(
         (
             title = option("-t", "--title", str()),
-            ids = multiple(arg(str()); min = 1, max = 3),
+            ids = repeated(arg(str()); min = 1, max = 3),
         )
     )
     val2 = parse_ok(parser2, ["-t", "My Title", "id1", "id2"])
@@ -306,10 +306,10 @@ end
 end
 
 @testset "should handle options terminator correctly" begin
-    parser = object(
+    parser = record(
         (
-            locales = multiple(option(("-l", "--locale"), str())),
-            args = multiple(arg(str())),
+            locales = many(option(("-l", "--locale"), str())),
+            args = many(arg(str())),
         )
     )
 
@@ -320,13 +320,13 @@ end
 
 @testset "should handle state transitions and updates correctly" begin
     baseParser = arg(str())
-    multipleParser = multiple(baseParser)
+    repeatedParser = many(baseParser)
 
     # Test initial state
-    @test multipleParser.initialState == tval(baseParser)[]
+    @test repeatedParser.initialState == tval(baseParser)[]
 
-    ctx1 = mkctx(["arg1"], multipleParser.initialState)
-    parseRes1 = splitparse(multipleParser, ctx1)
+    ctx1 = mkctx(["arg1"], repeatedParser.initialState)
+    parseRes1 = splitparse(repeatedParser, ctx1)
     @test !is_error(parseRes1)
     succ1 = unwrap(parseRes1)
     @test length(res_nextstate(succ1)) == 1
@@ -334,8 +334,8 @@ end
 
     # Next context with carried state but new buffer
     carried = res_nextstate(succ1)
-    ctx2 = widen_state(tstate(multipleParser), mkctx(["arg2"], carried))
-    parseRes2 = @unionsplit  parse(multipleParser, ctx2)
+    ctx2 = widen_state(tstate(repeatedParser), mkctx(["arg2"], carried))
+    parseRes2 = @unionsplit  parse(repeatedParser, ctx2)
     @test !is_error(parseRes2)
     succ2 = unwrap(parseRes2)
     @test length(res_nextstate(succ2)) == 2
@@ -344,38 +344,38 @@ end
 
 @testset "should work with complex value parsers" begin
     baseParser = option(("-p", "--port"), integer(; min = 1024, max = 0xffff))
-    multipleParser = multiple(baseParser; min = 1, max = 5)
+    repeatedParser = repeated(baseParser; min = 1, max = 5)
 
-    validVals = parse_ok(multipleParser, ["-p", "8080", "-p", "9000", "-p", "3000"])
+    validVals = parse_ok(repeatedParser, ["-p", "8080", "-p", "9000", "-p", "3000"])
     @test validVals == [8080, 9000, 3000]
 
-    invalidErr = parse_fail(multipleParser, ["-p", "8080", "-p", "100"])
+    invalidErr = parse_fail(repeatedParser, ["-p", "8080", "-p", "100"])
     @test invalidErr.domain == OptParse.ERR_IntegerVal  # Should fail due to port 100 being below minimum
 
-    tooManyErr = parse_fail(multipleParser, ["-p", "8080", "-p", "9000", "-p", "3000", "-p", "4000", "-p", "5000", "-p", "6000"])
+    tooManyErr = parse_fail(repeatedParser, ["-p", "8080", "-p", "9000", "-p", "3000", "-p", "4000", "-p", "5000", "-p", "6000"])
     @test tooManyErr.domain == OptParse.ERR_Main
     @test OptParse.MainErrCode(tooManyErr.code) == OptParse.MAIN_NoProgress
 end
 
 @testset "should maintain type safety with different value types" begin
-    stringMultiple = multiple(option("-s", str()))
-    integerMultiple = multiple(option("-i", integer()))
-    booleanMultiple = multiple(gate("-b"))
+    stringRepeated = many(option("-s", str()))
+    integerRepeated = many(option("-i", integer()))
+    booleanRepeated = many(gate("-b"))
 
     # Strings
-    sVals = parse_ok(stringMultiple, ["-s", "hello", "-s", "world"])
+    sVals = parse_ok(stringRepeated, ["-s", "hello", "-s", "world"])
     @test length(sVals) == 2
     @test sVals[1] isa String
     @test sVals == ["hello", "world"]
 
     # Integers
-    iVals = parse_ok(integerMultiple, ["-i", "42", "-i", "100"])
+    iVals = parse_ok(integerRepeated, ["-i", "42", "-i", "100"])
     @test length(iVals) == 2
     @test iVals[1] isa Int
     @test iVals == [42, 100]
 
     # Booleans
-    bVals = parse_ok(booleanMultiple, ["-bb"])
+    bVals = parse_ok(booleanRepeated, ["-bb"])
     @test length(bVals) == 2
     @test bVals[1] isa Bool
     @test bVals == [true, true]

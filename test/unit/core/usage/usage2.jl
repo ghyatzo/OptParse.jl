@@ -29,7 +29,7 @@ end
     @test render_usage(usage; progname = "pkg") == "pkg add <PACKAGE>"
 end
 
-@testset "should collapse optional option-like entries in compact object rendering" begin
+@testset "should collapse optional option-like entries in compact record rendering" begin
     usage = UsageObject(
         UsageOptional(UsageFlag(("-v", "--verbose"))),
         UsageOptional(UsageOption(("--color",), "WHEN")),
@@ -153,7 +153,7 @@ end
     @test_opt render_usage(usage; progname = "prog")
 end
 
-@testset "should stay inferred on wider heterogeneous usage objects" begin
+@testset "should stay inferred on wider heterogeneous usage records" begin
     usage = UsageCommand(
         ("serve",),
         UsageObject(
@@ -207,7 +207,7 @@ end
 end
 
 @testset "should build usage directly from a broad parser tree" begin
-    parser = object(
+    parser = record(
         (;
             tag = @constant(:root),
             verbose = flag("-v", "--verbose"),
@@ -216,14 +216,14 @@ end
             input = arg(str("INPUT")),
             mode = optional(option("--mode", str("MODE"))),
             fallback = default(option("--fallback", str("FALLBACK")), "fallback"),
-            extras = multiple(arg(str("EXTRA")); min = 1, max = 3),
+            extras = repeated(arg(str("EXTRA")); min = 1, max = 3),
             coordinates = sequence(
                 option("--x", integer("X")),
                 option("--y", integer("Y")),
             ),
             action = or(
                 command(
-                    "add", object(
+                    "add", record(
                         (;
                             kind = @constant(:add),
                             name = arg(str("NAME")),
@@ -251,13 +251,13 @@ end
 
 @testset "should build usage directly from combine and concat parsers" begin
     combined = combine(
-        object(
+        record(
             (;
                 quiet = flag("-q", "--quiet"),
                 host = option("--host", str("HOST")),
             )
         ),
-        object(
+        record(
             (;
                 token = @constant(:token),
                 port = option("--port", integer("PORT")),
@@ -271,7 +271,7 @@ end
             option("--from", str("FROM")),
         ),
         sequence(
-            multiple(arg(str("REST")); min = 0, max = 2),
+            repeated(arg(str("REST")); min = 0, max = 2),
             gate("--go"),
         ),
     )
@@ -291,7 +291,7 @@ end
 end
 
 @testset "should hide parser usage through help information modifiers" begin
-    parser = object(
+    parser = record(
         (;
             debug = flag("--debug") |> help("Debug mode", "Enable debug mode") |> hidden(),
             input = arg(str("FILE")),
@@ -309,16 +309,16 @@ end
 end
 
 @testset "should focus usage on selected nested commands" begin
-    parser = object(
+    parser = record(
         (;
             verbose = flag("-v", "--verbose"),
             action = or(
                 command(
-                    "cmd", object(
+                    "cmd", record(
                         (;
                             dry_run = flag("--dry-run"),
                             sub = command(
-                                "subcmd", object(
+                                "subcmd", record(
                                     (;
                                         force = flag("--force"),
                                         file = arg(str("FILE")),
@@ -341,16 +341,16 @@ end
 end
 
 @testset "should append focused usage when rendering parse exceptions" begin
-    parser = object(
+    parser = record(
         (;
             verbose = flag("-v", "--verbose"),
             action = or(
                 command(
-                    "cmd", object(
+                    "cmd", record(
                         (;
                             dry_run = flag("--dry-run"),
                             sub = command(
-                                "subcmd", object(
+                                "subcmd", record(
                                     (;
                                         force = flag("--force"),
                                         file = arg(str("FILE")),
@@ -375,7 +375,7 @@ end
 
 @testset "should keep local aggregate usage when focusing non-command alternatives" begin
     parser = command(
-        "run", object(
+        "run", record(
             (;
                 verbose = flag("-v", "--verbose"),
                 target = or(

@@ -2,7 +2,7 @@
 
 
 @testset "should create a parser that matches a subcommand and applies inner parser" begin
-    inner_obj = object(
+    inner_obj = record(
         (
             type = @constant(:show),
             progress = gate("-p", "--progress"),
@@ -21,7 +21,7 @@ end
 @testset "should parse a basic subcommand with arguments" begin
     showParser = command(
         "show",
-        object(
+        record(
             (
                 type = @constant(:show),
                 progress = gate("-p", "--progress"),
@@ -36,10 +36,10 @@ end
     @test val.id == "item123"
 end
 
-@testset "should suport aliases (multiple names)" begin
+@testset "should suport aliases (repeated names)" begin
     showParser = command(
         "show", "sh",
-        object(
+        record(
             (
                 type = @constant(:show),
                 progress = gate("-p", "--progress"),
@@ -57,7 +57,7 @@ end
 @testset "should fail when wrong subcommand is provided" begin
     showParser = command(
         "show",
-        object(
+        record(
             (
                 type = @constant(:show),
                 id = arg(str()),
@@ -73,7 +73,7 @@ end
 @testset "should fail when subcommand is provided but required arguments are missing" begin
     editParser = command(
         "edit",
-        object(
+        record(
             (
                 type = @constant(:edit),
                 id = arg(str()),
@@ -89,7 +89,7 @@ end
 @testset "should handle optional options in subcommands" begin
     editParser = command(
         "edit",
-        object(
+        record(
             (
                 type = @constant(:edit),
                 editor = optional(option(("-e", "--editor"), str())),
@@ -112,11 +112,11 @@ end
     @test val2.id == "item456"
 end
 
-@testset "should work with or() combinator for multiple subcommands" begin
+@testset "should work with or() combinator for repeated subcommands" begin
     parser = or(
         command(
             "show",
-            object(
+            record(
                 (
                     type = @constant(:show),
                     progress = gate("-p", "--progress"),
@@ -126,7 +126,7 @@ end
         ),
         command(
             "edit",
-            object(
+            record(
                 (
                     type = @constant(:edit),
                     editor = optional(option(("-e", "--editor"), str())),
@@ -154,7 +154,7 @@ end
     parser = or(
         command(
             "show",
-            object(
+            record(
                 (
                     type = @constant(:show),
                     id = arg(str()),
@@ -163,7 +163,7 @@ end
         ),
         command(
             "edit",
-            object(
+            record(
                 (
                     type = @constant(:edit),
                     id = arg(str()),
@@ -180,7 +180,7 @@ end
 @testset "should handle empty input" begin
     showParser = command(
         "show",
-        object(
+        record(
             (
                 type = @constant(:show),
                 id = arg(str()),
@@ -197,7 +197,7 @@ end
     parser = or(
         command(
             "show",
-            object(
+            record(
                 (
                     type = @constant(:show),
                     progress = gate("-p", "--progress"),
@@ -207,7 +207,7 @@ end
         ),
         command(
             "edit",
-            object(
+            record(
                 (
                     type = @constant(:edit),
                     editor = optional(option(("-e", "--editor"), str())),
@@ -232,7 +232,7 @@ end
     parser = or(
         command(
             "test",
-            object(
+            record(
                 (
                     type = @constant(:test),
                     id = arg(str()),
@@ -241,7 +241,7 @@ end
         ),
         command(
             "testing",
-            object(
+            record(
                 (
                     type = @constant(:testing),
                     id = arg(str()),
@@ -262,7 +262,7 @@ end
 @testset "should handle commands that look like options" begin
     parser = command(
         "--help",
-        object(
+        record(
             (
                 type = @constant(:help),
             )
@@ -274,13 +274,13 @@ end
 end
 
 
-@testset "should handle nested commands (command within object parser)" begin
-    nestedParser = object(
+@testset "should handle nested commands (command within record parser)" begin
+    nestedParser = record(
         (
             globalFlag = gate("--global"),
             cmd = command(
                 "run",
-                object(
+                record(
                     (
                         type = @constant(:run),
                         script = arg(str()),
@@ -313,9 +313,9 @@ end
 @testset "should handle options terminator with commands" begin
     parser = command(
         "exec",
-        object((
+        record((
             type = @constant(:exec),
-            args = multiple(arg(str())),
+            args = many(arg(str())),
         )),
     )
 
@@ -328,9 +328,9 @@ end
 @testset "should keep treating input after -- as positional once a command is selected" begin
     parser = command(
         "test",
-        object((
+        record((
             type = @constant(:test),
-            args = multiple(arg(str())),
+            args = many(arg(str())),
         )),
     )
 

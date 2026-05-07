@@ -3,7 +3,7 @@ using OptParse
 const sync_cmd = command(
     "sync",
     sequence(
-        object((;
+        record((;
             source = option("--src", str()),
             dest = option("--dst", str()),
             force = default(gate("-f", "--force"), false),
@@ -14,7 +14,7 @@ const sync_cmd = command(
 
 const status_cmd = command(
     "status",
-    object((;
+    record((;
         long = optional(gate("-l", "--long")),
         json = default(gate("--json"), false),
     ))

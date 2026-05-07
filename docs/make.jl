@@ -6,6 +6,7 @@ makedocs(
     checkdocs = :exports,
     pages = [
         "index.md",
+        "Migration Guide" => "migration.md",
         "Examples" => "examples.md",
         "API Docstrings" => "reference.md",
         "Development" => [

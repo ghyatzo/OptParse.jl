@@ -44,8 +44,8 @@ end
         include("unit/constructors/combine.jl")
     end
 
-    @testset "Objects" begin
-        include("unit/constructors/object.jl")
+    @testset "Records" begin
+        include("unit/constructors/record.jl")
     end
 
     @testset "Or" begin
@@ -72,8 +72,8 @@ end
         include("unit/modifiers/default.jl")
     end
 
-    @testset "Multiple Modifier" begin
-        include("unit/modifiers/multiple.jl")
+    @testset "Repeated Modifier" begin
+        include("unit/modifiers/repeated.jl")
     end
 
 end

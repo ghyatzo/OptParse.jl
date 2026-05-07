@@ -23,7 +23,7 @@ create new behaviours. Parsing is done in two passes:
 - in the first, the input is checked against each branch of the tree until a match is found. Each node updates its state
 to reflect if it succeded or not. This is the `parse` step.
 - if the input match any of the branches we consider the step successful, otherwise we return the error of why it failed to match.
-- the second pass is the `complete` step. The tree is collapsed, eventual validation error handled and a final object returned.
+- the second pass is the `complete` step. The tree is collapsed, eventual validation error handled and a final value returned.
 
 ## Installation
 
@@ -38,7 +38,7 @@ Pkg.add(url="https://github.com/ghyatzo/OptParse")
 using OptParse
 
 # Define a parser
-parser = object((
+parser = record((
     name = option("-n", "--name", str("NAME")),
     port = option("-p", "--port", integer("PORT"; min=1000)),
     verbose = flag("-v", "--verbose")
@@ -62,7 +62,7 @@ Current parsing conventions:
 For the public entrypoints:
 
 - `optparse(parser, argv)` is the high-level convenience entrypoint
-- `tryoptparse(parser, argv)` is the lower-level entrypoint and returns a result object instead of throwing
+- `tryoptparse(parser, argv)` is the lower-level entrypoint and returns a result container instead of throwing
 - `resulttype(parser)` returns the final value type produced by a parser
 
 `optparse` has two modes controlled through the `juliac` key via
@@ -104,6 +104,7 @@ When you want a named placeholder in help or usage, prefer the positional metava
 but the positional form is the main API.
 
 The full constructor reference for value parsers is listed in the [API reference](reference.md).
+For older code, see the [Migration Guide](migration.md) for public API renames.
 
 ### Modifiers
 
@@ -111,14 +112,14 @@ Enhance parsers with additional behavior:
 
 - [`optional`](@ref) - Convenience wrapper for `default(p, nothing)`
 - [`default`](@ref) - Provides a fallback value
-- [`multiple`](@ref) - Allows repeated matches, returns a vector
+- [`many`](@ref) / [`many1`](@ref) / [`repeated`](@ref) - Allows repeated matches, returns a vector
 - [`help`](@ref) - Attaches help text to a parser without changing parsing semantics
 - [`hidden`](@ref) - Hides a parser from usage/help output without changing parsing semantics
 
 Help annotations compose directly with normal parsers:
 
 ```julia
-parser = command("serve", object((
+parser = command("serve", record((
     host = option("--host", str("HOST")) |> help("Host", "Hostname to bind"),
     port = default(option("--port", integer("PORT")), 8080) |> help("Port", "TCP port to listen on"),
     verbose = flag("-v", "--verbose") |> help("Verbose", "Enable verbose logging"),
@@ -132,12 +133,12 @@ renders usage and high-level parse failures.
 
 Compose parsers into complex structures:
 
-- [`object`](@ref) - Named tuple of parsers (most common)
+- [`record`](@ref) - Named tuple of parsers (most common)
 - [`or`](@ref) - Mutually exclusive alternatives (for subcommands)
 - [`sequence`](@ref) - Ordered sequence of parsers (returns a tuple)
-- [`combine`](@ref) / [`concat`](@ref) - Merge multiple parser groups
+- [`combine`](@ref) / [`concat`](@ref) - Merge several parser groups
 
-`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `arg(...)` or `multiple(arg(...))` last.
+`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `arg(...)` or `many(arg(...))` last.
 
 ### Complete Application Example
 
@@ -147,7 +148,7 @@ Here's a more realistic example showing a package manager-style CLI:
 using OptParse
 
 # Shared options
-commonOpts = object((
+commonOpts = record((
     verbose = flag("-v", "--verbose"),
     quiet = flag("-q", "--quiet")
 ))
@@ -155,22 +156,22 @@ commonOpts = object((
 # Add command
 addCmd = command("add", combine(
     commonOpts,
-    object((packages = multiple(arg(str("PACKAGE"))),))
+    record((packages = many(arg(str("PACKAGE"))),))
 ))
 
 # Remove command
 removeCmd = command("remove", "rm", combine(
     commonOpts,
-    object((
+    record((
         all = flag("--all"),
-        packages = multiple(arg(str("PACKAGE")))
+        packages = many(arg(str("PACKAGE")))
     ))
 ))
 
 # Instantiate command
 instantiateCmd = command("instantiate", combine(
     commonOpts,
-    object((
+    record((
         manifest = flag("-m", "--manifest"),
         project = flag("-p", "--project")
     ))
@@ -190,7 +191,7 @@ parser = or(addCmd, removeCmd, instantiateCmd)
 OptParse is designed for type stability. The return type of your parser is fully determined at compile time:
 
 ```julia
-parser = object((
+parser = record((
     name = option("-n", str()),
     port = option("-p", integer())
 ))
@@ -198,8 +199,8 @@ parser = object((
 # Return type: @NamedTuple{name::String, port::Int64}
 
 parser = or(
-    object((mode = @constant(:a), value = integer())),
-    object((mode = @constant(:b), value = str()))
+    record((mode = @constant(:a), value = integer())),
+    record((mode = @constant(:b), value = str()))
 )
 
 # Return type: Union{@NamedTuple{mode::Val{:a}, ...}, NamedTuple{mode::Val{:b}, ...}}
@@ -212,7 +213,7 @@ When you want to dispatch on the result of a specific parser, use
 [`resulttype`](@ref):
 
 ```julia
-greet = command("greet", object((
+greet = command("greet", record((
     cmd = @constant(:greet),
     name = option("-n", str("NAME")),
 )))
@@ -237,7 +238,7 @@ result = tryoptparse(parser, ["-p", "3000"])
 ```
 
 `optparse` returns the parsed value on success and throws `OptParse.ParseException` on failure.
-`tryoptparse` returns a result object instead of throwing, which is useful if you want to inspect failures programmatically.
+`tryoptparse` returns a result container instead of throwing, which is useful if you want to inspect failures programmatically.
 
 Rendered error messages are produced centrally from structured internal diagnostics. The exact wording may evolve, but failures are surfaced with parser-specific context, for example invalid values, missing required inputs, or unexpected arguments.
 In the high-level `optparse` path, the exception renderer also appends a focused

@@ -4,7 +4,7 @@ using OptParse
 
 const hello = command(
     "hello",
-    object((;
+    record((;
         cmd = @constant(:hello),
         name = option("-n", "--name", str("NAME")),
     ))
@@ -12,7 +12,7 @@ const hello = command(
 
 const goodbye = command(
     "goodbye",
-    object((;
+    record((;
         cmd = @constant(:goodbye),
         name = option("-n", "--name", str("NAME")),
     ))

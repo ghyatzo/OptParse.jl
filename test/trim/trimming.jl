@@ -6,7 +6,7 @@ const TRIM_CASES = (
     (name = "project_default", file = TRIM_PROJ, project = nothing),
     (name = "or_commands", file = joinpath(TRIM_VARIANTS_DIR, "or_commands.jl"), project = TRIM_PROJ),
     (name = "tuple_defaults", file = joinpath(TRIM_VARIANTS_DIR, "tuple_defaults.jl"), project = TRIM_PROJ),
-    (name = "object_multiple", file = joinpath(TRIM_VARIANTS_DIR, "object_multiple.jl"), project = TRIM_PROJ),
+    (name = "record_repeated", file = joinpath(TRIM_VARIANTS_DIR, "record_repeated.jl"), project = TRIM_PROJ),
     (name = "nested_constructors", file = joinpath(TRIM_VARIANTS_DIR, "nested_constructors.jl"), project = TRIM_PROJ),
     (name = "git like", file = joinpath(TRIM_VARIANTS_DIR, "gitlike.jl"), project = TRIM_PROJ),
 )

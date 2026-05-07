@@ -5,7 +5,7 @@
 - `optparse(parser, argv)` is the high-level convenience entrypoint
 - in normal Julia runtime usage, `optparse` returns the parsed value or throws `OptParse.ParseException`
 - when `juliac` mode is enabled through the `juliac` preference, `optparse` renders the error to `stderr` and returns `nothing` on failure instead of throwing
-- `tryoptparse(parser, argv)` is the lower-level entrypoint and returns a result object instead of throwing
+- `tryoptparse(parser, argv)` is the lower-level entrypoint and returns a result container instead of throwing
 
 ```@docs
 optparse
@@ -52,7 +52,9 @@ path
 ```@docs
 default
 optional
-multiple
+repeated
+many
+many1
 help
 hidden
 ```
@@ -60,7 +62,7 @@ hidden
 ### Constructors
 
 ```@docs
-object
+record
 combine
 or
 sequence

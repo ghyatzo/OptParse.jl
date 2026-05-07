@@ -28,7 +28,7 @@ create new behaviours. Parsing is done in two passes:
 - in the first, the input is checked against each branch of the tree until a match is found. Each node updates its state
 to reflect if it succeded or not. This is the `parse` step.
 - if the input match any of the branches we consider the step successful, otherwise we return the error of why it failed to match.
-- the second pass is the `complete` step. The tree is collapsed, eventual validation error handled and a final object returned.
+- the second pass is the `complete` step. The tree is collapsed, eventual validation error handled and a final value returned.
 
 ## Missing Features:
 
@@ -37,7 +37,7 @@ to reflect if it succeded or not. This is the `parse` step.
 - [ ] `map` modifier, unfortunately until julia has something like `TypedCallabe`s it's impossible to
 ensure type stability with arbitrary functions.
 - [ ] `longest-match` combinator
-- [ ] `group` combinator: light simple parser useful only for enclosing multiple parsers together in the same category. mainly useful for help messages.
+- [ ] `group` combinator: light simple parser useful only for enclosing several parsers together in the same category. mainly useful for help messages.
 - [ ] automatic suggestions / shell completions
 
 ## Quick Start
@@ -46,7 +46,7 @@ ensure type stability with arbitrary functions.
 using OptParse
 
 # Define a parser
-parser = object((
+parser = record((
     name = option("-n", "--name", str("NAME")),
     port = option("-p", "--port", integer("PORT"; min=1000)),
     verbose = flag("-v", "--verbose")
@@ -70,7 +70,7 @@ The style implemented in this library is the following:
 For the public entrypoints:
 
 - `optparse(parser, argv)` is the high-level convenience entrypoint
-- `tryoptparse(parser, argv)` is the lower-level entrypoint and returns a result object instead of throwing
+- `tryoptparse(parser, argv)` is the lower-level entrypoint and returns a result container instead of throwing
 - `resulttype(parser)` returns the final value type produced by a parser
 
 `optparse` has two modes controlled through the `juliac` key via
@@ -102,7 +102,7 @@ result = optparse(port, ["--port=8080"])  # Long form with =
 result = optparse(port, ["-p", "8080"])   # Short form
 
 # Flags can be bundled
-parser = object((
+parser = record((
     all = gate("-a"),
     long = gate("-l"),
     human = gate("-h")
@@ -145,7 +145,7 @@ Enhance parsers with additional behavior:
 
 - **`optional`** - Convenience wrapper for `default(p, nothing)`
 - **`default`** - Provides a fallback value
-- **`multiple`** - Allows repeated matches, returns a vector
+- **`many`** / **`many1`** / **`repeated`** - Allows repeated matches, returns a vector
 - **`help`** - Attaches help text to a parser
 - **`hidden`** - Hides a parser from usage/help output while still parsing it
 
@@ -156,14 +156,17 @@ email = optional(option("-e", "--email", str("EMAIL")))
 # With defaults
 port = default(option("-p", integer("PORT")), 8080)
 
-# Multiple values
-packages = multiple(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
+# Repeated values
+packages = many(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
 
 # Verbosity levels
-verbosity = multiple(gate("-v"))  # -v -v -v or -vvv
+verbosity = many(gate("-v"))  # -v -v -v or -vvv
+
+# One or more values
+files = many1(arg(str("FILE")))
 
 # Help annotations
-serve = command("serve", object((
+serve = command("serve", record((
     host = option("--host", str("HOST")) |> help("Host", "Hostname to bind"),
     port = default(option("--port", integer("PORT")), 8080) |> help("Port", "TCP port to listen on"),
     verbose = flag("-v", "--verbose") |> help("Verbose", "Enable verbose logging"),
@@ -177,30 +180,30 @@ OptParse can derive richer usage/help output from the same definitions.
 
 Compose parsers into complex structures:
 
-- **`object`** - Named tuple of parsers (most common)
+- **`record`** - Named tuple of parsers (most common)
 - **`or`** - Mutually exclusive alternatives (for subcommands)
 - **`sequence`** - Ordered sequence of parsers (returns a tuple)
-- **`combine`** / **`concat`** - Merge multiple parser groups
+- **`combine`** / **`concat`** - Merge several parser groups
 
-`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `arg(...)` or `multiple(arg(...))` last.
+`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `arg(...)` or `many(arg(...))` last.
 
 ```julia
-# Object composition
-parser = object((
+# Record composition
+parser = record((
     input = arg(str("INPUT")),
     output = option("-o", "--output", str("OUTPUT")),
     force = flag("-f", "--force")
 ))
 
 # Alternative commands with or
-addCmd = command("add", object((
+addCmd = command("add", record((
     action = @constant(:add),
-    packages = multiple(arg(str("PACKAGE")))
+    packages = many(arg(str("PACKAGE")))
 )))
 
-removeCmd = command("remove", object((
+removeCmd = command("remove", record((
     action = @constant(:remove),
-    packages = multiple(arg(str("PACKAGE")))
+    packages = many(arg(str("PACKAGE")))
 )))
 
 pkgParser = or(addCmd, removeCmd)
@@ -214,7 +217,7 @@ Here's a more realistic example showing subcommands:
 using OptParse
 
 # Shared options
-commonOpts = object((
+commonOpts = record((
     verbose = flag("-v", "--verbose"),
     quiet = flag("-q", "--quiet")
 ))
@@ -222,22 +225,22 @@ commonOpts = object((
 # Add command
 addCmd = command("add", combine(
     commonOpts,
-    object((packages = multiple(arg(str("PACKAGE"))),))
+    record((packages = many(arg(str("PACKAGE"))),))
 ))
 
 # Remove command
 removeCmd = command("remove", "rm", combine(
     commonOpts,
-    object((
+    record((
         all = flag("--all"),
-        packages = multiple(arg(str("PACKAGE")))
+        packages = many(arg(str("PACKAGE")))
     ))
 ))
 
 # Instantiate command
 instantiateCmd = command("instantiate", combine(
     commonOpts,
-    object((
+    record((
         manifest = flag("-m", "--manifest"),
         project = flag("-p", "--project")
     ))
@@ -257,7 +260,7 @@ parser = or(addCmd, removeCmd, instantiateCmd)
 OptParse is designed for type stability. The return type of your parser is fully determined at compile time:
 
 ```julia
-parser = object((
+parser = record((
     name = option("-n", str()),
     port = option("-p", integer())
 ))
@@ -265,8 +268,8 @@ parser = object((
 # Return type: @NamedTuple{name::String, port::Int64}
 
 parser = or(
-    object((mode = @constant(:a), value = arg(integer()))),
-    object((mode = @constant(:b), value = arg(str())))
+    record((mode = @constant(:a), value = arg(integer()))),
+    record((mode = @constant(:b), value = arg(str())))
 )
 
 # Return type: Union{@NamedTuple{mode::Val{:a}, ...}, @NamedTuple{mode::Val{:b}, ...}}
@@ -276,7 +279,7 @@ If you want to dispatch on the output of a specific parser, expose the type
 through `resulttype`:
 
 ```julia
-greet = command("greet", object((
+greet = command("greet", record((
     cmd = @constant(:greet),
     name = option("-n", str("NAME")),
 )))
@@ -301,7 +304,7 @@ result = tryoptparse(parser, ["-p", "3000"])
 ```
 
 `optparse` returns the parsed value on success and throws `OptParse.ParseException` on failure.
-`tryoptparse` returns a result object instead of throwing, which is useful if you want to inspect failures programmatically.
+`tryoptparse` returns a result container instead of throwing, which is useful if you want to inspect failures programmatically.
 
 Rendered error messages are produced centrally from structured internal diagnostics. The exact wording may evolve, but failures are surfaced with parser-specific context, for example invalid values, missing required inputs, or unexpected arguments. In the high-level `optparse` path, the rendered exception also appends a focused usage line derived from the parser tree.
 
@@ -330,7 +333,7 @@ Comprehensive documentation is available through Julia's help system:
 julia> using OptParse
 
 julia> ?option
-julia> ?object
+julia> ?record
 julia> ?or
 ```
 

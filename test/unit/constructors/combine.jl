@@ -1,9 +1,9 @@
-@testset "should combine object parsers into a single parser" begin
+@testset "should combine record parsers into a single parser" begin
     parser = combine(
-        object((
+        record((
             verbose = gate("-v", "--verbose"),
         )),
-        object((
+        record((
             port = option(("-p", "--port"), integer()),
         )),
     )
@@ -17,13 +17,13 @@
     @test val.port == 8080
 end
 
-@testset "should work with labeled combined objects" begin
+@testset "should work with labeled combined records" begin
     parser = combine(
         "network",
-        object((
+        record((
             host = option("--host", str()),
         )),
-        object((
+        record((
             port = option("--port", integer()),
         )),
     )
@@ -33,9 +33,9 @@ end
     @test val.port == 8080
 end
 
-@testset "should fail when combined objects have duplicate field names" begin
+@testset "should fail when combined records have duplicate field names" begin
     @test_throws Exception combine(
-        object((name = option("--name", str()),)),
-        object((name = option("--other-name", str()),)),
+        record((name = option("--name", str()),)),
+        record((name = option("--other-name", str()),)),
     )
 end

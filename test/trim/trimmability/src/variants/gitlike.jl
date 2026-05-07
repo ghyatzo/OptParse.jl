@@ -15,9 +15,9 @@ const globalhelp = help(
     """
 )
 
-const globoptions = object((;
-    cwd      = option("-C", str("PATH"))      |> help("Working directory") |> multiple(),
-    config   = option("-c", str("KEY=VALUE")) |> help("Config override")   |> multiple(),
+const globoptions = record((;
+    cwd      = option("-C", str("PATH"))      |> help("Working directory") |> many(),
+    config   = option("-c", str("KEY=VALUE")) |> help("Config override")   |> many(),
     paginate = flag("-p", "--paginate")       |> help("Paginate"),
     nopager  = flag("-P", "--no-pager")       |> help("No pager"),
     version  = flag("--version")              |> help("Version"),
@@ -51,13 +51,13 @@ const statushelp = help(
     """
 )
 
-const statuscmd = object((;
+const statuscmd = record((;
     short      = flag("-s", "--short")     |> help("Short"),
     branch     = flag("-b", "--branch")    |> help("Branch"),
     porcelain  = flag("--porcelain")       |> help("Porcelain"),
     untracked  = status_untracked,
     ignored    = status_ignored,
-    pathspecs  = arg(str("PATHSPEC"))      |> help("Pathspec") |> multiple(),
+    pathspecs  = arg(str("PATHSPEC"))      |> help("Pathspec") |> many(),
 )) |> statushelp
 
 
@@ -75,14 +75,14 @@ const addhelp = help(
     """
 )
 
-const addcmd = object((;
+const addcmd = record((;
     dryrun    = flag("-n", "--dry-run")    |> help("Dry run"),
-    verbose   = flag("-v", "--verbose")    |> help("Verbose") |> multiple(),
+    verbose   = flag("-v", "--verbose")    |> help("Verbose") |> many(),
     patch     = flag("-p", "--patch")      |> help("Patch"),
     force     = flag("-f", "--force")      |> help("Force"),
     update    = flag("-u", "--update")     |> help("Update"),
     all       = flag("-A", "--all")        |> help("All"),
-    pathspecs = arg(str("PATHSPEC"))       |> help("Pathspec") |> multiple(),
+    pathspecs = arg(str("PATHSPEC"))       |> help("Pathspec") |> many(),
 )) |> addhelp
 
 
@@ -137,7 +137,7 @@ const commithelp = help(
     """
 )
 
-const commitcmd = object((;
+const commitcmd = record((;
     message_file = commit_message_source,
     all          = flag("-a", "--all")        |> help("All"),
     amend        = flag("--amend")            |> help("Amend"),
@@ -193,9 +193,9 @@ const clonehelp = help(
     """
 )
 
-const clonecmd = object((;
+const clonecmd = record((;
     quiet        = flag("-q", "--quiet")            |> help("Quiet"),
-    verbose      = flag("-v", "--verbose")          |> help("Verbose") |> multiple(),
+    verbose      = flag("-v", "--verbose")          |> help("Verbose") |> many(),
     branch       = clone_branch,
     depth        = clone_depth,
     singlebranch = flag("--single-branch")          |> help("Single branch"),
@@ -232,7 +232,7 @@ const pushhelp = help(
     """
 )
 
-const pushcmd = object((;
+const pushcmd = record((;
     upstream   = flag("-u", "--set-upstream") |> help("Set upstream"),
     force      = flag("-f", "--force")        |> help("Force"),
     forcelease = push_forcelease,
@@ -240,7 +240,7 @@ const pushcmd = object((;
     all        = flag("--all")                |> help("All"),
     dryrun     = flag("-n", "--dry-run")      |> help("Dry run"),
     repo       = push_repo,
-    refspecs   = arg(str("REFSPEC"))          |> help("Refspec") |> multiple(),
+    refspecs   = arg(str("REFSPEC"))          |> help("Refspec") |> many(),
 )) |> pushhelp
 
 
@@ -251,7 +251,7 @@ const pushcmd = object((;
 const remote_add_branches =
     option("-t", str("BRANCH")) |>
     help("Tracked branch") |>
-    multiple()
+    many()
 
 const remote_add_tag_policy =
     or(
@@ -273,7 +273,7 @@ const remote_addhelp = help(
     """
 )
 
-const remote_add = object((;
+const remote_add = record((;
     fetch    = flag("-f", "--fetch")   |> help("Fetch"),
     branches = remote_add_branches,
     tags     = remote_add_tag_policy,
@@ -296,7 +296,7 @@ const remote_geturlhelp = help(
     """
 )
 
-const remote_geturl = object((
+const remote_geturl = record((
     push = flag("--push")              |> help("Push URL"),
     all  = flag("--all")               |> help("All URLs"),
     name = arg(str("NAME"))            |> help("Remote name"),
@@ -314,7 +314,7 @@ const remote_seturlhelp = help(
     """
 )
 
-const remote_seturl = object((
+const remote_seturl = record((
     push   = flag("--push")            |> help("Push URL"),
     name   = arg(str("NAME"))          |> help("Remote name"),
     newurl = arg(str("NEWURL"))        |> help("New URL"),
@@ -341,8 +341,8 @@ const remotehelp = help(
     """
 )
 
-const remotecmd = object((
-    verbose = flag("-v", "--verbose")  |> help("Verbose") |> multiple(),
+const remotecmd = record((
+    verbose = flag("-v", "--verbose")  |> help("Verbose") |> many(),
     subcmd  = or(
         command("add",     remote_add)     |> help("Add a new remote"),
         command("rename",  remote_rename)  |> help("Rename an existing remote"),
@@ -374,7 +374,7 @@ const gitlikehelp = help(
     """
 )
 
-const parser = object((
+const parser = record((
     options = globoptions,
     cmd     = or(
         command("status", statuscmd)  |> help("Show working tree status"),
