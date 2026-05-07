@@ -5,7 +5,7 @@ const show_cmd = command(
     record((;
         kind = @constant(:show),
         id = arg(str()),
-        verbose = optional(gate("-v", "--verbose")),
+        verbose = optional(switch("-v", "--verbose")),
     ))
 )
 
@@ -19,7 +19,7 @@ const edit_cmd = command(
 )
 
 const parser = or(
-    gate("-h", "--help"),
+    switch("-h", "--help"),
     option("-p", "--port", integer()),
     show_cmd,
     edit_cmd,

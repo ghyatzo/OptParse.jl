@@ -31,7 +31,7 @@ export
     flt,
     flt32,
     flt64,
-    gate,
+    switch,
     generate_help,
     help,
     hidden,

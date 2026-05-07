@@ -156,8 +156,8 @@ julia> result
  "pkg2"
  "pkg3"
 
-julia> # Zero or more gates for verbosity levels (e.g., `-v -v -v`)
-       verbosity = many(gate("-v"));
+julia> # Zero or more switches for verbosity levels (e.g., `-v -v -v`)
+       verbosity = many(switch("-v"));
 
 julia> result = optparse(verbosity, ["-v", "-v", "-v"]);
 
@@ -435,14 +435,14 @@ option(opt1::String, opt2::String, opt3::String, valparser::AbstractValueParser)
 
 option(names::Tuple{Vararg{String}}) = (valp::AbstractValueParser) -> option(names, valp)
 
-## Gate
+## Switch
 
 """
-    gate(names...)
+    switch(names...)
 
 Primitive parser that requires a boolean flag to be present.
 
-Gates represent required flag markers used to activate features or guard specific
+Switches represent required flag markers used to activate features or guard specific
 subtrees. When present in arguments, they indicate `true`; when absent, parsing fails
 (unless wrapped with modifiers like `optional` or `default`).
 
@@ -457,8 +457,8 @@ A parser that returns `true` when the flag is present.
 ```jldoctest
 julia> using OptParse
 
-julia> # Simple gate
-       experimental = gate("--experimental");
+julia> # Simple switch
+       experimental = switch("--experimental");
 
 julia> result = optparse(experimental, ["--experimental"]);
 
@@ -466,7 +466,7 @@ julia> result
 true
 
 julia> # Repeated names
-       debug = gate("-d", "--debug");
+       debug = switch("-d", "--debug");
 
 julia> result = optparse(debug, ["-d"]);
 
@@ -481,16 +481,16 @@ true
 ```
 
 # Notes
-- By itself, `gate` requires the flag to be present (fails if absent)
+- By itself, `switch` requires the flag to be present (fails if absent)
 - Use `flag` for optional boolean flags that default to `false`
 - Supports bundled short options (e.g., `-abc` equivalent to `-a -b -c`)
 
 # See Also
 - [`flag`](@ref): Optional flag that defaults to `false`
 """
-function gate end
+function switch end
 
-gate(names...) = ArgGate(names)
+switch(names...) = ArgGate(names)
 
 ## Flag
 
@@ -499,7 +499,7 @@ gate(names...) = ArgGate(names)
 
 Convenience function for an optional flag that defaults to `false`.
 
-This is equivalent to `default(gate(names...), false)`. When the flag is
+This is equivalent to `default(switch(names...), false)`. When the flag is
 present in arguments, it returns `true`; when absent, it returns `false`.
 
 # Arguments
@@ -537,7 +537,7 @@ julia> result = optparse(parser, ["-h", "--version"]);
 julia> (result.help, result.version, result.quiet)
 (true, true, false)
 
-julia> verbosity = many(gate("-v")); # Repeated verbosity levels
+julia> verbosity = many(switch("-v")); # Repeated verbosity levels
 
 julia> result = optparse(verbosity, ["-v", "-v", "-v"]);
 
@@ -549,10 +549,10 @@ julia> result
 ```
 
 # Implementation Note
-This is implemented as: `default(gate(names...), false)`
+This is implemented as: `default(switch(names...), false)`
 
 # See Also
-- [`gate`](@ref): Required flag that fails if absent
+- [`switch`](@ref): Required flag that fails if absent
 - [`default`](@ref): General modifier for default values
 """
 function flag end
@@ -1017,9 +1017,9 @@ Val{:remove}()
 
 julia> # Alternative formats
        helpFormat = or(
-           gate("-h"),
-           gate("--help"),
-           gate("-?")
+           switch("-h"),
+           switch("--help"),
+           switch("-?")
        );
 
 julia> result = optparse(helpFormat, ["-h"]);
@@ -1112,7 +1112,7 @@ julia> # Mixed with arguments
        parser = sequence(
            arg(str("INPUT")),
            option("-o", str()),
-           gate("-v")
+           switch("-v")
        );
 
 julia> result = optparse(parser, ["input.txt", "-v", "-o", "output.txt"]);

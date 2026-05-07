@@ -28,7 +28,7 @@ end
     parser = concat(
         sequence(option("-u", str())),
         sequence(option("-p", str())),
-        sequence(gate("-v")),
+        sequence(switch("-v")),
     )
 
     val = parse_ok(parser, ["-u", "user", "-p", "pass", "-v"])

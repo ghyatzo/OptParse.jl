@@ -1,10 +1,10 @@
 using OptParse
 
 const parser = record((;
-    names = multiple(option("-n", "--name", str()); min = 1, max = 3),
+    names = repeated(option("-n", "--name", str()); min = 1, max = 3),
     level = default(option("-l", "--level", integer(; min = 1, max = 5)), 3),
-    dryrun = default(gate("--dry-run"), false),
-    tags = multiple(arg(str()); min = 1, max = 2),
+    dryrun = default(switch("--dry-run"), false),
+    tags = repeated(arg(str()); min = 1, max = 2),
 ))
 
 function @main(args::Vector{String})::Cint

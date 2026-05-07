@@ -91,7 +91,7 @@ The fundamental parsers that match command-line tokens:
 
 - **`option`** - Matches key-value pairs: `--port 8080` or `-p 8080`
 - **`flag`** - Optional boolean flags like: `--verbose` or `-v`
-- **`gate`** - Required presence flags used to guard a branch or feature
+- **`switch`** - Required presence flags used to guard a branch or feature
 - **`arg`** - Positional arguments: `cp source destination`
 - **`command`** - Subcommands: `git add file.txt`
 
@@ -103,9 +103,9 @@ result = optparse(port, ["-p", "8080"])   # Short form
 
 # Flags can be bundled
 parser = record((
-    all = gate("-a"),
-    long = gate("-l"),
-    human = gate("-h")
+    all = switch("-a"),
+    long = switch("-l"),
+    human = switch("-h")
 ))
 result = optparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
 ```
@@ -160,7 +160,7 @@ port = default(option("-p", integer("PORT")), 8080)
 packages = many(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
 
 # Verbosity levels
-verbosity = many(gate("-v"))  # -v -v -v or -vvv
+verbosity = many(switch("-v"))  # -v -v -v or -vvv
 
 # One or more values
 files = many1(arg(str("FILE")))

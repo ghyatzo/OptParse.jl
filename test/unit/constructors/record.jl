@@ -1,7 +1,7 @@
 @testset "should combine multiple parsers into an record" begin
     parser = record(
         (
-            verbose = gate("-v", "--verbose"),
+            verbose = switch("-v", "--verbose"),
             port = option(("-p", "--port"), integer()),
         )
     )
@@ -17,7 +17,7 @@ end
 @testset "should parse multiple options in sequence" begin
     parser = record(
         (
-            verbose = gate("-v"),
+            verbose = switch("-v"),
             port = option("-p", integer()),
         )
     )
@@ -38,7 +38,7 @@ end
 @testset "should work with labeled records" begin
     parser = record(
         "Test Group", (
-            flag = gate("-f"),
+            flag = switch("-f"),
         )
     )
 
@@ -60,7 +60,7 @@ end
 @testset "should fail when no option matches" begin
     parser = record(
         (
-            verbose = gate("-v"),
+            verbose = switch("-v"),
         )
     )
 
@@ -80,7 +80,7 @@ end
 @testset "should handle empty arguments gracefully when required options are present" begin
     parser = record(
         (
-            verbose = gate("-v"),
+            verbose = switch("-v"),
             port = option("-p", integer()),
         )
     )
@@ -101,8 +101,8 @@ end
         "test", (
             cst = @constant(10),
             option = option("--host", str(; metavar = "HOST")),
-            flag = gate("--verbose", "-v"),
-            flag2 = gate("--test"),
+            flag = switch("--verbose", "-v"),
+            flag2 = switch("--test"),
             arg = arg(str(; metavar = "TEST")),
         )
     )
@@ -130,7 +130,7 @@ end
     obj = record(
         "test", (
             option = option("--host", str(; metavar = "HOST")),
-            flag = optional(gate("--verbose", "-v")),
+            flag = optional(switch("--verbose", "-v")),
             arg = arg(str(; metavar = "TEST")),
         )
     )
@@ -152,8 +152,8 @@ end
         "test", (
             cst = @constant(10),
             option = option("--host", str(; metavar = "HOST")),
-            flag = gate("--verbose", "-v"),
-            flag2 = gate("--test"),
+            flag = switch("--verbose", "-v"),
+            flag2 = switch("--test"),
             arg = arg(str(; metavar = "TEST")),
         )
     )
@@ -162,8 +162,8 @@ end
         "test", (
             cst = @constant(10),
             option = option("--host", str(; metavar = "HOST")),
-            flag = gate("--verbose", "-v"),
-            flag2 = gate("--test"),
+            flag = switch("--verbose", "-v"),
+            flag2 = switch("--test"),
             arg = arg(str(; metavar = "TEST")),
         )
     )

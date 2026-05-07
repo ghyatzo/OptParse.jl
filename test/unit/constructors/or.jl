@@ -1,6 +1,6 @@
 @testset "should try parsers in order" begin
-    parser1 = gate("-a")
-    parser2 = gate("-b")
+    parser1 = switch("-a")
+    parser2 = switch("-b")
     orParser = or(parser1, parser2)
 
     using OptParse: OrState, GateState, ParseSuccess
@@ -9,24 +9,24 @@
 end
 
 @testset "should succeed with first matching parser" begin
-    parser1 = gate("-a")
-    parser2 = gate("-b")
+    parser1 = switch("-a")
+    parser2 = switch("-b")
     orParser = or(parser1, parser2)
 
     @test parse_ok(orParser, ["-a"]) == true
 end
 
 @testset "should succeed with second parser when first fails" begin
-    parser1 = gate("-a")
-    parser2 = gate("-b")
+    parser1 = switch("-a")
+    parser2 = switch("-b")
     orParser = or(parser1, parser2)
 
     @test parse_ok(orParser, ["-b"]) == true
 end
 
 @testset "should fail when no parser matches" begin
-    parser1 = gate("-a")
-    parser2 = gate("-b")
+    parser1 = switch("-a")
+    parser2 = switch("-b")
     orParser = or(parser1, parser2)
 
     err = parse_fail(orParser, ["-c"])
@@ -35,8 +35,8 @@ end
 end
 
 @testset "should detect mutually exclusive options" begin
-    parser1 = gate("-a")
-    parser2 = gate("-b")
+    parser1 = switch("-a")
+    parser2 = switch("-b")
     orParser = or(parser1, parser2)
 
     err = parse_fail(orParser, ["-a", "-b"])
@@ -45,9 +45,9 @@ end
 end
 
 @testset "should work with more than two parsers" begin
-    parser1 = gate("-a")
-    parser2 = gate("-b")
-    parser3 = gate("-c")
+    parser1 = switch("-a")
+    parser2 = switch("-b")
+    parser3 = switch("-c")
     orParser = or(parser1, parser2, parser3)
 
     @test parse_ok(orParser, ["-a"]) == true
@@ -60,8 +60,8 @@ end
 @testset "should allow duplicate option names in different branches" begin
     # or() allows duplicates because branches are mutually exclusive
     parser = or(
-        gate("-v", "--verbose"),
-        gate("-v", "--version"),
+        switch("-v", "--verbose"),
+        switch("-v", "--version"),
     )
 
     # Should succeed - first parser wins
@@ -70,9 +70,9 @@ end
 
 @testset "should allow same options in nested or branches" begin
     parser = or(
-        record((verbose = gate("-v"),)),
-        record((version = gate("-v"),)),
-        record((verify = gate("-v"),)),
+        record((verbose = switch("-v"),)),
+        record((version = switch("-v"),)),
+        record((verify = switch("-v"),)),
     )
 
     # Should succeed - first matching branch wins
@@ -81,7 +81,7 @@ end
 
 @testset "Should handle control only matches correctly" begin
     parser = or(
-        gate("-a"),
+        switch("-a"),
         arg(str()),
     )
 
@@ -91,7 +91,7 @@ end
     @test parse_ok(parser, ["--", "-a"]) == "-a"
 
     ctrlonly = or(
-        gate("-a"),
+        switch("-a"),
         option("-b", str()),
     )
 
@@ -148,15 +148,15 @@ end
 
 @testset "should be type stable" begin
     @test_opt or(
-        record((verbose = gate("-v"),)),
-        record((version = gate("-v"),)),
-        record((verify = gate("-v"),)),
+        record((verbose = switch("-v"),)),
+        record((version = switch("-v"),)),
+        record((verify = switch("-v"),)),
     )
 
     parser = or(
-        record((verbose = gate("-v"),)),
-        record((version = gate("-v"),)),
-        record((verify = gate("-v"),)),
+        record((verbose = switch("-v"),)),
+        record((version = switch("-v"),)),
+        record((verify = switch("-v"),)),
     )
 
     @test_opt optparse(parser, ["-v"])

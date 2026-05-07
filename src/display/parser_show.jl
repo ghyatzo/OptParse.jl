@@ -76,7 +76,7 @@ show_compact(io::IO, p::UUIDVal) = let
 end
 
 show_compact(io::IO, p::ArgGate) = let
-    print(io, "gate(")
+    print(io, "switch(")
     print(io, join(p.names, ", "))
     print(io, ")")
 end

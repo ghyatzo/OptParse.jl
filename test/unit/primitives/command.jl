@@ -5,7 +5,7 @@
     inner_obj = record(
         (
             type = @constant(:show),
-            progress = gate("-p", "--progress"),
+            progress = switch("-p", "--progress"),
             id = arg(str()),
         )
     )
@@ -24,7 +24,7 @@ end
         record(
             (
                 type = @constant(:show),
-                progress = gate("-p", "--progress"),
+                progress = switch("-p", "--progress"),
                 id = arg(str()),
             )
         ),
@@ -42,7 +42,7 @@ end
         record(
             (
                 type = @constant(:show),
-                progress = gate("-p", "--progress"),
+                progress = switch("-p", "--progress"),
                 id = arg(str()),
             )
         ),
@@ -119,7 +119,7 @@ end
             record(
                 (
                     type = @constant(:show),
-                    progress = gate("-p", "--progress"),
+                    progress = switch("-p", "--progress"),
                     id = arg(str()),
                 )
             ),
@@ -200,7 +200,7 @@ end
             record(
                 (
                     type = @constant(:show),
-                    progress = gate("-p", "--progress"),
+                    progress = switch("-p", "--progress"),
                     id = arg(str()),
                 )
             ),
@@ -277,7 +277,7 @@ end
 @testset "should handle nested commands (command within record parser)" begin
     nestedParser = record(
         (
-            globalFlag = gate("--global"),
+            globalFlag = switch("--global"),
             cmd = command(
                 "run",
                 record(

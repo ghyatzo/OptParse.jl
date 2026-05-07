@@ -20,7 +20,7 @@ generate_help
 ```@docs
 option
 flag
-gate
+switch
 arg
 command
 @constant

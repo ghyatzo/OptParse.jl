@@ -16,7 +16,7 @@ The high-level split in the source tree is:
 - `src/parsers/valueparsers/`
   - string-to-value parsers such as `str`, `integer`, `choice`, `flt`, `uuid`, `path`
 - `src/parsers/primitives/`
-  - leaf parser families such as `gate`, `flag`, `option`, `arg`, `command`
+  - leaf parser families such as `switch`, `flag`, `option`, `arg`, `command`
 - `src/parsers/constructors/`
   - combinators that combine child parsers such as `record`, `or`, `sequence`, `concat`, `combine`
 - `src/parsers/modifiers/`
@@ -141,7 +141,7 @@ the rule that a parser family only operates on its own state.
 In practice, state shape should usually mirror the macro-state the parser can be in.
 Typical examples:
 
-- a gate or required flag has states like:
+- a switch or required flag has states like:
   - not matched yet
   - matched successfully
   - failed to complete because it never matched

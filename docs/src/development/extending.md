@@ -154,12 +154,12 @@ If the public constructor is `command(...)`, the parser pretty-printer should sh
 Likewise:
 
 - `flag(...)` should display as `flag(...)`
-- `gate(...)` should display as `gate(...)`
+- `switch(...)` should display as `switch(...)`
 - `sequence(...)` should display as `sequence(...)`
 
 One subtle exception exists right now:
 
-- `flag(...)` is implemented as `default(gate(...), false)`
+- `flag(...)` is implemented as `default(switch(...), false)`
 - the pretty-printer special-cases this shape so public `flag(...)` still displays as `flag(...)`
 
 ### Reference docs must mention exported bindings explicitly

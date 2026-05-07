@@ -10,7 +10,7 @@ Primitive parsers are the leaves of the structural parser tree.
 
 Current primitives:
 
-- `gate`
+- `switch`
 - `flag`
 - `option`
 - `arg`
@@ -93,7 +93,7 @@ The current built-in parser families use these priorities:
 | --- | ---: | --- |
 | `command` | `15` | Highest built-in primitive priority; command tokens should win early. |
 | `option` | `10` | Explicit option syntax with attached value. |
-| `gate` | `9` | Required presence flag. |
+| `switch` | `9` | Required presence flag. |
 | `arg` | `5` | Positional parser; lower than explicit option, flag, or command syntax. |
 | `@constant` | `0` | Non-consuming marker parser. |
 
@@ -101,7 +101,7 @@ Wrappers and constructors currently behave as follows:
 
 | Parser family | Priority rule | Notes |
 | --- | --- | --- |
-| `flag` | inherits `gate` | Public `flag(...)` is implemented as `default(gate(...), false)`. |
+| `flag` | inherits `switch` | Public `flag(...)` is implemented as `default(switch(...), false)`. |
 | `default` | inherits child priority | `ModWithDefault` uses `priority(P)`. |
 | `optional` | inherits child priority | `optional` is `default(p, nothing)`. |
 | `repeated` | inherits child priority | `ModMultiple` uses `priority(P)`. |
@@ -113,7 +113,7 @@ Wrappers and constructors currently behave as follows:
 So the effective current ordering is roughly:
 
 ```text
-command > option > gate/flag > arg > @constant
+command > option > switch/flag > arg > @constant
 ```
 
 ### Guidance for new parser families

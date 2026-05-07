@@ -83,7 +83,7 @@ The fundamental parsers that match command-line tokens:
 
 - [`option`](@ref) - Matches key-value pairs: `--port 8080` or `-p 8080`
 - [`flag`](@ref) - Optional boolean flags that default to `false`
-- [`gate`](@ref) - Required presence flags: `--experimental` or `-x`
+- [`switch`](@ref) - Required presence flags: `--experimental` or `-x`
 - [`arg`](@ref) - Positional arguments: `source destination`
 - [`command`](@ref) - Subcommands: `git add file.txt`
 - [`@constant`](@ref) - Always returns a constant value

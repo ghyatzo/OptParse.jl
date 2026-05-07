@@ -1,17 +1,17 @@
 @testset "should error with short flags longer than 1 character" begin
-    @test_throws ArgumentError gate("-invalid")
+    @test_throws ArgumentError switch("-invalid")
 end
 
 
 @testset "should error with flags not starting with - or --" begin
-    @test_throws ArgumentError gate("aaa")
-    @test_throws ArgumentError gate("?aaa")
-    @test_throws ArgumentError gate("/aaa")
-    @test_throws ArgumentError gate("---aaa")
+    @test_throws ArgumentError switch("aaa")
+    @test_throws ArgumentError switch("?aaa")
+    @test_throws ArgumentError switch("/aaa")
+    @test_throws ArgumentError switch("---aaa")
 end
 
-@testset "should parse single short gate" begin
-    parser = gate("-v")
+@testset "should parse single short switch" begin
+    parser = switch("-v")
     context = mkctx(["-v"], parser.initialState)
 
     result = splitparse(parser, context)
@@ -23,8 +23,8 @@ end
     @test as_tuple(res_consumed(succ)) == ("-v",)
 end
 
-@testset "should parse long gate" begin
-    parser = gate("--verbose")
+@testset "should parse long switch" begin
+    parser = switch("--verbose")
     context = mkctx(["--verbose"], parser.initialState)
 
     result = splitparse(parser, context)
@@ -36,14 +36,14 @@ end
     @test as_tuple(res_consumed(succ)) == ("--verbose",)
 end
 
-@testset "should parse multiple gate names" begin
-    parser = gate("-v", "--verbose")
+@testset "should parse multiple switch names" begin
+    parser = switch("-v", "--verbose")
     @test parse_ok(parser, ["-v"]) == true
     @test parse_ok(parser, ["--verbose"]) == true
 end
 
-@testset "should fail when gate is already set" begin
-    parser = gate("-v")
+@testset "should fail when switch is already set" begin
+    parser = switch("-v")
     context = mkctx(["-v"], OptParse.ParseResult{Bool}(Ok(true)))
 
     result = splitparse(parser, context)
@@ -56,9 +56,9 @@ end
     @test fail.error.token == "-v"
 end
 
-#= bundled options are no longer responsibility of the gate parser =#
+#= bundled options are no longer responsibility of the switch parser =#
 # @testset "should handle bundled short flags" begin
-#     parser = gate("-v")
+#     parser = switch("-v")
 #     context = Context(buffer=["-vd", "ss"], state= parser.initialState)
 
 #     result = splitparse(parser, context)
@@ -74,7 +74,7 @@ end
 # end
 
 @testset "should fail when flags are terminated" begin
-    parser = gate("-v")
+    parser = switch("-v")
     context = mkctx(["-v"], parser.initialState; options_terminated=true)
 
     result = splitparse(parser, context)
@@ -87,7 +87,7 @@ end
 end
 
 @testset "should handle flags terminator --" begin
-    parser = gate("-v")
+    parser = switch("-v")
     context = mkctx(["--"], parser.initialState)
 
     result = splitparse(parser, context)
@@ -100,13 +100,13 @@ end
 end
 
 @testset "should handle option terminator edge cases correctly" begin
-    @test_parse_error gate("-v") ["--", "-v"] OptParse.ERR_ArgGate OptParse.GATE_NoMoreOptions
-    @test_parse_error gate("-v") ["--"] OptParse.ERR_ArgGate OptParse.GATE_Missing
-    @test parse_ok(gate("-v"), ["-v", "--"]) == true
+    @test_parse_error switch("-v") ["--", "-v"] OptParse.ERR_ArgGate OptParse.GATE_NoMoreOptions
+    @test_parse_error switch("-v") ["--"] OptParse.ERR_ArgGate OptParse.GATE_Missing
+    @test parse_ok(switch("-v"), ["-v", "--"]) == true
 end
 
 @testset "should handle empty buffer" begin
-    parser = gate("-v")
+    parser = switch("-v")
     context = mkctx(String[], parser.initialState)
 
     result = splitparse(parser, context)
@@ -119,8 +119,8 @@ end
 end
 
 @testset "should be type stable" begin
-    @test_opt gate("-v")
-    parser = gate("-v")
+    @test_opt switch("-v")
+    parser = switch("-v")
 
     @test_opt optparse(parser, ["-v"])
 end

@@ -1,7 +1,7 @@
 @testset "should combine record parsers into a single parser" begin
     parser = combine(
         record((
-            verbose = gate("-v", "--verbose"),
+            verbose = switch("-v", "--verbose"),
         )),
         record((
             port = option(("-p", "--port"), integer()),

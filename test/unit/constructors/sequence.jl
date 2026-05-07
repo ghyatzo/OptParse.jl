@@ -1,6 +1,6 @@
 @testset "should create a parser with array-based API" begin
     parser = sequence(
-        gate("-v", "--verbose"),
+        switch("-v", "--verbose"),
         option(("-p", "--port"), integer()),
     )
 
@@ -13,7 +13,7 @@ end
 @testset "should parse parsers sequentially in array order" begin
     parser = sequence(
         option(("-n", "--name"), str()),
-        gate("-v", "--verbose"),
+        switch("-v", "--verbose"),
     )
 
     val = parse_ok(parser, ["-n", "Alice", "-v"])
@@ -23,7 +23,7 @@ end
 @testset "should work with labeled sequences" begin
     parser = sequence("User Data",
         option(("-n", "--name"), str()),
-        gate("-v", "--verbose"),
+        switch("-v", "--verbose"),
     )
 
     val = parse_ok(parser, ["-n", "Bob", "-v"])
@@ -41,7 +41,7 @@ end
     parser = sequence(
         option(("-n", "--name"), str()),
         optional(option(("-a", "--age"), integer())),
-        gate("-v", "--verbose"),
+        switch("-v", "--verbose"),
     )
 
     val1 = parse_ok(parser, ["-n", "Alice", "-a", "30", "-v"])
@@ -54,7 +54,7 @@ end
 @testset "should work with arguments first, then options" begin
     parser = sequence(
         arg(str()),
-        gate("-v", "--verbose"),
+        switch("-v", "--verbose"),
         option(("-o", "--output"), str()),
     )
 
@@ -66,7 +66,7 @@ end
     parser = sequence(
         arg(str()),
         arg(str()),
-        gate("-v", "--verbose"),
+        switch("-v", "--verbose"),
     )
 
     val = parse_ok(parser, ["file1.txt", "file2.txt", "-v"])
@@ -87,7 +87,7 @@ end
 @testset "should fail when argument parser cannot find expected argument" begin
     parser = sequence(
         arg(str()),
-        gate("-v", "--verbose"),
+        switch("-v", "--verbose"),
     )
 
     # No arguments provided, should fail on first argument parser
@@ -100,7 +100,7 @@ end
         arg(str(; metavar = "COMMAND")),
         arg(str(; metavar = "INPUT")),
         option(("-f", "--format"), str()),
-        gate("-v", "--verbose"),
+        switch("-v", "--verbose"),
         arg(str(; metavar = "OUTPUT")),
     )
 
@@ -110,7 +110,7 @@ end
 
 @testset "should not let control-only consuming matches satisfy tuple elements" begin
     parser = sequence(
-        gate("-a"),
+        switch("-a"),
         arg(str()),
     )
 
@@ -127,7 +127,7 @@ end
 
 @testset "should propagate control-only consumption to later tuple elements" begin
     parser = sequence(
-        optional(gate("-a")),
+        optional(switch("-a")),
         arg(str()),
     )
 

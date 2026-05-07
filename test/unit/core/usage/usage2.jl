@@ -211,7 +211,7 @@ end
         (;
             tag = @constant(:root),
             verbose = flag("-v", "--verbose"),
-            experimental = gate("--experimental"),
+            experimental = switch("--experimental"),
             port = option("-p", "--port", integer("PORT")),
             input = arg(str("INPUT")),
             mode = optional(option("--mode", str("MODE"))),
@@ -233,10 +233,10 @@ end
                 command(
                     "rm", sequence(
                         arg(str("TARGET")),
-                        optional(gate("--force")),
+                        optional(switch("--force")),
                     )
                 ),
-                gate("--status"),
+                switch("--status"),
             ),
         )
     )
@@ -272,7 +272,7 @@ end
         ),
         sequence(
             repeated(arg(str("REST")); min = 0, max = 2),
-            gate("--go"),
+            switch("--go"),
         ),
     )
 

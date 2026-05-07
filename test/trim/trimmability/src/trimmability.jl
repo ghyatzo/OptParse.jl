@@ -22,7 +22,7 @@ const goodbye = command(
 	))
 )
 
-const simple = gate("-v")
+const simple = switch("-v")
 
 const repeatedarg = many(arg(str()))
 

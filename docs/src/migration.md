@@ -16,6 +16,7 @@ parser behavior the same.
 | --- | --- | --- |
 | `argparse(parser, argv)` | `optparse(parser, argv)` | High-level throwing parse entrypoint. |
 | `tryargparse(parser, argv)` | `tryoptparse(parser, argv)` | Lower-level non-throwing parse entrypoint. |
+| `gate(...)` | `switch(...)` | Required presence parser. |
 
 ### Constructors
 
@@ -103,11 +104,12 @@ The `0.2.0` changelog introduced several public API renames.
 | `argument(...)` | `arg(...)` | Positional argument parser. |
 | `withDefault(p, value)` | `default(p, value)` | Default-value modifier. |
 | `switch(...)` | `flag(...)` | Optional boolean flag that defaults to `false`. |
-| `flag(...)` | `gate(...)` | Required presence parser. |
+| `flag(...)` | `gate(...)` | Required presence parser. Renamed again to `switch(...)` in `0.3.x`. |
 | `objmerge(...)` | `combine(...)` | Merge record-like parser groups. |
 | `tup(...)` | `sequence(...)` | Ordered tuple parser. |
 | `cmd(...)` | `command(...)` | The temporary `command` to `cmd` rename was reverted. |
 
 The `flag` and `gate` rename is the only entry in this table where semantics can
 be confused by the old name. If the old parser represented an optional boolean,
-use `flag`. If it represented a required presence check, use `gate`.
+use `flag`. If it represented a required presence check, use `gate` for `0.2.x`
+or `switch` for `0.3.x`.

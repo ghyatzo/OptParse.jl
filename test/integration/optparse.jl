@@ -1,5 +1,5 @@
 @testset "should parse simple flag successfully" begin
-    parser = gate("-v")
+    parser = switch("-v")
     @test parse_ok(parser, ["-v"]) == true
 end
 
@@ -9,14 +9,14 @@ end
 end
 
 @testset "should parse simple flag successfully" begin
-    parser = gate("-v")
+    parser = switch("-v")
     err = parse_fail(parser, ["--help"])
     @test err.domain == OptParse.ERR_ArgGate
     @test OptParse.GateErrCode(err.code) == OptParse.GATE_NoMatch
 end
 
 @testset "should handle empty arguments" begin
-    parser = gate("-v")
+    parser = switch("-v")
     err = parse_fail(parser, String[])
     @test err.domain == OptParse.ERR_ArgGate
     @test OptParse.GateErrCode(err.code) == OptParse.GATE_EndOfInput
@@ -25,7 +25,7 @@ end
 @testset "should process all arguments" begin
     parser = record(
         (
-            verbose = gate("-v"),
+            verbose = switch("-v"),
             name = option("-n", str()),
         )
     )
@@ -38,7 +38,7 @@ end
 @testset "should handle option terminator" begin
     parser = record(
         (
-            verbose = gate("-v"),
+            verbose = switch("-v"),
         )
     )
     result = parse_ok(parser, ["-v", "--"])
@@ -50,7 +50,7 @@ end
         "Server", (
             port = option("-p", "--port", integer(min = 1, max = 25500)),
             host = option("-h", "--host", str(metavar = "HOST")),
-            verbose = gate("-v"),
+            verbose = switch("-v"),
         )
     )
 
@@ -58,7 +58,7 @@ end
         "Client", (
             connect = option("-c", "--connect", str(metavar = "URL")),
             timeout = option("-t", "--timeout", integer(min = 10)),
-            retry = default(gate("-r", "--retry"), false),
+            retry = default(switch("-r", "--retry"), false),
         )
     )
 
@@ -81,14 +81,14 @@ end
 
     group1 = record(
         "Group 1", (;
-            allow = gate("--allow"),
+            allow = switch("--allow"),
             value = option("-v", integer()),
         )
     )
 
     group2 = record(
         "Group 2", (;
-            foo = gate("--foo"),
+            foo = switch("--foo"),
             bar = option("--bar", str()),
         )
     )
@@ -104,9 +104,9 @@ end
 
     parser = record(
         (;
-            unixshort = gate("-u"),
-            unixlong = gate("--long"),
-            dosstyle = gate("--D"),
+            unixshort = switch("-u"),
+            unixlong = switch("--long"),
+            dosstyle = switch("--D"),
         )
     )
 
@@ -120,9 +120,9 @@ end
 
     parser = record(
         (;
-            u = gate("-u"),
-            v = gate("-v"),
-            e = gate("-e"),
+            u = switch("-u"),
+            v = switch("-v"),
+            e = switch("-e"),
         )
     )
 
@@ -137,7 +137,7 @@ end
         "Server", (
             port = option("-p", "--port", integer(min = 1000, max = 25500)),
             host = option("-h", "--host", str(pattern = r"^[a-zA-Z][a-zA-Z0-9_]*$")),
-            verbose = default(true)(gate("-v")),
+            verbose = default(true)(switch("-v")),
         )
     )
 
@@ -159,9 +159,9 @@ end
 end
 
 @testset "should handle three way mutually exclusive options" begin
-    modeA = record("Mode A", (; optionA = gate("-a")))
-    modeB = record("Mode B", (; optionB = gate("-b")))
-    modeC = record("Mode C", (; optionC = gate("-c")))
+    modeA = record("Mode A", (; optionA = switch("-a")))
+    modeB = record("Mode B", (; optionB = switch("-b")))
+    modeC = record("Mode C", (; optionC = switch("-c")))
 
     parser = or(modeA, modeB, modeC)
 
@@ -181,9 +181,9 @@ end
 end
 
 @testset "should handle nested or combinations" begin
-    innerOr = or(gate("-a"), gate("-b"))
+    innerOr = or(switch("-a"), switch("-b"))
 
-    outerOr = or(innerOr, gate("-c"))
+    outerOr = or(innerOr, switch("-c"))
 
     @test parse_ok(outerOr, ["-a"]) == true
     @test parse_ok(outerOr, ["-b"]) == true
@@ -194,7 +194,7 @@ end
 @testset "should handle edge cases with options terminator" begin
     parser = record(
         (
-            verbose = default(false)(gate("-v")),
+            verbose = default(false)(switch("-v")),
         )
     )
 
@@ -208,7 +208,7 @@ end
 @testset "should handle argument parsers in record combinations" begin
     parser = record(
         (
-            verbose = gate("-v"),
+            verbose = switch("-v"),
             output = option("-o", str(; metavar = "FILE")),
             input = arg(str(; metavar = "INPUT")),
         )
@@ -224,7 +224,7 @@ end
     group1 = record(
         "Group 1", (
             type = @constant(:group1),
-            allow = gate("-a", "--allow"),
+            allow = switch("-a", "--allow"),
             value = option("-v", "--value", integer()),
             arg = arg(str(; metavar = "ARG")),
         )
@@ -233,7 +233,7 @@ end
     group2 = record(
         "Group 2", (
             type = @constant(:group2),
-            foo = gate("-f", "--foo"),
+            foo = switch("-f", "--foo"),
             bar = option("-b", "--bar", str(; metavar = "VALUE")),
         )
     )

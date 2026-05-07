@@ -22,7 +22,7 @@ end
     end
 
     @testset "Gate parser" begin
-        include("unit/primitives/gate.jl")
+        include("unit/primitives/switch.jl")
     end
 
     @testset "Option parser" begin
