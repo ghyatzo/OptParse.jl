@@ -29,7 +29,10 @@ function constrtuple_render_error(io::IO, code::TupleErrCode, err::ParseError)
     end
 end
 
-ConstrTuple(parsers::PTup; label::String = "") where {PTup} = let
+ConstrTuple(parsers::PTup; label::String = "") where {PTup <: Tuple} = let
+    if !all(pt <: AbstractParser for pt in fieldtypes(PTup))
+        throw(ArgumentError("sequence only accepts a tuple of parsers."))
+    end
 
     ConstrTuple{
         Tuple{map(tval, parsers)...},

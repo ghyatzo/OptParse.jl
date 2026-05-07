@@ -146,7 +146,6 @@ Important implications:
 
 - `record` is not a branch selector
 - matching one field does not exclude siblings
-- this is why `record` is a poor fit for “selected path” semantics in future usage or help work
 
 ### `or`
 

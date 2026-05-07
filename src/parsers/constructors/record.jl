@@ -39,6 +39,11 @@ function ConstrObject(parsers_obj::NT; label = "") where {NT <: NamedTuple}
     N = fieldcount(NT)
 
     parsers_t = fieldtypes(typeof(parsers_obj))
+
+    if !all(pt <: AbstractParser for pt in parsers_t)
+        throw(ArgumentError("Record only accepts named tuples of parsers"))
+    end
+
     parsers = values(parsers_obj)
     parsers_tvals = map(tval, parsers_t)
     parsers_tstates = map(tstate, parsers_t)
