@@ -81,7 +81,7 @@ function parse(p::ModMultiple{T, MultipleState{S}}, ctx::Context{MultipleState{S
 
     #=Conceptual map:
 
-	`multiple` stores the child parse state for each matched repetition in `state`.
+	`repeated` stores the child parse state for each matched repetition in `state`.
 
 	On each parse step it tries, in order:
 
@@ -201,7 +201,7 @@ function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleSta
                     val,
                     CompletePhase,
                     ERR_ModMultiple,
-                    "multiple"
+                    "repeated"
                 )
             )
         end

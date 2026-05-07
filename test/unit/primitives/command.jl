@@ -36,7 +36,7 @@ end
     @test val.id == "item123"
 end
 
-@testset "should suport aliases (multiple names)" begin
+@testset "should suport aliases (repeated names)" begin
     showParser = command(
         "show", "sh",
         object(
@@ -112,7 +112,7 @@ end
     @test val2.id == "item456"
 end
 
-@testset "should work with or() combinator for multiple subcommands" begin
+@testset "should work with or() combinator for repeated subcommands" begin
     parser = or(
         command(
             "show",
@@ -315,7 +315,7 @@ end
         "exec",
         object((
             type = @constant(:exec),
-            args = multiple(arg(str())),
+            args = many(arg(str())),
         )),
     )
 
@@ -330,7 +330,7 @@ end
         "test",
         object((
             type = @constant(:test),
-            args = multiple(arg(str())),
+            args = many(arg(str())),
         )),
     )
 

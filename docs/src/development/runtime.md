@@ -20,7 +20,7 @@ The high-level split in the source tree is:
 - `src/parsers/constructors/`
   - combinators that combine child parsers such as `object`, `or`, `sequence`, `concat`, `combine`
 - `src/parsers/modifiers/`
-  - wrappers that transform parser behavior, such as `default`, `optional`, `multiple`
+  - wrappers that transform parser behavior, such as `default`, `optional`, `repeated`
 - `src/display/`
   - pretty-printing of parser values
 
@@ -110,7 +110,7 @@ Typical `complete` responsibilities:
 - turn successful parser-local state into the final user-facing value
 - enforce completion-time invariants, such as:
   - “required flag was never matched”
-  - “multiple matched fewer than `min` times”
+  - “repeated matched fewer than `min` times”
   - “one child parser failed to complete inside a constructor”
 - add parser-specific error context when resurfacing child failures
 

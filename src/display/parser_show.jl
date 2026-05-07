@@ -146,13 +146,22 @@ show_compact(io::IO, p::ModWithDefault) = let
     print(io, ")")
 end
 show_compact(io::IO, p::ModMultiple) = let
-    print(io, "multiple(")
-    if p.min != 0 || p.max != typemax(Int)
-        lb = p.min == 0 ? "" : "$(p.min)"
-        ub = p.max == typemax(Int) ? "" : "$(p.max)"
-        print(io, "$lb..$ub, ")
+    if p.min == 0 && p.max == typemax(Int)
+        print(io, "many(")
+        show_compact(io, p.parser)
+        print(io, ")")
+        return
+    elseif p.min == 1 && p.max == typemax(Int)
+        print(io, "many1(")
+        show_compact(io, p.parser)
+        print(io, ")")
+        return
     end
+
+    print(io, "repeated(")
     show_compact(io, p.parser)
+    print(io, "; min = ", p.min)
+    p.max != typemax(Int) && print(io, ", max = ", p.max)
     print(io, ")")
 end
 show_compact(io::IO, p::ModHelp) = let

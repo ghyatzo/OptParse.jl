@@ -216,7 +216,7 @@ end
             input = arg(str("INPUT")),
             mode = optional(option("--mode", str("MODE"))),
             fallback = default(option("--fallback", str("FALLBACK")), "fallback"),
-            extras = multiple(arg(str("EXTRA")); min = 1, max = 3),
+            extras = repeated(arg(str("EXTRA")); min = 1, max = 3),
             coordinates = sequence(
                 option("--x", integer("X")),
                 option("--y", integer("Y")),
@@ -271,7 +271,7 @@ end
             option("--from", str("FROM")),
         ),
         sequence(
-            multiple(arg(str("REST")); min = 0, max = 2),
+            repeated(arg(str("REST")); min = 0, max = 2),
             gate("--go"),
         ),
     )

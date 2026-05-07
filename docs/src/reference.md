@@ -52,7 +52,9 @@ path
 ```@docs
 default
 optional
-multiple
+repeated
+many
+many1
 help
 hidden
 ```

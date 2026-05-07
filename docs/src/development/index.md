@@ -26,7 +26,7 @@ For the user-facing API, see:
 - [Parser Semantics](parsers.md)
   - primitive / constructor / modifier categories
   - parser priority
-  - semantics of `object`, `or`, `sequence`, `command`, and `multiple`
+  - semantics of `object`, `or`, `sequence`, `command`, and `repeated`
 - [Extending OptParse](extending.md)
   - how to add a value parser
   - how to add a parser family

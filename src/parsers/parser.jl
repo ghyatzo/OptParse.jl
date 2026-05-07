@@ -115,21 +115,25 @@ function optional end
 optional(p::AbstractParser) = default(p, nothing)
 optional() = default(nothing)
 
-## Multiple
+## Repeated
 
 """
-    multiple(p::AbstractParser; kw...)
+    repeated(p::AbstractParser; min=0, max=typemax(Int))
+    repeated(; min=0, max=typemax(Int))
+    many(p::AbstractParser; max=typemax(Int))
+    many(; max=typemax(Int))
+    many1(p::AbstractParser; max=typemax(Int))
+    many1(; max=typemax(Int))
 
-Modifier that allows a parser to match multiple times, collecting results in a vector.
+Modifiers that allow a parser to match repeatedly, collecting results in a vector.
 
-Useful for parsers that should accept repeated values, such as multiple arguments,
-repeated flags for verbosity levels, or collecting multiple options.
+Use `many` for zero or more matches, `many1` for one or more matches, and
+`repeated` when you need explicit `min` or `max` bounds.
 
 # Arguments
-- `p::AbstractParser`: The parser to apply multiple matching to
+- `p::AbstractParser`: The parser to match repeatedly
 
 # Keywords
-Additional keyword arguments are passed to tweak the behaviour
 - `min::Int`: The minimum amount of times this parser must match
 - `max::Int`: The maximum amount of times this parser can match
 
@@ -141,8 +145,8 @@ original parser.
 ```jldoctest
 julia> using OptParse
 
-julia> # Multiple arguments (e.g., `add pkg1 pkg2 pkg3`)
-       packages = multiple(arg(str("PACKAGE")));
+julia> # Zero or more arguments (e.g., `add pkg1 pkg2 pkg3`)
+       packages = many(arg(str("PACKAGE")));
 
 julia> result = optparse(packages, ["pkg1", "pkg2", "pkg3"]);
 
@@ -152,16 +156,23 @@ julia> result
  "pkg2"
  "pkg3"
 
-julia> # Multiple gates for verbosity levels (e.g., `-v -v -v`)
-       verbosity = multiple(gate("-v"));
+julia> # Zero or more gates for verbosity levels (e.g., `-v -v -v`)
+       verbosity = many(gate("-v"));
 
 julia> result = optparse(verbosity, ["-v", "-v", "-v"]);
 
 julia> length(result)
 3
 
-julia> # Multiple options
-       includes = multiple(option("-I", str()));
+julia> # One or more arguments
+       files = many1(arg(str("FILE")));
+
+julia> optparse(files, ["README.md"])
+1-element Vector{String}:
+ "README.md"
+
+julia> # Explicit bounds
+       includes = repeated(option("-I", str()); min = 1, max = 3);
 
 julia> result = optparse(includes, ["-I", "/usr/include", "-I", "/opt/include"]);
 
@@ -176,10 +187,44 @@ julia> result
 - The order of matches is preserved
 - Can be combined with other modifiers like `default`
 """
-function multiple end
+function repeated end
 
-multiple(p::AbstractParser; kw...) = ModMultiple(p; kw...)
-multiple(; kw...) = (p::AbstractParser) -> multiple(p; kw...)
+"""
+    many(p::AbstractParser; max=typemax(Int))
+    many(; max=typemax(Int))
+
+Zero-or-more repetition modifier.
+
+This is equivalent to `repeated(p; min = 0, max)`.
+
+# See Also
+- [`many1`](@ref): One-or-more repetition
+- [`repeated`](@ref): General bounded repetition
+"""
+function many end
+
+"""
+    many1(p::AbstractParser; max=typemax(Int))
+    many1(; max=typemax(Int))
+
+One-or-more repetition modifier.
+
+This is equivalent to `repeated(p; min = 1, max)`.
+
+# See Also
+- [`many`](@ref): Zero-or-more repetition
+- [`repeated`](@ref): General bounded repetition
+"""
+function many1 end
+
+repeated(p::AbstractParser; kw...) = ModMultiple(p; kw...)
+repeated(; kw...) = (p::AbstractParser) -> repeated(p; kw...)
+
+many(p::AbstractParser; max::Integer = typemax(Int)) = repeated(p; min = 0, max)
+many(; max::Integer = typemax(Int)) = (p::AbstractParser) -> many(p; max)
+
+many1(p::AbstractParser; max::Integer = typemax(Int)) = repeated(p; min = 1, max)
+many1(; max::Integer = typemax(Int)) = (p::AbstractParser) -> many1(p; max)
 
 ## Help Information
 
@@ -310,7 +355,7 @@ hidden() = (p::AbstractParser) -> hidden(p)
 
 Primitive parser that matches command-line options with associated values.
 
-Options can be specified in multiple formats:
+Options can be specified in several formats:
 - Long form: `--option value` or `--option=value`
 - Short form: `-o value`
 
@@ -420,7 +465,7 @@ julia> result = optparse(experimental, ["--experimental"]);
 julia> result
 true
 
-julia> # Multiple names
+julia> # Repeated names
        debug = gate("-d", "--debug");
 
 julia> result = optparse(debug, ["-d"]);
@@ -492,7 +537,7 @@ julia> result = optparse(parser, ["-h", "--version"]);
 julia> (result.help, result.version, result.quiet)
 (true, true, false)
 
-julia> verbosity = multiple(gate("-v")); # Multiple verbosity levels using multiple
+julia> verbosity = many(gate("-v")); # Repeated verbosity levels
 
 julia> result = optparse(verbosity, ["-v", "-v", "-v"]);
 
@@ -611,7 +656,7 @@ julia> result = optparse(source, ["/path/to/file"]);
 julia> result
 "/path/to/file"
 
-julia> # Multiple positional arguments
+julia> # Repeated positional arguments
        parser = object((
            source = arg(str("SOURCE")),
            dest = arg(str("DEST"))
@@ -626,7 +671,7 @@ julia> result.dest
 "/to/here"
 
 julia> # Variable number of arguments
-       files = multiple(arg(str("FILE")));
+       files = many(arg(str("FILE")));
 
 julia> result = optparse(files, ["file1.txt", "file2.txt", "file3.txt"]);
 
@@ -708,15 +753,15 @@ julia> result = optparse(instantiate, ["instantiate", "-v", "-m"]);
 julia> (result.verbose, result.manifest)
 (true, true)
 
-julia> # Multiple commands with or combinator
+julia> # Repeated commands with or combinator
        addCmd = command("add", object((
            action = @constant(:add),
-           packages = multiple(arg(str("PACKAGE")))
+           packages = many(arg(str("PACKAGE")))
        )));
 
 julia> removeCmd = command("remove", object((
            action = @constant(:remove),
-           packages = multiple(arg(str("PACKAGE")))
+           packages = many(arg(str("PACKAGE")))
        )));
 
 julia> pkgParser = or(addCmd, removeCmd);
@@ -765,7 +810,7 @@ command(name::String, alias::String, p::AbstractParser) = ArgCommand((name, alia
 Constructor that creates a parser from a named tuple of parsers, returning a named tuple
 of parsed values.
 
-This is the primary way to combine multiple parsers into a cohesive structure. Each field
+This is the primary way to combine several parsers into a cohesive structure. Each field
 in the named tuple should be a parser, and the result will be a named tuple with the same
 field names containing the parsed values.
 
@@ -850,14 +895,14 @@ object(objlabel, obj::NamedTuple) = ConstrObject(obj; label = objlabel)
     combine(objs...)
     combine(label::String, objs...)
 
-Constructor that combines multiple object parsers into a single parser.
+Constructor that combines several object parsers into a single parser.
 
 This is useful for composing parsers from reusable components or for organizing
 large parser definitions into logical groups.
 
 # Arguments
 - `label::String = ""`: Optional label used in diagnostics and stored as object metadata
-- `objs...`: Multiple object parsers to merge
+- `objs...`: Repeated object parsers to merge
 
 
 # Returns
@@ -930,7 +975,7 @@ the primary way to implement subcommands or alternative parsing branches.
 
 `or(...)` is order-dependent: branches are tried in the order they are listed,
 and the first semantic match wins. Put broader positional parsers like
-`arg(...)` or `multiple(arg(...))` last.
+`arg(...)` or `many(arg(...))` last.
 
 # Arguments
 - `parsers...`: Variable number of parsers to try in order
@@ -945,12 +990,12 @@ julia> using OptParse
 julia> # Subcommands
        addCmd = command("add", object((
            action = @constant(:add),
-           packages = multiple(arg(str("PACKAGE")))
+           packages = many(arg(str("PACKAGE")))
        )));
 
 julia> removeCmd = command("remove", object((
            action = @constant(:remove),
-           packages = multiple(arg(str("PACKAGE")))
+           packages = many(arg(str("PACKAGE")))
        )));
 
 julia> parser = or(addCmd, removeCmd);
@@ -1023,7 +1068,7 @@ or(parsers...) = ConstrOr(parsers)
     sequence(parsers...; kw...)
     sequence(label::String, parsers...; kw...)
 
-Constructor that creates an ordered sequence parser from multiple parsers.
+Constructor that creates an ordered sequence parser from several parsers.
 
 Similar to `object` but maintains argument order and returns a tuple instead of
 a named tuple. The order of results matches the order of parsers, even if command-line
@@ -1099,13 +1144,13 @@ sequence(label::String, parsers::Tuple{Vararg{AbstractParser}}; kw...) = ConstrT
 """
     concat(seqs...; label = "")
 
-Constructor that concatenates multiple sequence parsers into a single flat tuple.
+Constructor that concatenates several sequence parsers into a single flat tuple.
 
 This is useful for composing parsers from reusable sequence components while maintaining
 a single flat result structure.
 
 # Arguments
-- `seqs...`: Multiple sequence parsers to concatenate
+- `seqs...`: Repeated sequence parsers to concatenate
 
 # Keywords
 - `label::String = ""`: Optional label used in diagnostics and stored as tuple metadata
@@ -1148,7 +1193,7 @@ julia> result = optparse(parser, ["--host", "localhost", "--port", "8080"]);
 julia> result
 ("localhost", 8080)
 
-julia> # Multiple concatenations
+julia> # Repeated concatenations
        headerArgs = sequence(option("-H", str()));
 
 julia> bodyArgs = sequence(option("-d", str()));

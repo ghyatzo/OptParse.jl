@@ -60,11 +60,14 @@ email = optional(option("-e", "--email", str("EMAIL")))
 # With defaults
 port = default(option("-p", integer("PORT")), 8080)
 
-# Multiple values
-packages = multiple(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
+# Repeated values
+packages = many(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
 
 # Verbosity levels
-verbosity = multiple(flag("-v"))  # -v -v -v or -vvv
+verbosity = many(flag("-v"))  # -v -v -v or -vvv
+
+# One or more values
+files = many1(arg(str("FILE")))
 ```
 
 ### Object Composition
@@ -85,12 +88,12 @@ result = optparse(parser, ["input.txt", "-o", "output.txt", "-f"])
 # Define commands
 addCmd = command("add", object((
     action = @constant(:add),
-    packages = multiple(arg(str("PACKAGE")))
+    packages = many(arg(str("PACKAGE")))
 )))
 
 removeCmd = command("remove", object((
     action = @constant(:remove),
-    packages = multiple(arg(str("PACKAGE")))
+    packages = many(arg(str("PACKAGE")))
 )))
 
 # Combine with or

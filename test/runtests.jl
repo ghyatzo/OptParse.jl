@@ -72,8 +72,8 @@ end
         include("unit/modifiers/default.jl")
     end
 
-    @testset "Multiple Modifier" begin
-        include("unit/modifiers/multiple.jl")
+    @testset "Repeated Modifier" begin
+        include("unit/modifiers/repeated.jl")
     end
 
 end

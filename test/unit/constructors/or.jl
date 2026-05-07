@@ -118,7 +118,7 @@ end
             name = option("-n", str()),
             port = option("-p", integer()),
         ))),
-        multiple(arg(str())),
+        many(arg(str())),
     )
 
     # Once `bye` has selected the command branch, later tokens must stay inside
@@ -133,7 +133,7 @@ end
             name = option("-n", str()),
             port = option("-p", integer()),
         ))),
-        multiple(arg(str())),
+        many(arg(str())),
     )
 
     ctx1 = mkctx(["bye", "-n", "alice"], parser.initialState)

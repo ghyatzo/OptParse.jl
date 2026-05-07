@@ -111,7 +111,7 @@ Enhance parsers with additional behavior:
 
 - [`optional`](@ref) - Convenience wrapper for `default(p, nothing)`
 - [`default`](@ref) - Provides a fallback value
-- [`multiple`](@ref) - Allows repeated matches, returns a vector
+- [`many`](@ref) / [`many1`](@ref) / [`repeated`](@ref) - Allows repeated matches, returns a vector
 - [`help`](@ref) - Attaches help text to a parser without changing parsing semantics
 - [`hidden`](@ref) - Hides a parser from usage/help output without changing parsing semantics
 
@@ -135,9 +135,9 @@ Compose parsers into complex structures:
 - [`object`](@ref) - Named tuple of parsers (most common)
 - [`or`](@ref) - Mutually exclusive alternatives (for subcommands)
 - [`sequence`](@ref) - Ordered sequence of parsers (returns a tuple)
-- [`combine`](@ref) / [`concat`](@ref) - Merge multiple parser groups
+- [`combine`](@ref) / [`concat`](@ref) - Merge several parser groups
 
-`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `arg(...)` or `multiple(arg(...))` last.
+`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `arg(...)` or `many(arg(...))` last.
 
 ### Complete Application Example
 
@@ -155,7 +155,7 @@ commonOpts = object((
 # Add command
 addCmd = command("add", combine(
     commonOpts,
-    object((packages = multiple(arg(str("PACKAGE"))),))
+    object((packages = many(arg(str("PACKAGE"))),))
 ))
 
 # Remove command
@@ -163,7 +163,7 @@ removeCmd = command("remove", "rm", combine(
     commonOpts,
     object((
         all = flag("--all"),
-        packages = multiple(arg(str("PACKAGE")))
+        packages = many(arg(str("PACKAGE")))
     ))
 ))
 

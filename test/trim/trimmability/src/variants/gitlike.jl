@@ -16,8 +16,8 @@ const globalhelp = help(
 )
 
 const globoptions = object((;
-    cwd      = option("-C", str("PATH"))      |> help("Working directory") |> multiple(),
-    config   = option("-c", str("KEY=VALUE")) |> help("Config override")   |> multiple(),
+    cwd      = option("-C", str("PATH"))      |> help("Working directory") |> many(),
+    config   = option("-c", str("KEY=VALUE")) |> help("Config override")   |> many(),
     paginate = flag("-p", "--paginate")       |> help("Paginate"),
     nopager  = flag("-P", "--no-pager")       |> help("No pager"),
     version  = flag("--version")              |> help("Version"),
@@ -57,7 +57,7 @@ const statuscmd = object((;
     porcelain  = flag("--porcelain")       |> help("Porcelain"),
     untracked  = status_untracked,
     ignored    = status_ignored,
-    pathspecs  = arg(str("PATHSPEC"))      |> help("Pathspec") |> multiple(),
+    pathspecs  = arg(str("PATHSPEC"))      |> help("Pathspec") |> many(),
 )) |> statushelp
 
 
@@ -77,12 +77,12 @@ const addhelp = help(
 
 const addcmd = object((;
     dryrun    = flag("-n", "--dry-run")    |> help("Dry run"),
-    verbose   = flag("-v", "--verbose")    |> help("Verbose") |> multiple(),
+    verbose   = flag("-v", "--verbose")    |> help("Verbose") |> many(),
     patch     = flag("-p", "--patch")      |> help("Patch"),
     force     = flag("-f", "--force")      |> help("Force"),
     update    = flag("-u", "--update")     |> help("Update"),
     all       = flag("-A", "--all")        |> help("All"),
-    pathspecs = arg(str("PATHSPEC"))       |> help("Pathspec") |> multiple(),
+    pathspecs = arg(str("PATHSPEC"))       |> help("Pathspec") |> many(),
 )) |> addhelp
 
 
@@ -195,7 +195,7 @@ const clonehelp = help(
 
 const clonecmd = object((;
     quiet        = flag("-q", "--quiet")            |> help("Quiet"),
-    verbose      = flag("-v", "--verbose")          |> help("Verbose") |> multiple(),
+    verbose      = flag("-v", "--verbose")          |> help("Verbose") |> many(),
     branch       = clone_branch,
     depth        = clone_depth,
     singlebranch = flag("--single-branch")          |> help("Single branch"),
@@ -240,7 +240,7 @@ const pushcmd = object((;
     all        = flag("--all")                |> help("All"),
     dryrun     = flag("-n", "--dry-run")      |> help("Dry run"),
     repo       = push_repo,
-    refspecs   = arg(str("REFSPEC"))          |> help("Refspec") |> multiple(),
+    refspecs   = arg(str("REFSPEC"))          |> help("Refspec") |> many(),
 )) |> pushhelp
 
 
@@ -251,7 +251,7 @@ const pushcmd = object((;
 const remote_add_branches =
     option("-t", str("BRANCH")) |>
     help("Tracked branch") |>
-    multiple()
+    many()
 
 const remote_add_tag_policy =
     or(
@@ -342,7 +342,7 @@ const remotehelp = help(
 )
 
 const remotecmd = object((
-    verbose = flag("-v", "--verbose")  |> help("Verbose") |> multiple(),
+    verbose = flag("-v", "--verbose")  |> help("Verbose") |> many(),
     subcmd  = or(
         command("add",     remote_add)     |> help("Add a new remote"),
         command("rename",  remote_rename)  |> help("Rename an existing remote"),

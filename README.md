@@ -37,7 +37,7 @@ to reflect if it succeded or not. This is the `parse` step.
 - [ ] `map` modifier, unfortunately until julia has something like `TypedCallabe`s it's impossible to
 ensure type stability with arbitrary functions.
 - [ ] `longest-match` combinator
-- [ ] `group` combinator: light simple parser useful only for enclosing multiple parsers together in the same category. mainly useful for help messages.
+- [ ] `group` combinator: light simple parser useful only for enclosing several parsers together in the same category. mainly useful for help messages.
 - [ ] automatic suggestions / shell completions
 
 ## Quick Start
@@ -145,7 +145,7 @@ Enhance parsers with additional behavior:
 
 - **`optional`** - Convenience wrapper for `default(p, nothing)`
 - **`default`** - Provides a fallback value
-- **`multiple`** - Allows repeated matches, returns a vector
+- **`many`** / **`many1`** / **`repeated`** - Allows repeated matches, returns a vector
 - **`help`** - Attaches help text to a parser
 - **`hidden`** - Hides a parser from usage/help output while still parsing it
 
@@ -156,11 +156,14 @@ email = optional(option("-e", "--email", str("EMAIL")))
 # With defaults
 port = default(option("-p", integer("PORT")), 8080)
 
-# Multiple values
-packages = multiple(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
+# Repeated values
+packages = many(arg(str("PACKAGE")))  # pkg add Package1 Package2 Package3
 
 # Verbosity levels
-verbosity = multiple(gate("-v"))  # -v -v -v or -vvv
+verbosity = many(gate("-v"))  # -v -v -v or -vvv
+
+# One or more values
+files = many1(arg(str("FILE")))
 
 # Help annotations
 serve = command("serve", object((
@@ -180,9 +183,9 @@ Compose parsers into complex structures:
 - **`object`** - Named tuple of parsers (most common)
 - **`or`** - Mutually exclusive alternatives (for subcommands)
 - **`sequence`** - Ordered sequence of parsers (returns a tuple)
-- **`combine`** / **`concat`** - Merge multiple parser groups
+- **`combine`** / **`concat`** - Merge several parser groups
 
-`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `arg(...)` or `multiple(arg(...))` last.
+`or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `arg(...)` or `many(arg(...))` last.
 
 ```julia
 # Object composition
@@ -195,12 +198,12 @@ parser = object((
 # Alternative commands with or
 addCmd = command("add", object((
     action = @constant(:add),
-    packages = multiple(arg(str("PACKAGE")))
+    packages = many(arg(str("PACKAGE")))
 )))
 
 removeCmd = command("remove", object((
     action = @constant(:remove),
-    packages = multiple(arg(str("PACKAGE")))
+    packages = many(arg(str("PACKAGE")))
 )))
 
 pkgParser = or(addCmd, removeCmd)
@@ -222,7 +225,7 @@ commonOpts = object((
 # Add command
 addCmd = command("add", combine(
     commonOpts,
-    object((packages = multiple(arg(str("PACKAGE"))),))
+    object((packages = many(arg(str("PACKAGE"))),))
 ))
 
 # Remove command
@@ -230,7 +233,7 @@ removeCmd = command("remove", "rm", combine(
     commonOpts,
     object((
         all = flag("--all"),
-        packages = multiple(arg(str("PACKAGE")))
+        packages = many(arg(str("PACKAGE")))
     ))
 ))
 

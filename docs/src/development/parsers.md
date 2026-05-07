@@ -21,11 +21,11 @@ These generally:
 
 - inspect the next token(s)
 - update a small family-specific state
-- do not recurse into multiple child parsers, except `command`
+- do not recurse into several child parsers, except `command`
 
 ### Constructors
 
-Constructors combine multiple child parsers into a larger parser.
+Constructors combine several child parsers into a larger parser.
 
 Current constructors:
 
@@ -45,7 +45,7 @@ Current modifiers:
 
 - `default`
 - `optional`
-- `multiple`
+- `repeated`
 
 ## Priority
 
@@ -104,7 +104,7 @@ Wrappers and constructors currently behave as follows:
 | `flag` | inherits `gate` | Public `flag(...)` is implemented as `default(gate(...), false)`. |
 | `default` | inherits child priority | `ModWithDefault` uses `priority(P)`. |
 | `optional` | inherits child priority | `optional` is `default(p, nothing)`. |
-| `multiple` | inherits child priority | `ModMultiple` uses `priority(P)`. |
+| `repeated` | inherits child priority | `ModMultiple` uses `priority(P)`. |
 | `object` | `maximum(child priorities)` | Children are also sorted by priority before matching. |
 | `or` | `maximum(child priorities)` | Branch order still defines semantics; the stored priority mainly affects parent constructors. |
 | `sequence` | `maximum(child priorities)` | Remaining unmatched slots are tried in priority order. |
@@ -193,11 +193,11 @@ Its state is `Option{Option{PState}}`, which distinguishes:
 - command matched but inner parser has not started
 - command matched and inner parser has started
 
-### `multiple`
+### `repeated`
 
-Implementation: `src/parsers/modifiers/multiple.jl`
+Implementation: `src/parsers/modifiers/repeated.jl`
 
-`multiple` stores one child-state entry per matched repetition.
+`repeated` stores one child-state entry per matched repetition.
 
 On each parse step it:
 
