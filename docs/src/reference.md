@@ -12,6 +12,7 @@ optparse
 tryoptparse
 resulttype
 OptParse.ParseException
+generate_help
 ```
 
 ### Primitives

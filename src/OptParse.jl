@@ -220,7 +220,7 @@ julia> doc = OptParse.build_help_doc(parser, ["serve", "--unknown"]);
 
 julia> doc.prefix
 1-element Vector{String}:
-   "serve"
+ "serve"
 ```
 
 # See Also
@@ -259,7 +259,12 @@ julia> parser = command("serve", object((
        )));
 
 julia> print(OptParse.generate_help(parser, ["serve"]; progname = "prog"))
+
 Usage: prog serve --host <HOST> [OPTIONS]
+
+Options:
+   --host <HOST>
+   [--verbose]
 
 ```
 
