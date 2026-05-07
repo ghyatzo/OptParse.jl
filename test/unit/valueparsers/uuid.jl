@@ -1,5 +1,5 @@
 @testset "UUIDVal" begin
-    u = uuid(allowedVersions = [1, 4])
+    u = uuid(allowed_versions = [1, 4])
     u1 = string(uuid1())
     u4 = string(uuid4())
     u7 = string(uuid7())
@@ -17,7 +17,7 @@
 end
 
 @testset "UUIDVal with positional metavar" begin
-    u = uuid("ID", allowedVersions = [1, 4])
+    u = uuid("ID", allowed_versions = [1, 4])
     @test metavar(u) == "ID"
     @test uuid_version(@? u(string(uuid4()))) == 4
 end

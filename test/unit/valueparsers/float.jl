@@ -11,7 +11,7 @@
     err = f("nan")
     @test is_error(err) && occursin("NaNs", string(unwrap_error(err)))
 
-    finfnan = flt(allowInfinity = true, allowNan = true)
+    finfnan = flt(allow_infinity = true, allow_nan = true)
     @test isinf(@? finfnan("-inf"))
     @test isnan(@? finfnan("nan"))
 
@@ -23,7 +23,7 @@ end
     @test metavar(f) == "RATE"
     @test (@? f("3.14")) == Float32(3.14)
 
-    defaultf = flt("VALUE", allowInfinity = true)
+    defaultf = flt("VALUE", allow_infinity = true)
     @test metavar(defaultf) == "VALUE"
     @test isinf(@? defaultf("inf"))
 

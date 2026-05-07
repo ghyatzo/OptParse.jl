@@ -4,8 +4,8 @@
     type::Type = T
     min::Union{T, Nothing} = nothing
     max::Union{T, Nothing} = nothing
-    allowInfinity::Bool = false
-    allowNan::Bool = false
+    allow_infinity::Bool = false
+    allow_nan::Bool = false
 end
 
 default_metavar(::FloatVal) = "FLOAT"
@@ -50,12 +50,12 @@ end
         # return typedErr("Expected valid float, got `$input`")
     end
 
-    if isinf(val) && !f.allowInfinity
+    if isinf(val) && !f.allow_infinity
         return typedErr(floatval_error(FLOAT_NoInf; token = input))
         # return typedErr("Infinite floats are not allowed.")
     end
 
-    if isnan(val) && !f.allowNan
+    if isnan(val) && !f.allow_nan
         return typedErr(floatval_error(FLOAT_NoNaN; token = input))
         # return typedErr("NaNs are not allowed.")
     end

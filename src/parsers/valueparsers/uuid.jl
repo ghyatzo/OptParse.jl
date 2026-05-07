@@ -1,7 +1,7 @@
 @kwdef struct UUIDVal{T} <: AbstractValueParser{T}
     metavar::String = ""
     #
-    allowedVersions::Vector{Int} = Int[]
+    allowed_versions::Vector{Int} = Int[]
 end
 
 default_metavar(::UUIDVal) = "UUID"
@@ -47,16 +47,16 @@ end
     end
 
     version = uuid_version(maybeuuid)
-    if isempty(u.allowedVersions) || version ∈ u.allowedVersions
+    if isempty(u.allowed_versions) || version ∈ u.allowed_versions
         return typedOk(maybeuuid)
     end
 
-    # return typedErr("Expected UUID of version [$(join(u.allowedVersions, ','))], but got version $version")
+    # return typedErr("Expected UUID of version [$(join(u.allowed_versions, ','))], but got version $version")
     return typedErr(
         uuidval_error(
             UUID_WrongVersion;
             token = string(version),
-            detail = join(u.allowedVersions, ',')
+            detail = join(u.allowed_versions, ',')
         )
     )
 end

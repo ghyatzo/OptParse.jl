@@ -68,7 +68,7 @@ Parses one value from a fixed set of accepted strings, or from the string names 
 an enum type. Matching is case-insensitive by default.
 
 # Keywords
-- `caseInsensitive::Bool = true`: whether matching should ignore case
+- `case_insensitive::Bool = true`: whether matching should ignore case
 - `metavar::String`: placeholder used in usage/help output
 
 # Examples
@@ -225,8 +225,8 @@ Parses floating-point values, optionally enforcing bounds and controlling whethe
 # Keywords
 - `min`: minimum accepted value
 - `max`: maximum accepted value
-- `allowInfinity::Bool = false`
-- `allowNan::Bool = false`
+- `allow_infinity::Bool = false`
+- `allow_nan::Bool = false`
 - `metavar::String`: placeholder used in usage/help output
 
 # Examples
@@ -283,7 +283,7 @@ UUID value parser.
 Parses UUID strings into `UUID` values and can restrict accepted UUID versions.
 
 # Keywords
-- `allowedVersions::Vector{Int} = Int[]`: accepted UUID versions. An empty vector
+- `allowed_versions::Vector{Int} = Int[]`: accepted UUID versions. An empty vector
   accepts any valid UUID version.
 - `metavar::String`: placeholder used in usage/help output
 

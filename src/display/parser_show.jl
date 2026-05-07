@@ -63,11 +63,11 @@ show_compact(io::IO, p::FloatVal) = let
 end
 show_compact(io::IO, p::UUIDVal) = let
     print(io, "uuid(")
-    if !isempty(p.allowedVersions)
-        print(io, join(p.allowedVersions, '|'))
+    if !isempty(p.allowed_versions)
+        print(io, join(p.allowed_versions, '|'))
     end
     if !isempty(p.metavar)
-        if !isempty(p.allowedVersions)
+        if !isempty(p.allowed_versions)
             print(io, ",")
         end
         print(io, p.metavar)

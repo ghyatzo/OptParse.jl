@@ -1,20 +1,20 @@
 struct Choice{T} <: AbstractValueParser{T}
     metavar::String
-    caseInsensitive::Bool
+    case_insensitive::Bool
     values::Vector{String}
     outputs::Vector{T}
 
-    Choice(values::Vector{String}; metavar = "", caseInsensitive = true) = let
-        normvals = caseInsensitive ? map(uppercase, values) : values
-        new{String}(metavar, caseInsensitive, normvals, normvals)
+    Choice(values::Vector{String}; metavar = "", case_insensitive = true) = let
+        normvals = case_insensitive ? map(uppercase, values) : values
+        new{String}(metavar, case_insensitive, normvals, normvals)
     end
 
-    Choice(enumtype::Type{<:Enum}; metavar = "", caseInsensitive = true) = let
+    Choice(enumtype::Type{<:Enum}; metavar = "", case_insensitive = true) = let
         enumtypes = instances(enumtype)
         values = collect(string.(enumtypes))
         outputs = collect(enumtypes)
-        normvals = caseInsensitive ? map(uppercase, values) : values
-        new{enumtype}(metavar, caseInsensitive, normvals, outputs)
+        normvals = case_insensitive ? map(uppercase, values) : values
+        new{enumtype}(metavar, case_insensitive, normvals, outputs)
     end
 end
 
@@ -41,7 +41,7 @@ function choice_render_error(io::IO, code::ChoiceErrCode, err::ParseError)
 end
 
 ((c::Choice{T})(input::String)::ParseResult{T}) where {T} = let
-    norminput = c.caseInsensitive ? uppercase(input) : input
+    norminput = c.case_insensitive ? uppercase(input) : input
     index = findfirst(==(norminput), c.values)
 
     isnothing(index) && return typedErr(
