@@ -30,16 +30,6 @@ to reflect if it succeded or not. This is the `parse` step.
 - if the input match any of the branches we consider the step successful, otherwise we return the error of why it failed to match.
 - the second pass is the `complete` step. The tree is collapsed, eventual validation error handled and a final value returned.
 
-## Missing Features:
-
-- [ ] automatic `--help` / help-subcommand handling
-- [ ] more value parsers (like dates, URIs, date-times...)
-- [ ] `map` modifier, unfortunately until julia has something like `TypedCallabe`s it's impossible to
-ensure type stability with arbitrary functions.
-- [ ] `longest-match` combinator
-- [ ] `group` combinator: light simple parser useful only for enclosing several parsers together in the same category. mainly useful for help messages.
-- [ ] automatic suggestions / shell completions
-
 ## Quick Start
 
 ```julia
