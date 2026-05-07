@@ -345,6 +345,70 @@ function hidden end
 hidden(p::AbstractParser) = help(p; hidden = true)
 hidden() = (p::AbstractParser) -> hidden(p)
 
+"""
+    construct(::Type{T}, parser)
+    construct(::Type{T})(parser)
+    construct(::Type{T}, record_fields::NamedTuple)
+    construct(::Type{T}, sequence_fields::Tuple)
+
+Wrap a parser and construct values of type `T` from its completed result using
+`StructUtils.make`.
+
+`construct` is intended for child parsers that complete to record-like or
+sequence-like values, most commonly [`record`](@ref) and [`sequence`](@ref).
+Parsing delegates to the wrapped parser unchanged; type construction happens in
+the `complete` phase.
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> struct Config
+           host::String
+           port::Int
+       end
+
+julia> parser = construct(Config, (
+           host = option("--host", str("HOST")),
+           port = option("--port", integer("PORT")),
+       ));
+
+julia> optparse(parser, ["--host", "localhost", "--port", "8080"])
+Config("localhost", 8080)
+```
+
+# See Also
+- [`record`](@ref)
+- [`sequence`](@ref)
+"""
+function construct end
+
+construct(::Type{T}, p::AbstractParser) where {T} = ModConstruct(p, T)
+construct(::Type{T}) where {T} = (x::Union{NamedTuple, Tuple, AbstractParser}) -> construct(T, x)
+
+construct(::Type{T}, nt::NamedTuple) where {T} = ModConstruct(record(nt), T)
+construct(::Type{T}, t::Tuple) where {T} = ModConstruct(sequence(t), T)
+
+# @parser MyType{M} begin
+
+#     "this is a docstring"
+#     a::M = option("-i", integer())
+
+#     "this is another docstring"
+#     b::Int = option("-j", integer())
+
+# end
+
+# struct MyType{M}
+#     a::M
+#     b::Int
+# end
+
+# MyType_parser = construct(MyType, (;
+#     a = or(option("-i", integer()), option("-f", flt()))
+#     b = option("-j", integer())
+# ))
+
 
 # primitives
 

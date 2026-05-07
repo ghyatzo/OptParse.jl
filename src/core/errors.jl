@@ -18,6 +18,7 @@ end
 
     ERR_ModWithDefault
     ERR_ModMultiple
+    ERR_ModConstruct
 
     ERR_StringVal
     ERR_ChoiceVal
@@ -113,6 +114,8 @@ function render_error_payload(io::IO, err::ParseError)
         modwithdefault_render_error(io, WithDefaultErrCode(err.code), err)
     elseif err.domain == ERR_ModMultiple
         modmultiple_render_error(io, MultipleErrCode(err.code), err)
+    elseif err.domain == ERR_ModConstruct
+        modconstruct_render_error(io, ConstructErrCode(err.code), err)
     elseif err.domain == ERR_StringVal
         stringval_render_error(io, StringErrCode(err.code), err)
     elseif err.domain == ERR_ChoiceVal

@@ -76,6 +76,10 @@ end
         include("unit/modifiers/repeated.jl")
     end
 
+    @testset "Construct Modifier" begin
+        include("unit/modifiers/construct.jl")
+    end
+
 end
 
 @testset "Integration Tests" failfast = true begin

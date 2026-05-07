@@ -1,5 +1,7 @@
 Base.show(io::IO, v::AbstractValueParser) = show_compact(io, v)
 Base.show(io::IO, ::MIME"text/plain", v::AbstractValueParser) = show_pretty(io, v, 0)
+Base.show(io::IO, p::AbstractParser) = show_compact(io, p)
+Base.show(io::IO, ::MIME"text/plain", p::AbstractParser) = show_pretty(io, p, 0)
 
 function _print_indent(io::IO, indent::Int)
     for _ in 1:indent
@@ -173,6 +175,13 @@ show_compact(io::IO, p::ModHelp) = let
     show_compact(io, p.parser)
     print(io, ")")
 end
+show_compact(io::IO, p::ModConstruct{T}) where {T} = let
+    print(io, "construct(")
+    print(io, construct_type_name(T))
+    print(io, ", ")
+    show_compact(io, p.parser)
+    print(io, ")")
+end
 
 
 show_pretty(io::IO, v::AbstractValueParser, _indent::Int = 0) = show_compact(io, v)
@@ -187,6 +196,8 @@ show_pretty(io::IO, p::ArgOption, _indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::ArgConstant, _indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::ArgArgument, _indent::Int = 0) = show_compact(io, p)
 
+
+show_pretty_after_prefix(io::IO, p, indent::Int) = show_pretty(io, p, indent)
 
 function show_pretty_after_prefix(io::IO, p::ArgCommand, indent::Int)
     show_compact(io, p)
@@ -233,3 +244,29 @@ end
 
 show_pretty(io::IO, p::ModWithDefault, _indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::ModMultiple, _indent::Int = 0) = show_compact(io, p)
+
+function show_pretty(io::IO, p::ModConstruct{T}, indent::Int = 0) where {T}
+    print(io, construct_type_name(T))
+
+    if p.parser isa ConstrObject
+        for (field, child) in pairs(p.parser.parsers)
+            print(io, "\n")
+            _print_indent(io, indent + 1)
+            print(io, field, ": ")
+            show_pretty_after_prefix(io, child, indent + 1)
+        end
+        return
+    elseif p.parser isa ConstrTuple
+        for (i, child) in enumerate(p.parser.parsers)
+            print(io, "\n")
+            _print_indent(io, indent + 1)
+            print(io, i, ": ")
+            show_pretty_after_prefix(io, child, indent + 1)
+        end
+        return
+    end
+
+    print(io, "\n")
+    _print_indent(io, indent + 1)
+    show_pretty(io, p.parser, indent + 1)
+end

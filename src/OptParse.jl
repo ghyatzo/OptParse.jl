@@ -17,6 +17,8 @@ using UUIDs:
     UUID,
     uuid_version
 
+using StructUtils
+
 export
     @?,
     @constant,
@@ -25,6 +27,7 @@ export
     choice,
     combine,
     concat,
+    construct,
     command,
     default,
     flag,
