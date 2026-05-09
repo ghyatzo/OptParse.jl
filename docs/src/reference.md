@@ -10,7 +10,7 @@
 ```@docs
 optparse
 tryoptparse
-resulttype
+valuetype
 OptParse.ParseException
 generate_help
 ```

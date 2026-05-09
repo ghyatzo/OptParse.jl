@@ -51,7 +51,7 @@ export
     or,
     path,
     repeated,
-    resulttype,
+    valuetype,
     str,
     tryoptparse,
     sequence,
@@ -83,12 +83,15 @@ ptypes(::Type{<:AbstractParser{T, S, _p, P}}) where {T, S, _p, P} = P
 ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
 
 """
-    resulttype(parser_or_type)
+    valuetype(parser_or_type)
 
 Return the final value type produced by a parser.
 
-This is useful when you want to refer to a parser's output type in user code,
-for example to define method specializations on the result of a specific parser.
+This is mainly useful when you want to refer to the output type of an anonymous
+parser in user code.
+
+For application-facing dispatch, prefer constructing a named type directly with
+[`construct`](@ref) and dispatching on that type instead.
 
 # Examples
 ```jldoctest
@@ -99,20 +102,22 @@ julia> greet = command("greet", record((
            name = option("-n", str("NAME")),
        )));
 
-julia> const Greet = resulttype(greet);
+julia> const Greet = valuetype(greet);
 
 julia> Greet
 @NamedTuple{cmd::Val{:greet}, name::String}
 ```
 
-A common pattern is to define a stable alias once and dispatch on it later
+A common pattern is to define a stable alias once and dispatch on it later when
+you do not want to introduce a dedicated struct type.
 
 # See Also
 - [`optparse`](@ref)
 - [`tryoptparse`](@ref)
+- [`construct`](@ref)
 """
-resulttype(::Type{<:AbstractParser{T}}) where {T} = T
-resulttype(::AbstractParser{T}) where {T} = T
+valuetype(::Type{<:AbstractParser{T}}) where {T} = T
+valuetype(::AbstractParser{T}) where {T} = T
 
 include("utils.jl")
 include("core/usage/usage.jl")

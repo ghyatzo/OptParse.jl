@@ -397,7 +397,7 @@ function @main(args::Vector{String})::Cint
     return 0
 end
 
-function doaction(obj::resulttype(remotecmd))
+function doaction(obj::valuetype(remotecmd))
     print(Core.stdout, "REMOTE CMD")
 end
 

@@ -61,7 +61,7 @@ For the public entrypoints:
 
 - `optparse(parser, argv)` is the high-level convenience entrypoint
 - `tryoptparse(parser, argv)` is the lower-level entrypoint and returns a result container instead of throwing
-- `resulttype(parser)` returns the final value type produced by a parser
+- `valuetype(parser)` returns the final value type produced by a parser
 
 `optparse` has two modes controlled through the `juliac` key via
 `Preferences.jl` mechanisms:
@@ -265,8 +265,9 @@ parser = or(
 # Return type: Union{@NamedTuple{mode::Val{:a}, ...}, @NamedTuple{mode::Val{:b}, ...}}
 ```
 
-If you want to dispatch on the output of a specific parser, expose the type
-through `resulttype`:
+If you want to dispatch on parsed values, prefer constructing a named type with
+`construct(...)`. `valuetype` is still useful when the parser result stays
+anonymous:
 
 ```julia
 greet = command("greet", record((
@@ -274,7 +275,7 @@ greet = command("greet", record((
     name = option("-n", str("NAME")),
 )))
 
-const Greet = resulttype(greet)
+const Greet = valuetype(greet)
 
 handle(x::Greet) = println("hello $(x.name)")
 ```

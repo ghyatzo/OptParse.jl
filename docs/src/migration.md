@@ -16,6 +16,7 @@ parser behavior the same.
 | --- | --- | --- |
 | `argparse(parser, argv)` | `optparse(parser, argv)` | High-level throwing parse entrypoint. |
 | `tryargparse(parser, argv)` | `tryoptparse(parser, argv)` | Lower-level non-throwing parse entrypoint. |
+| `resulttype(parser)` | `valuetype(parser)` | Output-type introspection helper. |
 | `gate(...)` | `switch(...)` | Required presence parser. |
 
 ### Constructors
