@@ -51,23 +51,23 @@ const statushelp = help(
     """
 )
 
-struct StatusCmd
-    short::Bool
-    branch::Bool
-    porcelain::Bool
-    untracked::valuetype(status_untracked)
-    ignored::valuetype(status_ignored)
-    pathspecs::Vector{String}
-end
+const _statuscmd = @parser statushelp StatusCmd begin
 
-const _statuscmd = construct(StatusCmd, (
-    short      = flag("-s", "--short")     |> help("Short"),
-    branch     = flag("-b", "--branch")    |> help("Branch"),
-    porcelain  = flag("--porcelain")       |> help("Porcelain"),
-    untracked  = status_untracked,
-    ignored    = status_ignored,
-    pathspecs  = arg(str("PATHSPEC"))      |> help("Pathspec") |> many(),
-)) |> statushelp
+    "Short"
+    short 		= flag("-s", "--short")
+    "Branch"
+    branch 		= flag("-b", "--branch")
+
+    "Porcelain"
+    porcelain 	= flag("--porcelain")
+
+    untracked 	= status_untracked
+
+    ignored 	= status_ignored
+
+    "Pathspec"
+    pathspecs 	= arg(str("PATHSPEC")) |> many()
+end
 
 
 # -----------------------------------------------------------------------------
@@ -84,26 +84,22 @@ const addhelp = help(
     """
 )
 
-struct AddCmd
-    dryrun::Bool
-    verbose::Vector{Bool}
-    patch::Bool
-    force::Bool
-    update::Bool
-    all::Bool
-    pathspecs::Vector{String}
+const _addcmd = @parser addhelp AddCmd begin
+    "Dry run"
+    dryrun = flag("-n", "--dry-run")
+    "Verbose"
+    verbose = flag("-v", "--verbose") |> many()
+    "Patch"
+    patch = flag("-p", "--patch")
+    "Force"
+    force = flag("-f", "--force")
+    "Update"
+    update = flag("-u", "--update")
+    "All"
+    all = flag("-A", "--all")
+    "Pathspec"
+    pathspecs = arg(str("PATHSPEC")) |> many()
 end
-
-
-const _addcmd = construct(AddCmd, (
-    dryrun    = flag("-n", "--dry-run")    |> help("Dry run"),
-    verbose   = flag("-v", "--verbose")    |> help("Verbose") |> many(),
-    patch     = flag("-p", "--patch")      |> help("Patch"),
-    force     = flag("-f", "--force")      |> help("Force"),
-    update    = flag("-u", "--update")     |> help("Update"),
-    all       = flag("-A", "--all")        |> help("All"),
-    pathspecs = arg(str("PATHSPEC"))       |> help("Pathspec") |> many(),
-)) |> addhelp
 
 
 # -----------------------------------------------------------------------------
@@ -157,25 +153,19 @@ const commithelp = help(
     """
 )
 
-struct CommitCmd
-    message_file::valuetype(commit_message_source)
-    all::Bool
-    amend::Bool
-    signoff::Bool
-    author::valuetype(commit_author)
-    date::valuetype(commit_date)
-    empty::Bool
+const _commitcmd = @parser commithelp CommitCmd begin
+    message_file = commit_message_source
+    "All"
+    all = flag("-a", "--all")
+    "Amend"
+    amend = flag("--amend")
+    "Signoff"
+    signoff = flag("-s", "--signoff")
+    author = commit_author
+    date = commit_date # todo: add date/time value parsers
+    "Allow empty"
+    empty = flag("--allow-empty")
 end
-
-const _commitcmd = construct(CommitCmd, (
-    message_file = commit_message_source,
-    all          = flag("-a", "--all")        |> help("All"),
-    amend        = flag("--amend")            |> help("Amend"),
-    signoff      = flag("-s", "--signoff")    |> help("Signoff"),
-    author       = commit_author,
-    date         = commit_date, # todo: add date/time value parsers
-    empty        = flag("--allow-empty")      |> help("Allow empty"),
-)) |> commithelp
 
 
 # -----------------------------------------------------------------------------
@@ -223,29 +213,22 @@ const clonehelp = help(
     """
 )
 
-struct CloneCmd
-    quiet::Bool
-    verbose::Vector{Bool}
-    branch::valuetype(clone_branch)
-    depth::valuetype(clone_depth)
-    singlebranch::Bool
-    bare::Bool
-    origin::valuetype(clone_origin)
-    repo::String
-    dir::valuetype(clone_dir)
+const _clonecmd = @parser clonehelp CloneCmd begin
+    "Quiet"
+    quiet = flag("-q", "--quiet")
+    "Verbose"
+    verbose = flag("-v", "--verbose") |> many()
+    branch = clone_branch
+    depth = clone_depth
+    "Single branch"
+    singlebranch = flag("--single-branch")
+    "Bare"
+    bare = flag("--bare")
+    origin = clone_origin
+    "Repository"
+    repo = arg(str("REPO"))
+    dir = clone_dir
 end
-
-const _clonecmd = construct(CloneCmd, (;
-    quiet        = flag("-q", "--quiet")            |> help("Quiet"),
-    verbose      = flag("-v", "--verbose")          |> help("Verbose") |> many(),
-    branch       = clone_branch,
-    depth        = clone_depth,
-    singlebranch = flag("--single-branch")          |> help("Single branch"),
-    bare         = flag("--bare")                   |> help("Bare"),
-    origin       = clone_origin,
-    repo         = arg(str("REPO"))                 |> help("Repository"),
-    dir          = clone_dir,
-)) |> clonehelp
 
 
 # -----------------------------------------------------------------------------
@@ -274,27 +257,22 @@ const pushhelp = help(
     """
 )
 
-struct PushCmd
-    upstream::Bool
-    force::Bool
-    forcelease::valuetype(push_forcelease)
-    tags::Bool
-    all::Bool
-    dryrun::Bool
-    repo::valuetype(push_repo)
-    refspecs::Vector{String}
+const _pushcmd = @parser pushhelp PushCmd begin
+    "Set upstream"
+    upstream = flag("-u", "--set-upstream")
+    "Force"
+    force = flag("-f", "--force")
+    forcelease = push_forcelease
+    "Tags"
+    tags = flag("--tags")
+    "All"
+    all = flag("--all")
+    "Dry run"
+    dryrun = flag("-n", "--dry-run")
+    repo = push_repo
+    "Refspec"
+    refspecs = arg(str("REFSPEC")) |> many()
 end
-
-const _pushcmd = construct(PushCmd, (
-    upstream   = flag("-u", "--set-upstream") |> help("Set upstream"),
-    force      = flag("-f", "--force")        |> help("Force"),
-    forcelease = push_forcelease,
-    tags       = flag("--tags")               |> help("Tags"),
-    all        = flag("--all")                |> help("All"),
-    dryrun     = flag("-n", "--dry-run")      |> help("Dry run"),
-    repo       = push_repo,
-    refspecs   = arg(str("REFSPEC"))          |> help("Refspec") |> many(),
-)) |> pushhelp
 
 
 # -----------------------------------------------------------------------------
@@ -326,29 +304,22 @@ const remote_addhelp = help(
     """
 )
 
-struct RemoteAdd
-    fetch::Bool
-    branches::valuetype(remote_add_branches)
-    tags::valuetype(remote_add_tag_policy)
-    name::String
-    url::String
+const _remote_add = @parser remote_addhelp RemoteAdd begin
+    "Fetch"
+    fetch = flag("-f", "--fetch")
+    branches = remote_add_branches
+    tags = remote_add_tag_policy
+    "Name"
+    name = arg(str("NAME"))
+    "URL"
+    url = arg(str("URL")) # todo: add URL value parser
 end
 
-const _remote_add = construct(RemoteAdd, (
-    fetch    = flag("-f", "--fetch")   |> help("Fetch"),
-    branches = remote_add_branches,
-    tags     = remote_add_tag_policy,
-    name     = arg(str("NAME"))        |> help("Name"),
-    url      = arg(str("URL"))         |> help("URL"), # todo: add URL value parser
-)) |> remote_addhelp
 
-
-struct RemoteRemove
-    name::String
+const _remote_remove = @parser help("Remote remove", description = "Remove a configured remote.") RemoteRemove begin
+    "Remote name"
+    name = arg(str("NAME"))
 end
-const _remote_remove = construct(RemoteRemove, (
-    name = arg(str("NAME")) |> help("Remote name"),
-)) |> help("Remote remove", description = "Remove a configured remote.")
 
 
 const remote_geturlhelp = help(
@@ -357,17 +328,14 @@ const remote_geturlhelp = help(
     Display one or more URLs configured for a remote.
     """
 )
-struct RemoteGetUrl
-	push::Bool
-	all::Bool
-	name::String
+const _remote_geturl = @parser remote_geturlhelp RemoteGetUrl begin
+    "Push URL"
+    push = flag("--push")
+    "All URLs"
+    all = flag("--all")
+    "Remote name"
+    name = arg(str("NAME"))
 end
-
-const _remote_geturl = construct(RemoteGetUrl, (
-    push = flag("--push")              |> help("Push URL"),
-    all  = flag("--all")               |> help("All URLs"),
-    name = arg(str("NAME"))            |> help("Remote name"),
-)) |> remote_geturlhelp
 
 
 const remote_seturl_oldurl =
@@ -382,19 +350,15 @@ const remote_seturlhelp = help(
     """
 )
 
-struct RemoteSetUrl
-    push::Bool
-    name::String
-    newurl::String
-    oldurl::valuetype(remote_seturl_oldurl)
+const _remote_seturl = @parser remote_seturlhelp RemoteSetUrl begin
+    "Push URL"
+    push = flag("--push")
+    "Remote name"
+    name = arg(str("NAME"))
+    "New URL"
+    newurl = arg(str("NEWURL"))
+    oldurl = remote_seturl_oldurl
 end
-
-const _remote_seturl = construct(RemoteSetUrl, (
-    push   = flag("--push")            |> help("Push URL"),
-    name   = arg(str("NAME"))          |> help("Remote name"),
-    newurl = arg(str("NEWURL"))        |> help("New URL"),
-    oldurl = remote_seturl_oldurl,
-)) |> remote_seturlhelp
 
 
 struct RemoteRename
@@ -402,47 +366,39 @@ struct RemoteRename
     new::String
 end
 
-const _remote_rename = construct(RemoteRename, sequence(
+const _remote_rename = construct_exact(RemoteRename, sequence(
     arg(str("OLD")) |> help("Old name"),
     arg(str("NEW")) |> help("New name"),
 ))
 
-const remotehelp = help(
-    "Remote",
-    description = """
-    Manage the set of tracked repositories.
 
-    This nested command family is the part of the example that most closely
-    stresses focused help generation and nested command rendering.
-    """,
-    footer = """
-    Examples:
-      gitlike remote add origin https://example/repo.git
-      gitlike remote set-url origin https://example/new.git
-    """
-)
 
-struct RemoteCmd
-    verbose::Vector{Bool}
-    subcmd::Union{
-        RemoteAdd,
-        RemoteRemove,
-        RemoteGetUrl,
-        RemoteSetUrl,
-        RemoteRename,
-    }
-end
 
-const _remotecmd = construct(RemoteCmd, (
-    verbose = flag("-v", "--verbose")  |> help("Verbose") |> many(),
-    subcmd  = or(
-        command("add",     _remote_add)     |> help("Add a new remote"),
-        command("rename",  _remote_rename)  |> help("Rename an existing remote"),
-        command("remove",  _remote_remove)  |> help("Remove an existing remote"),
-        command("get-url", _remote_geturl)  |> help("Show remote URLs"),
-        command("set-url", _remote_seturl)  |> help("Change remote URLs"),
-    ),
-)) |> remotehelp
+const _remotecmd = @parser """
+Manage the set of tracked repositories.
+
+This nested command family is the part of the example that most closely
+stresses focused help generation and nested command rendering.
+""" RemoteCmd begin
+
+    verbose = flag("-v", "--verbose") |> many()
+
+    subcmd = or(
+        command("add", _remote_add) |> help("Add a new remote"),
+
+        command("rename", _remote_rename) |> help("Rename an existing remote"),
+
+        command("remove", _remote_remove) |> help("Remove a configured remote"),
+
+        command("get-url", _remote_geturl) |> help("Show remote URLs"),
+
+        command("set-url", _remote_seturl) |> help("Change remote URLs"),
+    )
+end """
+Examples:
+  gitlike remote add origin https://example/repo.git
+  gitlike remote set-url origin https://example/new.git
+"""
 
 
 # -----------------------------------------------------------------------------

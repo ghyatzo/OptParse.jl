@@ -20,6 +20,7 @@ using StructUtils
 export
     @?,
     @constant,
+    @parser,
     HelpRequest,
     arg,
     optparse,
@@ -27,6 +28,7 @@ export
     combine,
     concat,
     construct,
+    construct_exact,
     command,
     default,
     flag,

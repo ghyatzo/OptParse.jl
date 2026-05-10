@@ -380,6 +380,7 @@ Config("localhost", 8080)
 # See Also
 - [`record`](@ref)
 - [`sequence`](@ref)
+- [`construct_exact`](@ref)
 """
 function construct end
 
@@ -389,15 +390,208 @@ construct(::Type{T}) where {T} = (x::Union{NamedTuple, Tuple, AbstractParser}) -
 construct(::Type{T}, nt::NamedTuple) where {T} = ModConstruct(record(nt), T)
 construct(::Type{T}, t::Tuple) where {T} = ModConstruct(sequence(t), T)
 
+"""
+    construct_exact(::Type{T}, parser)
+    construct_exact(::Type{T})(parser)
+    construct_exact(::Type{T}, record_fields::NamedTuple)
+    construct_exact(::Type{T}, sequence_fields::Tuple)
+
+Wrap a parser and construct values of type `T` using exact field or positional
+matching instead of `StructUtils.make`.
+
+`construct_exact` is intended for concrete struct types whose fields line up
+exactly with the child parser output:
+
+- record children must have the same field names, in the same order, as `T`
+- sequence children must have the same arity and positional types as `T`
+
+This stricter path is useful when you want predictable construction behavior and
+better trimming compatibility.
+
+The main use of this is through the `@parser` macro. But it is possible to
+create it by hand for already existing types. The macro does not suppor parametric types.
+But manually constructing does
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> struct Point{T}
+           x::T
+           y::T
+       end
+
+julia> parser = construct_exact(Point{Int}, (
+           x = option("--x", integer("X")),
+           y = option("--y", integer("Y")),
+       ));
+
+julia> optparse(parser, ["--x", "10", "--y", "20"])
+Point{Int}(10, 20)
+```
+
+# See Also
+- [`construct`](@ref)
+- [`record`](@ref)
+- [`sequence`](@ref)
+- [`@parser`](@ref)
+"""
+function construct_exact end
+
+construct_exact(::Type{T}, p::AbstractParser) where {T} = ModConstructExact(p, T)
+construct_exact(::Type{T}) where {T} = (x::Union{NamedTuple, Tuple, AbstractParser}) -> construct_exact(T, x)
+
+construct_exact(::Type{T}, nt::NamedTuple) where {T} = ModConstructExact(record(nt), T)
+construct_exact(::Type{T}, t::Tuple) where {T} = ModConstructExact(sequence(t), T)
+
+_parser_apply_leading_help(p::AbstractParser, text::AbstractString) = help(p; description = String(text))
+_parser_apply_leading_help(p::AbstractParser, modifier) = modifier(p)
+
+_parser_apply_trailing_help(p::AbstractParser, text::AbstractString) = help(p; footer = String(text))
+_parser_apply_trailing_help(p::AbstractParser, modifier) = modifier(p)
+
+function _parser_macro_expand(typeexpr, description, body, footer)
+    typeexpr isa Symbol || throw(ArgumentError("@parser currently only supports non-parametric type names."))
+    leading_help_ref = GlobalRef(OptParse, :_parser_apply_leading_help)
+    trailing_help_ref = GlobalRef(OptParse, :_parser_apply_trailing_help)
+
+    stmts = body isa Expr && body.head == :block ? body.args : Any[body]
+    field_defs = Any[]
+    parser_fields = Any[]
+    parser_bindings = Any[]
+    pending_help = nothing
+
+    for stmt in stmts
+        stmt isa LineNumberNode && continue
+
+        if stmt isa String
+            pending_help === nothing || throw(ArgumentError("Unexpected consecutive help strings in @parser body."))
+            pending_help = stmt
+            continue
+        end
+
+        if stmt isa Expr && stmt.head == :macrocall && length(stmt.args) >= 4 && stmt.args[end - 1] isa String
+            pending_help === nothing || throw(ArgumentError("Unexpected consecutive help strings in @parser body."))
+            pending_help = stmt.args[end - 1]
+            stmt = stmt.args[end]
+        end
+
+        stmt isa Expr && stmt.head == :(=) || throw(ArgumentError("@parser body only supports string literals and `field = parser` definitions."))
+        lhs, rhs = stmt.args
+        lhs isa Symbol || throw(ArgumentError("@parser fields must be written as `field = parser`."))
+        name = lhs
+
+        parser_name = gensym(Symbol(name, "_parser"))
+
+        parser_rhs = if isnothing(pending_help)
+            rhs
+        else
+            :($(rhs) |> help($(pending_help)))
+        end
+        push!(parser_bindings, :(const $(parser_name) = $(parser_rhs)))
+        push!(field_defs, :($(name)::valuetype($(parser_name))))
+        push!(parser_fields, Expr(:kw, name, parser_name))
+        pending_help = nothing
+    end
+
+    isnothing(pending_help) || throw(ArgumentError("@parser body ended with a help string that does not apply to any field."))
+
+    parser_expr = :(construct_exact($(typeexpr), (; $(parser_fields...))))
+    !isnothing(description) && (parser_expr = Expr(:call, leading_help_ref, parser_expr, description))
+    !isnothing(footer) && (parser_expr = Expr(:call, trailing_help_ref, parser_expr, footer))
+
+    return quote
+        $(parser_bindings...)
+        struct $(typeexpr)
+            $(field_defs...)
+        end
+        $parser_expr
+    end
+end
+
+"""
+    @parser TypeName begin
+        "Field help"
+        field = parser_expr
+        ...
+    end
+
+    @parser "Parser description" TypeName begin
+        "Field help"
+        field = parser_expr
+        ...
+    end
+
+    @parser "Parser description" TypeName begin
+        "Field help"
+        field = parser_expr
+        ...
+    end "Parser footer"
+
+Define a concrete struct and return a matching [`construct_exact`](@ref) parser.
+
+Each field definition in the block becomes both:
+
+- a field in `struct TypeName`
+- a field in the generated record parser
+
+The generated struct field types are derived from the parser expressions via
+[`valuetype`](@ref), so the struct shape always matches the parser output.
+
+If a string literal appears immediately before a field definition, it is lowered
+to `|> help("...")` on that field parser.
+
+If an expression appears before the type name, it is treated as parser-level
+description/help metadata. String values are lowered to
+`|> help(description = ...)`; other values are applied as parser modifiers.
+
+If an expression appears after the block, it is treated as parser-level
+footer/help metadata. String values are lowered to `|> help(footer = ...)`;
+other values are applied as parser modifiers.
+
+The parser expressions on the right-hand side are used as-is, so this macro is
+mainly syntax sugar over ordinary OptParse combinators.
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> parser = @parser "Server configuration" Config begin
+           "Host"
+           host = option("--host", str("HOST"))
+           "Port"
+           port = option("--port", integer("PORT"))
+       end "Examples:\n  prog --host localhost --port 8080";
+
+julia> optparse(parser, ["--host", "localhost", "--port", "8080"])
+Config("localhost", 8080)
+```
+
+# See Also
+- [`construct_exact`](@ref)
+- [`construct`](@ref)
+"""
+macro parser(typeexpr, body)
+    return esc(_parser_macro_expand(typeexpr, nothing, body, nothing))
+end
+
+macro parser(description, typeexpr, body)
+    return esc(_parser_macro_expand(typeexpr, description, body, nothing))
+end
+
+macro parser(description, typeexpr, body, footer)
+    return esc(_parser_macro_expand(typeexpr, description, body, footer))
+end
+
 # @parser MyType{M} begin
 
 #     "this is a docstring"
-#     a::M = option("-i", integer())
+#     a = option("-i", integer())
 
 #     "this is another docstring"
-#     b::Int = option("-j", integer())
+#     b = option("-j", integer())
 
-# end
+# end "Parser footer"
 
 # struct MyType{M}
 #     a::M

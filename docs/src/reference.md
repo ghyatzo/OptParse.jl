@@ -60,6 +60,7 @@ repeated
 many
 many1
 construct
+construct_exact
 help
 hidden
 ```
@@ -67,6 +68,7 @@ hidden
 ### Constructors
 
 ```@docs
+@parser
 record
 combine
 or
