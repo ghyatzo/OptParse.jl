@@ -36,6 +36,10 @@ end
     @testset "Command parser" begin
         include("unit/primitives/command.jl")
     end
+
+    @testset "Help command parser" begin
+        include("unit/primitives/helpcommand.jl")
+    end
 end
 
 @testset "Constructors" failfast = true begin

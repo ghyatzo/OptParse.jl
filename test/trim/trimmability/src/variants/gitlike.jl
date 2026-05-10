@@ -51,7 +51,16 @@ const statushelp = help(
     """
 )
 
-const statuscmd = record((;
+struct StatusCmd
+    short::Bool
+    branch::Bool
+    porcelain::Bool
+    untracked::valuetype(status_untracked)
+    ignored::valuetype(status_ignored)
+    pathspecs::Vector{String}
+end
+
+const _statuscmd = construct(StatusCmd, (
     short      = flag("-s", "--short")     |> help("Short"),
     branch     = flag("-b", "--branch")    |> help("Branch"),
     porcelain  = flag("--porcelain")       |> help("Porcelain"),
@@ -75,7 +84,18 @@ const addhelp = help(
     """
 )
 
-const addcmd = record((;
+struct AddCmd
+    dryrun::Bool
+    verbose::Vector{Bool}
+    patch::Bool
+    force::Bool
+    update::Bool
+    all::Bool
+    pathspecs::Vector{String}
+end
+
+
+const _addcmd = construct(AddCmd, (
     dryrun    = flag("-n", "--dry-run")    |> help("Dry run"),
     verbose   = flag("-v", "--verbose")    |> help("Verbose") |> many(),
     patch     = flag("-p", "--patch")      |> help("Patch"),
@@ -137,7 +157,17 @@ const commithelp = help(
     """
 )
 
-const commitcmd = record((;
+struct CommitCmd
+    message_file::valuetype(commit_message_source)
+    all::Bool
+    amend::Bool
+    signoff::Bool
+    author::valuetype(commit_author)
+    date::valuetype(commit_date)
+    empty::Bool
+end
+
+const _commitcmd = construct(CommitCmd, (
     message_file = commit_message_source,
     all          = flag("-a", "--all")        |> help("All"),
     amend        = flag("--amend")            |> help("Amend"),
@@ -193,7 +223,19 @@ const clonehelp = help(
     """
 )
 
-const clonecmd = record((;
+struct CloneCmd
+    quiet::Bool
+    verbose::Vector{Bool}
+    branch::valuetype(clone_branch)
+    depth::valuetype(clone_depth)
+    singlebranch::Bool
+    bare::Bool
+    origin::valuetype(clone_origin)
+    repo::String
+    dir::valuetype(clone_dir)
+end
+
+const _clonecmd = construct(CloneCmd, (;
     quiet        = flag("-q", "--quiet")            |> help("Quiet"),
     verbose      = flag("-v", "--verbose")          |> help("Verbose") |> many(),
     branch       = clone_branch,
@@ -232,7 +274,18 @@ const pushhelp = help(
     """
 )
 
-const pushcmd = record((;
+struct PushCmd
+    upstream::Bool
+    force::Bool
+    forcelease::valuetype(push_forcelease)
+    tags::Bool
+    all::Bool
+    dryrun::Bool
+    repo::valuetype(push_repo)
+    refspecs::Vector{String}
+end
+
+const _pushcmd = construct(PushCmd, (
     upstream   = flag("-u", "--set-upstream") |> help("Set upstream"),
     force      = flag("-f", "--force")        |> help("Force"),
     forcelease = push_forcelease,
@@ -273,7 +326,15 @@ const remote_addhelp = help(
     """
 )
 
-const remote_add = record((;
+struct RemoteAdd
+    fetch::Bool
+    branches::valuetype(remote_add_branches)
+    tags::valuetype(remote_add_tag_policy)
+    name::String
+    url::String
+end
+
+const _remote_add = construct(RemoteAdd, (
     fetch    = flag("-f", "--fetch")   |> help("Fetch"),
     branches = remote_add_branches,
     tags     = remote_add_tag_policy,
@@ -281,13 +342,14 @@ const remote_add = record((;
     url      = arg(str("URL"))         |> help("URL"), # todo: add URL value parser
 )) |> remote_addhelp
 
-const remote_remove =
-    arg(str("NAME")) |>
-    help("Remote name") |>
-    help(
-        "Remote remove",
-        description = "Remove a configured remote."
-    )
+
+struct RemoteRemove
+    name::String
+end
+const _remote_remove = construct(RemoteRemove, (
+    name = arg(str("NAME")) |> help("Remote name"),
+)) |> help("Remote remove", description = "Remove a configured remote.")
+
 
 const remote_geturlhelp = help(
     "Remote get-url",
@@ -295,12 +357,18 @@ const remote_geturlhelp = help(
     Display one or more URLs configured for a remote.
     """
 )
+struct RemoteGetUrl
+	push::Bool
+	all::Bool
+	name::String
+end
 
-const remote_geturl = record((
+const _remote_geturl = construct(RemoteGetUrl, (
     push = flag("--push")              |> help("Push URL"),
     all  = flag("--all")               |> help("All URLs"),
     name = arg(str("NAME"))            |> help("Remote name"),
 )) |> remote_geturlhelp
+
 
 const remote_seturl_oldurl =
     arg(str("OLDURL")) |>
@@ -314,17 +382,30 @@ const remote_seturlhelp = help(
     """
 )
 
-const remote_seturl = record((
+struct RemoteSetUrl
+    push::Bool
+    name::String
+    newurl::String
+    oldurl::valuetype(remote_seturl_oldurl)
+end
+
+const _remote_seturl = construct(RemoteSetUrl, (
     push   = flag("--push")            |> help("Push URL"),
     name   = arg(str("NAME"))          |> help("Remote name"),
     newurl = arg(str("NEWURL"))        |> help("New URL"),
     oldurl = remote_seturl_oldurl,
 )) |> remote_seturlhelp
 
-const remote_rename = sequence(
+
+struct RemoteRename
+    old::String
+    new::String
+end
+
+const _remote_rename = construct(RemoteRename, sequence(
     arg(str("OLD")) |> help("Old name"),
     arg(str("NEW")) |> help("New name"),
-)
+))
 
 const remotehelp = help(
     "Remote",
@@ -341,14 +422,25 @@ const remotehelp = help(
     """
 )
 
-const remotecmd = record((
+struct RemoteCmd
+    verbose::Vector{Bool}
+    subcmd::Union{
+        RemoteAdd,
+        RemoteRemove,
+        RemoteGetUrl,
+        RemoteSetUrl,
+        RemoteRename,
+    }
+end
+
+const _remotecmd = construct(RemoteCmd, (
     verbose = flag("-v", "--verbose")  |> help("Verbose") |> many(),
     subcmd  = or(
-        command("add",     remote_add)     |> help("Add a new remote"),
-        command("rename",  remote_rename)  |> help("Rename an existing remote"),
-        command("remove",  remote_remove)  |> help("Remove an existing remote"),
-        command("get-url", remote_geturl)  |> help("Show remote URLs"),
-        command("set-url", remote_seturl)  |> help("Change remote URLs"),
+        command("add",     _remote_add)     |> help("Add a new remote"),
+        command("rename",  _remote_rename)  |> help("Rename an existing remote"),
+        command("remove",  _remote_remove)  |> help("Remove an existing remote"),
+        command("get-url", _remote_geturl)  |> help("Show remote URLs"),
+        command("set-url", _remote_seturl)  |> help("Change remote URLs"),
     ),
 )) |> remotehelp
 
@@ -377,12 +469,12 @@ const gitlikehelp = help(
 const parser = record((
     options = globoptions,
     cmd     = or(
-        command("status", statuscmd)  |> help("Show working tree status"),
-        command("add",    addcmd)     |> help("Add file contents to the index"),
-        command("commit", commitcmd)  |> help("Record changes to the repository"),
-        command("clone",  clonecmd)   |> help("Clone a repository into a new directory"),
-        command("push",   pushcmd)    |> help("Update remote refs"),
-        command("remote", remotecmd)  |> help("Manage configured remotes"),
+        command("status", _statuscmd) |> help("Show working tree status"),
+        command("add", _addcmd) |> help("Add file contents to the index"),
+        command("commit", _commitcmd) |> help("Record changes to the repository"),
+        command("clone", _clonecmd) |> help("Clone a repository into a new directory"),
+        command("push", _pushcmd) |> help("Update remote refs"),
+        command("remote", _remotecmd) |> help("Manage configured remotes"),
     ),
 )) |> gitlikehelp
 
@@ -397,7 +489,7 @@ function @main(args::Vector{String})::Cint
     return 0
 end
 
-function doaction(obj::valuetype(remotecmd))
+function doaction(obj::RemoteCmd)
     print(Core.stdout, "REMOTE CMD")
 end
 

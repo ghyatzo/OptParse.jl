@@ -3,7 +3,7 @@
 end
 
 @generated function construct_type_name(::Type{T}) where {T}
-    return :( $(string(T)) )
+    return :($(string(T)))
 end
 
 modconstruct_error(code::ConstructErrCode; token = "", detail = "", subject = "") =
@@ -35,7 +35,13 @@ struct ModConstruct{T, S, p, P} <: AbstractParser{T, S, p, P}
         }
 
         if !Base.isstructtype(T)
-            throw(ArgumentError("Type $T must be a struct type!"))
+            throw(ArgumentError("Type $T must be a struct type."))
+        end
+
+        @static if juliac
+            if !Base.isconcretetype(T)
+                throw(ArgumentError("Type $T is not a concrete type."))
+            end
         end
 
         return new{T, S, prio, typeof(p)}(p.initialState, p)

@@ -6,9 +6,9 @@ struct RemoteConfig
     verbose::Bool
 end
 
-struct Coordinates
-    x::Int
-    y::Int
+struct Coordinates{T<:Number}
+    x::T
+    y::T
 end
 
 const config_cmd = command(
@@ -22,7 +22,7 @@ const config_cmd = command(
 
 const coords_cmd = command(
     "coords",
-    construct(Coordinates, (
+    construct(Coordinates{Int}, (
         arg(integer("X")),
         arg(integer("Y")),
     ))

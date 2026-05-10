@@ -13,15 +13,14 @@ using WrappedUnions: @unionsplit, @wrapped,
 using ErrorTypes: @?, Err, ErrorTypes, Ok, Option, Result, base, is_error,
     none, some, unwrap, unwrap_error
 
-using UUIDs:
-    UUID,
-    uuid_version
+using UUIDs: UUID, uuid_version
 
 using StructUtils
 
 export
     @?,
     @constant,
+    HelpRequest,
     arg,
     optparse,
     choice,
@@ -37,6 +36,7 @@ export
     switch,
     generate_help,
     help,
+    helpcommand,
     hidden,
     i16,
     i32,
@@ -50,16 +50,18 @@ export
     optional,
     or,
     path,
+    print_help,
     repeated,
-    valuetype,
+    runparse,
     str,
-    tryoptparse,
     sequence,
+    tryoptparse,
     u16,
     u32,
     u64,
     u8,
-    uuid
+    uuid,
+    valuetype
 
 public build_help_doc, render_helpdoc
 
@@ -118,6 +120,23 @@ you do not want to introduce a dedicated struct type.
 """
 valuetype(::Type{<:AbstractParser{T}}) where {T} = T
 valuetype(::AbstractParser{T}) where {T} = T
+
+"""
+    HelpRequest
+
+Sentinel value returned by [`helpcommand`](@ref).
+
+`argv` stores the help scope that should be passed to [`generate_help`](@ref).
+For example, parsing `["help", "remote", "add"]` with `helpcommand()` yields
+`HelpRequest(["remote", "add"])`.
+
+This value is mainly useful together with higher-level runners such as
+[`runparse`](@ref), which can interpret it and render the corresponding help
+page.
+"""
+struct HelpRequest
+    argv::Vector{String}
+end
 
 include("utils.jl")
 include("core/usage/usage.jl")
@@ -286,6 +305,32 @@ Options:
 generate_help(parser, argv; progname = "") = render_helpdoc(build_help_doc(parser, argv); progname)
 
 """
+    print_help(io, parser, argv; progname = "")
+
+Render and print the focused help page for `argv` from `parser`.
+
+This is a small convenience wrapper around [`generate_help`](@ref). It is useful
+when you want to route help output to a chosen `IO` stream, such as `stdout`,
+`stderr`, or an in-memory buffer.
+
+# Keyword Arguments
+- `progname::AbstractString = ""`: Program name prefix to render in the usage line
+
+# Returns
+Returns `nothing` after writing the rendered help text to `io`.
+
+# See Also
+- [`generate_help`](@ref)
+- [`build_help_doc`](@ref)
+- [`runparse`](@ref)
+"""
+function print_help(io, parser, argv; progname = "")
+    helpstr = generate_help(parser, argv; progname)
+    print(io, helpstr)
+    return nothing
+end
+
+"""
     tryoptparse(parser, argv)
 
 Lower-level parsing entrypoint.
@@ -323,6 +368,7 @@ function tryoptparse(pp::AbstractParser{T, S}, args::Vector{String})::ParseResul
     return ret
 end
 
+
 """
     optparse(parser, argv)
 
@@ -339,47 +385,117 @@ via `Preferences.jl`:
 If you need stable non-throwing behavior across environments, use
 [`tryoptparse`](@ref) instead.
 """
-@static if juliac
+function optparse(pp::AbstractParser{T}, args::Vector{String}) where {T}
+    mayberes = tryoptparse(pp, args)::ParseResult{T}
 
-    function optparse(pp::AbstractParser{T}, args::Vector{String})::Union{T, Nothing} where {T}
-        mayberes = tryoptparse(pp, args)::ParseResult{T}
-
-        if is_error(mayberes)
+    if is_error(mayberes)
+        @static if juliac
             errmsg = sprint(
                 showerror, ParseException(
-                    pp,
-                    args,
-                    unwrap_error(mayberes)
+                    pp, args, unwrap_error(mayberes)
                 )
             )
-
             print(Core.stderr, "Error: ")
             println(Core.stderr, errmsg)
             return nothing
-        end
-
-        return unwrap(mayberes)
-    end
-
-else
-
-    function optparse(pp::AbstractParser{T}, args::Vector{String})::T where {T}
-        mayberes = tryoptparse(pp, args)::ParseResult{T}
-
-        if is_error(mayberes)
+        else
             throw(
                 ParseException(
-                    pp,
-                    args,
-                    unwrap_error(mayberes)
+                    pp, args, unwrap_error(mayberes)
                 )
             )
         end
-
-        return unwrap(mayberes)
     end
 
+    return unwrap(mayberes)
 end
 
+"""
+    runparse(parser, argv; progname = "", help_command = "help", help_flags = ["--help"], on_empty = ...)
+
+Application-facing parsing entrypoint with built-in help handling.
+
+`runparse` layers a small CLI policy on top of [`optparse`](@ref):
+
+- help flags such as `--help` are detected lexically and cause focused help to
+  be rendered for the current invocation
+- an explicit help subcommand is injected at the top level using
+  [`helpcommand`](@ref)
+- empty invocations can be rewritten to a caller-chosen fallback argument vector
+
+When the invocation resolves to help, `runparse` prints the rendered help page
+to `stderr` and returns `nothing`. Otherwise it behaves like [`optparse`](@ref)
+on the effective argument vector.
+
+# Keyword Arguments
+- `progname::AbstractString = ""`: Program name prefix to render in help output
+- `help_command::String = "help"`: Top-level positional help command to inject.
+  Pass `""` to disable positional help injection.
+- `help_flags::Vector{String} = ["--help"]`: Flag tokens that request help for
+  the current invocation
+- `on_empty = isempty(help_command) ? [] : [help_command]`: Replacement argv to
+  use when `argv` is empty. This lets bare invocation show help or dispatch to a
+  default command.
+
+# Notes
+- Help flags are recognized only before `--`
+- Positional help is implemented by parsing an injected hidden help branch, but
+  help is rendered from the original parser
+
+# See Also
+- [`optparse`](@ref)
+- [`tryoptparse`](@ref)
+- [`helpcommand`](@ref)
+- [`print_help`](@ref)
+"""
+function runparse(
+        parser::AbstractParser, argv::Vector{String};
+        progname = "",
+        help_command = "help",
+        help_flags = ["--help"],
+        on_empty = isempty(help_command) ? [] : [help_command]
+    )
+
+    if isempty(argv)
+        argv = on_empty
+    end
+
+    # scan the input buffer for help flags.
+    # if present, record presence, filter them and
+    # ask for help on the remaining tokens
+    nargv, _ = normalize_argv(argv)
+    newargv = String[]
+    help_request = false
+    for (i, token) in enumerate(nargv)
+        if token == "--"
+            append!(newargv, nargv[i:end])
+            break
+        end
+        if token in help_flags
+            help_request = true
+            continue
+        end
+        push!(newargv, token)
+    end
+
+    if help_request
+        print_help(Core.stderr, parser, newargv; progname)
+        return nothing
+    end
+
+    # inject the helpcommand (only if provided)
+    if !isempty(help_command)
+        _parser = or(hidden(helpcommand(help_command)), parser)
+        res = optparse(_parser, newargv)
+        if res isa HelpRequest
+            # important: we generate the help on the original parser!
+            print_help(Core.stderr, parser, res.argv; progname)
+            return nothing
+        end
+        return res
+    else
+        return optparse(parser, newargv)
+    end
+end
 
 end # module OptParse

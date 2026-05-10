@@ -49,4 +49,4 @@ This could very well go hand in hand with
 ## Better taxonomy and generic traits for parsers
 
 We should start defining abstract traits to lift some of the parsers behaviours in the
-type system. This is long term
+type system. This is long term.

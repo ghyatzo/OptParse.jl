@@ -10,9 +10,12 @@
 ```@docs
 optparse
 tryoptparse
+runparse
 valuetype
 OptParse.ParseException
 generate_help
+print_help
+HelpRequest
 ```
 
 ### Primitives
@@ -23,6 +26,7 @@ flag
 switch
 arg
 command
+helpcommand
 @constant
 ```
 

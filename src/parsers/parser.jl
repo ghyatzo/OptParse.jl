@@ -404,7 +404,8 @@ construct(::Type{T}, t::Tuple) where {T} = ModConstruct(sequence(t), T)
 #     b::Int
 # end
 
-# MyType_parser = construct(MyType, (;
+# MyType_parser
+# = construct(MyType, (;
 #     a = or(option("-i", integer()), option("-f", flt()))
 #     b = option("-j", integer())
 # ))
@@ -862,6 +863,58 @@ command(names::Tuple{Vararg{String}}, p::AbstractParser) = ArgCommand(names, p)
 command(name::String, p::AbstractParser) = ArgCommand((name,), p)
 command(name::String, alias::String, p::AbstractParser) = ArgCommand((name, alias), p)
 
+## helpcommand
+
+"""
+    helpcommand()
+    helpcommand(name::String)
+    helpcommand(name::String, alias::String)
+    helpcommand(names::Tuple{Vararg{String}})
+
+Convenience parser for an explicit top-level help command.
+
+`helpcommand()` behaves like a subcommand parser rooted at `"help"`. It
+collects any following positional tokens as a help scope and completes to
+[`HelpRequest`](@ref), which can later be handled by a higher-level runner.
+
+This parser does not render help by itself. It only parses and returns the
+requested help scope.
+
+This parser is available as a normal public building block and can be used
+inside ordinary parser trees. Higher-level entrypoints such as [`runparse`](@ref)
+may also inject it automatically at the top level.
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> req = optparse(helpcommand(), ["help", "remote", "add"]);
+
+julia> req isa HelpRequest
+true
+
+julia> req.argv
+2-element Vector{String}:
+ "remote"
+ "add"
+```
+
+# See Also
+- [`command`](@ref)
+- [`generate_help`](@ref)
+- [`runparse`](@ref)
+"""
+function helpcommand end
+
+helpcommand() = helpcommand("help")
+helpcommand(names::Tuple{Vararg{String}}) =
+    command(
+    names,
+    construct(HelpRequest, (; argv = many(arg(str("COMMAND")))))
+) |> help("Show help for a command or subcommand")
+helpcommand(name::String) = helpcommand((name,))
+helpcommand(name::String, alias::String) = helpcommand((name, alias))
+
 
 # constructors
 
@@ -1125,6 +1178,7 @@ julia> result.file
 function or end
 
 or(parsers...) = ConstrOr(parsers)
+
 
 ## Sequence
 
