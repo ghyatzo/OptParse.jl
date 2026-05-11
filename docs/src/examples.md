@@ -129,5 +129,5 @@ parser = lift(Config)
 ### Running an Application
 
 For a full CLI application with `--help` and subcommands, see
-[`examples/HelloWorld/`](https://github.com/anomalyco/OptParse.jl/tree/main/examples/HelloWorld).
-```
+[`examples/HelloWorld/`](https://github.com/ghyatzo/OptParse.jl/tree/main/examples/HelloWorld).
+

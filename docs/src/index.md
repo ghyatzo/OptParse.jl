@@ -29,6 +29,12 @@ to reflect if it succeded or not. This is the `parse` step.
 
 ```julia
 using Pkg
+Pkg.add("OptParse")
+```
+
+or, for the development version:
+
+```julia
 Pkg.add(url="https://github.com/ghyatzo/OptParse")
 ```
 
