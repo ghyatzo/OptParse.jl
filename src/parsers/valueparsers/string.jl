@@ -1,12 +1,14 @@
 @kwdef struct StringVal{T} <: AbstractValueParser{T}
     metavar::String = ""
     pattern::Regex = r".*"
+    allow_empty::Bool = false
 end
 
 default_metavar(::StringVal) = "STRING"
 
 @enum StringErrCode::UInt8 begin
     STRING_InvalidPattern
+    STRING_IsEmpty
 end
 
 stringval_error(code::StringErrCode; token = "", detail = "", subject = "") =
@@ -20,6 +22,8 @@ stringval_error(code::StringErrCode; token = "", detail = "", subject = "") =
 function stringval_render_error(io::IO, code::StringErrCode, err::ParseError)
     return if code == STRING_InvalidPattern
         print(io, "Expected a string matching the pattern $(err.detail), got $(err.token)")
+    elseif code == STRING_IsEmpty
+        print(io, "Only non empty strings are allowed. Use str(allow_empty=true), if needed.")
     else
         print(io, "unreachable")
     end
@@ -34,6 +38,13 @@ end
             detail = string(s.pattern)
         )
     )
-    # isnothing(m) && return typedErr("Expected a string matching the pattern `$(s.pattern)`, but got `$input`.")
+
+    if isempty(input) && !s.allow_empty
+        return typedErr(
+            stringval_error(
+                STRING_IsEmpty
+            )
+        )
+    end
     return typedOk(input)
 end
