@@ -409,8 +409,8 @@ This stricter path is useful when you want predictable construction behavior and
 better trimming compatibility.
 
 The main use of this is through the `@parser` macro. But it is possible to
-create it by hand for already existing types. The macro does not suppor parametric types.
-But manually constructing does
+create it by hand for already existing types. The macro does not support
+parametric types, but manual construction does.
 
 # Examples
 ```jldoctest
@@ -427,7 +427,7 @@ julia> parser = construct_exact(Point{Int}, (
        ));
 
 julia> optparse(parser, ["--x", "10", "--y", "20"])
-Point{Int}(10, 20)
+Point{Int64}(10, 20)
 ```
 
 # See Also
@@ -561,7 +561,7 @@ julia> parser = @parser "Server configuration" Config begin
            host = option("--host", str("HOST"))
            "Port"
            port = option("--port", integer("PORT"))
-       end "Examples:\n  prog --host localhost --port 8080";
+       end "Server configuration parser";
 
 julia> optparse(parser, ["--host", "localhost", "--port", "8080"])
 Config("localhost", 8080)

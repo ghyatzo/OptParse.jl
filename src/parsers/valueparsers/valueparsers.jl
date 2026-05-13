@@ -32,6 +32,7 @@ Accepts any string by default, optionally constrained by a regular expression.
 
 # Keywords
 - `pattern::Regex = r".*"`: regular expression the input must match
+- `allow_empty::Bool = false`: whether the empty string is accepted
 - `metavar::String`: placeholder used in usage/help output
 
 # Examples
@@ -47,6 +48,11 @@ julia> txt = str("FILE"; pattern = r".*\\.(txt|md)\$");
 
 julia> optparse(arg(txt), ["readme.md"])
 "readme.md"
+
+julia> empty_ok = str("VALUE"; allow_empty = true);
+
+julia> optparse(arg(empty_ok), [""])
+""
 ```
 
 # See Also

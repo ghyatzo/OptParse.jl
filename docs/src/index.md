@@ -224,6 +224,105 @@ const Greet = valuetype(greet)
 handle(x::Greet) = println("hello $(x.name)")
 ```
 
+## Application Entry Points And Automatic Help
+
+OptParse now has a more explicit split between parser semantics and
+application-facing CLI behavior.
+
+At the lower level:
+
+- [`tryoptparse`](@ref) returns a result container
+- [`optparse`](@ref) returns the parsed value or throws
+
+Those entrypoints stay close to the parser model itself.
+
+For command-line applications, OptParse also provides [`runparse`](@ref), which
+adds a small amount of CLI policy on top:
+
+- lexical help flags such as `--help`
+- an optional top-level positional help command
+- customizable behavior for bare invocation through `on_empty`
+
+```julia
+parser = command("serve", record((
+    host = option("--host", str("HOST")),
+    port = default(option("--port", integer("PORT")), 8080),
+)))
+
+runparse(parser, ["--help"]; progname = "prog")
+runparse(parser, []; progname = "prog", on_empty = ["help"])
+```
+
+The lower-level help API is still available when you want full control:
+
+- [`build_help_doc`](@ref)
+- [`generate_help`](@ref)
+- [`print_help`](@ref)
+
+If you want positional help explicitly in an ordinary parser tree, use
+[`helpcommand`](@ref). It parses invocations such as `help remote add` into a
+[`HelpRequest`](@ref), which higher-level entrypoints such as [`runparse`](@ref)
+can interpret by rendering focused help from the original parser.
+
+This gives OptParse a clearer split:
+
+- parser definitions remain the single source of truth
+- help rendering remains explicit and compositional
+- automatic help behavior lives in a dedicated top-level runner
+
+## Typed Parsers And Construction
+
+Anonymous parser outputs are still central to OptParse, but there is now a more
+complete story for constructing named application types.
+
+The flexible path is [`construct`](@ref):
+
+```julia
+struct ServerConfig
+    host::String
+    port::Int
+end
+
+parser = construct(ServerConfig, record((
+    host = option("--host", str("HOST")),
+    port = option("--port", integer("PORT")),
+)))
+```
+
+`construct` delegates to `StructUtils`, which makes it the dynamic and
+user-extensible path. In normal Julia runtime, that means it can take advantage
+of richer lifting behavior, including custom StructUtils integration and
+parametric construction when that can be recovered dynamically.
+
+For trimming and exact matching, OptParse also provides
+[`construct_exact`](@ref). This path is deliberately stricter:
+
+- for `record(...)`, field names and order must match exactly
+- for `sequence(...)`, positional arity and types must match exactly
+- the target type must be concrete
+
+On top of that, [`@parser`](@ref) offers a concise typed workflow that defines a
+struct and its matching parser together:
+
+```julia
+parser = @parser "Server configuration" Config begin
+    "Hostname to bind"
+    host = option("--host", str("HOST"))
+
+    "TCP port"
+    port = default(option("--port", integer("PORT")), 8080)
+end "Used by the development server."
+```
+
+The macro derives struct field types from the parser expressions themselves via
+[`valuetype`](@ref), so the struct shape stays aligned with the parser output.
+
+So the typed story now has three layers:
+
+- anonymous `record(...)` / `sequence(...)` composition
+- dynamic lifting with [`construct`](@ref)
+- exact, trim-friendly typed construction with [`construct_exact`](@ref) and [`@parser`](@ref)
+
 ## Error Handling
 
 OptParse exposes two entrypoints:
