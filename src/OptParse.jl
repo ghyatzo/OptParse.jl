@@ -65,8 +65,6 @@ export
     uuid,
     valuetype
 
-public build_help_doc, render_helpdoc
-
 
 abstract type AbstractParser{T, S, p, P} end
 
@@ -232,7 +230,7 @@ Build a focused help document for `argv` from `parser`.
 
 This is a structured, cold-path helper used by OptParse's help and error
 rendering machinery. It replays enough parser state to determine the most
-relevant help scope, then returns a [`HelpDoc`](@ref) for that scope.
+relevant help scope, then returns a `HelpDoc` for that scope.
 
 Unlike `generate_help`, this function returns the intermediate help document
 rather than rendered text. It is useful if you want to inspect or render the
@@ -323,7 +321,6 @@ Returns `nothing` after writing the rendered help text to `io`.
 
 # See Also
 - [`generate_help`](@ref)
-- [`build_help_doc`](@ref)
 - [`runparse`](@ref)
 """
 function print_help(io, parser, argv; progname = "")

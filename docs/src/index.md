@@ -255,7 +255,6 @@ runparse(parser, []; progname = "prog", on_empty = ["help"])
 
 The lower-level help API is still available when you want full control:
 
-- [`build_help_doc`](@ref)
 - [`generate_help`](@ref)
 - [`print_help`](@ref)
 

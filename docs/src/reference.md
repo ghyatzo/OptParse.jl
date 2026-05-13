@@ -13,7 +13,6 @@ tryoptparse
 runparse
 valuetype
 OptParse.ParseException
-build_help_doc
 generate_help
 print_help
 HelpRequest
@@ -65,7 +64,7 @@ construct_exact
 help
 hidden
 ```
-
+()
 ### Constructors
 
 ```@docs
