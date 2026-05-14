@@ -37,8 +37,7 @@ Unlike [`optparse`](@ref), this function does not throw on parse failures.
 
     state = ctx_state(ctx)
 
-    ret = @unionsplit complete(pp, state)
-    return ret
+    return complete(pp, state)
 end
 
 """

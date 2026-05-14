@@ -81,3 +81,32 @@ function _object_complete_impl(@nospecialize(parsers::NamedTuple), @nospecialize
 
     return true, T(output)
 end
+
+function _object_helpentries_impl(@nospecialize(parsers::NamedTuple), rt::OverlayContext)
+    entries = HelpEntry[]
+    for child in values(parsers)
+        append!(entries, helpentries(child, descend_child(rt))::Vector{HelpEntry})
+    end
+    return entries
+end
+
+function _focused_helpdoc_object(
+        @nospecialize(p::ConstrObject), @nospecialize(ctx::Context),
+        prefix::Vector{String}, rt::OverlayContext
+    )
+    entries = HelpEntry[]
+    parsers = p.parsers
+    state = ctx_state(ctx)
+    for i in 1:length(parsers)
+        child_state = state[i]
+        child_ctx = widen_restate(typeof(child_state), ctx, child_state)
+        child_helpdoc = focused_helpdoc(parsers[i], child_ctx, prefix, descend_child(rt))::HelpDoc
+
+        if child_helpdoc.prefix != prefix
+            return child_helpdoc
+        end
+
+        append!(entries, helpentries(parsers[i], descend_child(rt))::Vector{HelpEntry})
+    end
+    return HelpDoc(prefix, usage(p), helpinfo(rt), entries)
+end

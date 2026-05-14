@@ -135,13 +135,13 @@ end
     return :(T($(args...)))
 end
 
-@inline usage(p::ModConstruct) = usage(p.parser)
-@inline usage(p::ModConstructExact) = usage(p.parser)
+@inline @autospecialize p usage(p::ModConstruct) = usage(p.parser)
+@inline @autospecialize p usage(p::ModConstructExact) = usage(p.parser)
 
-@inline helpentries(p::ModConstruct, rt::OverlayContext) = helpentries(p.parser, rt)
-@inline helpentries(p::ModConstructExact, rt::OverlayContext) = helpentries(p.parser, rt)
+@inline @autospecialize p helpentries(p::ModConstruct, rt::OverlayContext) = helpentries(p.parser, rt)
+@inline @autospecialize p helpentries(p::ModConstructExact, rt::OverlayContext) = helpentries(p.parser, rt)
 
-@inline focused_helpdoc(
+@inline @autospecialize p ctx focused_helpdoc(
     p::ModConstruct{T, S, _p, P},
     ctx::Context{S},
     prefix::Vector{String},
@@ -149,7 +149,7 @@ end
 ) where {T, S, _p, P <: AbstractParser{<:Any, S}} =
     focused_helpdoc(p.parser, ctx, prefix, rt)
 
-@inline focused_helpdoc(
+@inline @autospecialize p ctx focused_helpdoc(
     p::ModConstructExact{T, S, _p, P},
     ctx::Context{S},
     prefix::Vector{String},
@@ -157,13 +157,13 @@ end
 ) where {T, S, _p, P <: AbstractParser{<:Any, S}} =
     focused_helpdoc(p.parser, ctx, prefix, rt)
 
-@inline parse(p::ModConstruct{T, S, _p, P}, ctx::Context{S}) where {T, S, _p, P <: AbstractParser{<:Any, S}} =
+@inline @autospecialize p ctx parse(p::ModConstruct{T, S, _p, P}, ctx::Context{S}) where {T, S, _p, P <: AbstractParser{<:Any, S}} =
     parse(p.parser, ctx)
 
-@inline parse(p::ModConstructExact{T, S, _p, P}, ctx::Context{S}) where {T, S, _p, P <: AbstractParser{<:Any, S}} =
+@inline @autospecialize p ctx parse(p::ModConstructExact{T, S, _p, P}, ctx::Context{S}) where {T, S, _p, P <: AbstractParser{<:Any, S}} =
     parse(p.parser, ctx)
 
-function complete(
+@autospecialize p function complete(
         p::ModConstruct{T, S, _p, P},
         st::S
     )::ParseResult{T} where {T, S, _p, P <: AbstractParser{<:Any, S}}
@@ -197,7 +197,7 @@ function complete(
     end
 end
 
-function complete(
+@autospecialize p function complete(
         p::ModConstructExact{T, S, _p, P},
         st::S
     )::ParseResult{T} where {T, S, _p, P <: AbstractParser{<:Any, S}}

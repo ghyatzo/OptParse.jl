@@ -246,7 +246,9 @@ end
 
     @test usage isa OptParse.UsageNode
     @test !isempty(render_usage(usage; progname = "tool"))
-    @test_opt OptParse.usage(parser)
+    if OptParse.juliac
+        @test_opt OptParse.usage(parser)
+    end
 end
 
 @testset "should build usage directly from combine and concat parsers" begin
@@ -285,9 +287,11 @@ end
     @test render_usage(OptParse.usage(concatenated)) == "--from <FROM> --go <SRC> [<REST>] [<REST>]"
     @test render_usage(OptParse.usage(parser); progname = "tool") == "tool <COMMAND> [ARGS...]"
 
-    @test_opt OptParse.usage(combined)
-    @test_opt OptParse.usage(concatenated)
-    @test_opt OptParse.usage(parser)
+    if OptParse.juliac
+        @test_opt OptParse.usage(combined)
+        @test_opt OptParse.usage(concatenated)
+        @test_opt OptParse.usage(parser)
+    end
 end
 
 @testset "should hide parser usage through help information modifiers" begin

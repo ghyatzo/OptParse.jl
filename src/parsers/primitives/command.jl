@@ -1,5 +1,7 @@
 const CommandState{X} = Option{Option{X}}
 
+_inner_state(::Type{CommandState{X}}) where {X} = X
+
 @enum CommandErrCode::UInt8 begin
     COMMAND_EndOfInput
     COMMAND_WrongName
@@ -45,12 +47,12 @@ usage(p::ArgCommand) = UsageCommand(p.names, usage(p.parser)::UsageNode)
 
 helpentries(p::ArgCommand, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
 
-function focused_helpdoc(
-        p::ArgCommand{T, CommandState{PState}, _p, P},
-        ctx::Context{CommandState{PState}},
+@autospecialize p ctx function focused_helpdoc(
+        p::ArgCommand{T, S},
+        ctx::Context{S},
         prefix::Vector{String},
         rt::OverlayContext
-    )::HelpDoc where {T, PState, _p, P}
+    )::HelpDoc where {T, S <: CommandState}
     if is_error(ctx_state(ctx))
         # the command failed to parse. This is the root node.
         return HelpDoc(
@@ -69,7 +71,7 @@ function focused_helpdoc(
     return focused_helpdoc(p.parser, child_ctx, child_prefix, descend_child(rt))::HelpDoc
 end
 
-function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState{PState}})::InnerParseResult{CommandState{PState}} where {T, PState}
+@autospecialize p ctx function parse(p::ArgCommand{T, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: CommandState}
     if is_error(ctx_state(ctx))
         # command not yet matched
         # check if it starts with our command name
@@ -84,7 +86,7 @@ function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState
         end
 
         # command matched, consume it and move to the matched state
-        nextctx = ctx_with_state(consume(ctx, 1), some(none(PState)))
+        nextctx = ctx_with_state(consume(ctx, 1), some(none(_inner_state(S))))
         return innerOk(ctx, 1; nextctx)
 
     else
@@ -92,13 +94,13 @@ function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState
         childstate = isnothing(maybestate) ? p.parser.initialState : @something maybestate
         childctx = widen_restate(tstate(p.parser), ctx, childstate)
 
-        result = parse(p.parser, childctx)::InnerParseResult{PState}
+        result = parse(p.parser, childctx)::InnerParseResult{_inner_state(S)}
 
         if !is_error(result)
             parse_ok = unwrap(result)
 
             newctx = widen_restate(
-                CommandState{PState},
+                S,
                 res_nextctx(parse_ok),
                 some(some(ℒ_nextstate(parse_ok)))
             )
@@ -110,11 +112,11 @@ function parse(p::ArgCommand{T, CommandState{PState}}, ctx::Context{CommandState
     end
 end
 
-function complete(p::ArgCommand{T, CommandState{PState}}, maybemaybestate::CommandState{PState})::ParseResult{T} where {T, PState}
+@autospecialize p function complete(p::ArgCommand{T, S}, maybemaybestate::S)::ParseResult{T} where {T, S <: CommandState}
 
     if is_error(maybemaybestate)
         # command never matched
-        return typedErr(argcommand_error(COMMAND_NotMatched; detail = p.names[1]))
+        return typedErr(T, argcommand_error(COMMAND_NotMatched; detail = p.names[1]))
     else
         maybestate = unwrap(maybemaybestate)
         result = if is_error(maybestate)
@@ -124,6 +126,7 @@ function complete(p::ArgCommand{T, CommandState{PState}}, maybemaybestate::Comma
             complete(p.parser, unwrap(maybestate))
         end
         return !is_error(result) ? result : typedErr(
+                T,
                 error_with_trace(
                     result,
                     CompletePhase,

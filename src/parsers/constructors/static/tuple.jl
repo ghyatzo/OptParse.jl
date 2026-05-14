@@ -160,3 +160,49 @@ end
     return ex
 end
 
+@generated function _tuple_helpentries_impl(parsers::PTup, rt::OverlayContext) where {PTup <: Tuple}
+    ex = quote
+        entries = HelpEntry[]
+    end
+    for (i, type) in enumerate(fieldtypes(PTup))
+        push!(
+            ex.args,
+            :(append!(entries, helpentries(parsers[$i], descend_child(rt))::Vector{HelpEntry}))
+        )
+    end
+    push!(ex.args, :(return entries))
+    return ex
+end
+
+@generated function _focused_helpdoc_tuple(
+        p::ConstrTuple{T, S, _p, PTup},
+        ctx::Context{S},
+        prefix::Vector{String},
+        rt::OverlayContext
+    ) where {T, _p, PTup <: Tuple, S <: Tuple}
+    N = fieldcount(PTup)
+    body = Expr(:block)
+
+    for i in 1:N
+        child_state_t = fieldtype(S, i)
+        push!(
+            body.args, quote
+                child_state = ctx_state(ctx)[$i]::$child_state_t
+                child_ctx = widen_restate($child_state_t, ctx, child_state)
+                child_helpdoc = (focused_helpdoc(p.parsers[$i], child_ctx, prefix, descend_child(rt)))::HelpDoc
+
+                if child_helpdoc.prefix != prefix
+                    return child_helpdoc
+                end
+
+                append!(entries, helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry})
+            end
+        )
+    end
+
+    return quote
+        entries = HelpEntry[]
+        $body
+        return HelpDoc(prefix, usage(p), helpinfo(rt), entries)
+    end
+end

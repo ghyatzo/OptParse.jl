@@ -15,14 +15,14 @@ ModHelp(parser::P, info::HelpInfo) where {P <: AbstractParser} =
 ModHelp(parser::ModHelp, info::HelpInfo) =
     ModHelp(parser.parser, merge_helpinfo(parser.info, info))
 
-function usage(p::ModHelp{T, S, _p, P}) where {T, S, _p, P <: AbstractParser{T, S}}
+@autospecialize p function usage(p::ModHelp{T, S, _p, P}) where {T, S, _p, P <: AbstractParser{T, S}}
     child_usage = usage(p.parser)::UsageNode
     return ishidden(p.info) ? UsageHidden(child_usage) : child_usage
 end
 
-helpentries(p::ModHelp{T, S, _p, P}, rt::OverlayContext) where {T, S, _p, P <: AbstractParser{T, S}} = let
+@autospecialize p function helpentries(p::ModHelp{T, S, _p, P}, rt::OverlayContext) where {T, S, _p, P <: AbstractParser{T, S}}
     parser = p.parser::P
-    ishidden(p.info) ? HelpEntry[] :
+    return ishidden(p.info) ? HelpEntry[] :
         helpentries(parser, with_helpinfo(rt, p.info))::Vector{HelpEntry}
 end
 

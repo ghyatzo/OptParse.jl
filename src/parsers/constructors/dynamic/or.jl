@@ -86,3 +86,33 @@ function _complete(
 
     return typedOk(T, unwrap(child_result))
 end
+
+function _or_helpentries_impl(@nospecialize(parsers::Tuple), rt::OverlayContext)
+    entries = HelpEntry[]
+    for child in parsers
+        append!(entries, helpentries(child, descend_child(rt))::Vector{HelpEntry})
+    end
+    return entries
+end
+
+function focused_helpdoc(
+        @nospecialize(p::ConstrOr), @nospecialize(ctx::Context),
+        prefix::Vector{String}, rt::OverlayContext
+    )
+    is_error(ctx_state(ctx)) && return HelpDoc(
+        prefix,
+        usage(p),
+        helpinfo(rt),
+        helpentries(p, descend_child(rt))::Vector{HelpEntry}
+    )
+
+    selected = unwrap(ctx_state(ctx))
+    return _focused_helpdoc_or(p, unwrapunion(selected), prefix, rt)
+end
+
+function _focused_helpdoc_or(
+        @nospecialize(p::ConstrOr),
+        selected::OrBranchState{I, S}, prefix::Vector{String}, rt::OverlayContext
+    ) where {I, S}
+    return focused_helpdoc(p.parsers[I], res_nextctx(selected.success), prefix, descend_child(rt))
+end

@@ -11,6 +11,8 @@ branch_state(::Type{OrBranchState{I, S}}) where {I, S} = S
 
 const OrState{U} = Option{InnerOrState{U}}
 
+_inner_state(::Type{<:OrState{U}}) where {U} = U
+
 @enum OrErrCode::UInt8 begin
     OR_EndOfInput
     OR_UnexpectedToken
@@ -70,53 +72,11 @@ ConstrOr(parsers::PTup) where {PTup <: Tuple} = let
 end
 
 @inline usage(p::ConstrOr) = UsageAlternative(_usage_children(p.parsers))
-function helpentries(p::ConstrOr{T, S, _p, PTup}, rt::OverlayContext) where {T, S <: OrState, _p, PTup <: Tuple}
+# _or_helpentries_impl is provided by static/or.jl or dynamic/or.jl
+# focused_helpdoc is provided by static/or.jl or dynamic/or.jl
 
-    if @generated
-        ex = quote
-            entries = HelpEntry[]
-        end
-        for (i, type) in enumerate(fieldtypes(PTup))
-            push!(
-                ex.args,
-                :(append!(entries, helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
-            )
-        end
-        push!(ex.args, :(return entries))
-        return ex
-    else
-        entries = HelpEntry[]
-        for (child, type) in zip(values(p.parsers), fieldtypes(PTup))
-            append!(entries, helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
-        end
-        return entries
-    end
-
-end
-
-@inline function focused_helpdoc(
-        p::ConstrOr{T, OrState{U}},
-        ctx::Context{OrState{U}},
-        prefix::Vector{String},
-        rt::OverlayContext
-    )::HelpDoc where {T, U}
-    is_error(ctx_state(ctx)) && return HelpDoc(
-        prefix,
-        usage(p),
-        helpinfo(rt),
-        helpentries(p, descend_child(rt))::Vector{HelpEntry}
-    )
-
-    selected = unwrap(ctx_state(ctx))
-    # we unionsplit on the selected branch
-    return @unionsplit _focused_helpdoc_or(p, selected, prefix, rt)
-end
-
-function _focused_helpdoc_or(
-        p::ConstrOr, selected::OrBranchState{I, S}, prefix::Vector{String}, rt::OverlayContext
-    )::HelpDoc where {I, S}
-    # then recurse into the selected child pareser
-    return focused_helpdoc(p.parsers[I], res_nextctx(selected.success), prefix, descend_child(rt))
+@autospecialize p function helpentries(p::ConstrOr{T, S, _p, PTup}, rt::OverlayContext) where {T, S <: OrState, _p, PTup <: Tuple}
+    return _or_helpentries_impl(p.parsers, rt)
 end
 
 # @generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}) where {PTup <: Tuple, U}
@@ -155,7 +115,7 @@ end
 
 
 @autospecialize p selected currctx function _parse_branch(
-        p::ConstrOr{T, <:OrState{U}}, selected::OrBranchState{I, S}, currctx::Context{OrState{U}},
+        p::ConstrOr{T, <:U}, selected::OrBranchState{I, S}, currctx::Context{U},
         allconsumed::Vector{Consumed}, error::InnerParseFailure
     ) where {T, U, I, S}
 
@@ -166,8 +126,8 @@ end
     if !is_error(result) && res_num_consumed(result) > 0
         parse_ok = unwrap(result)
 
-        new_innerstate = some(InnerOrState{U}(OrBranchState{I, S}(parse_ok)))
-        newctx = widen_restate(OrState{U}, res_nextctx(parse_ok), new_innerstate)
+        new_innerstate = some(InnerOrState{_inner_state(U)}(OrBranchState{I, S}(parse_ok)))
+        newctx = widen_restate(OrState{_inner_state(U)}, res_nextctx(parse_ok), new_innerstate)
         push!(allconsumed, res_consumed(parse_ok))
 
         if !parse_ok.counts_as_match

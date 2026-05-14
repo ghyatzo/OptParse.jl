@@ -32,8 +32,8 @@ struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
     end
 end
 
-usage(p::ModWithDefault) = UsageOptional(usage(p.parser))
-function helpentries(p::ModWithDefault, rt::OverlayContext)
+@autospecialize p usage(p::ModWithDefault) = UsageOptional(usage(p.parser))
+@autospecialize p function helpentries(p::ModWithDefault, rt::OverlayContext)
     child = p.parser
     return if (
             child isa ArgGate

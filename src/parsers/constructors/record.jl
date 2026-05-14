@@ -85,70 +85,20 @@ Base.@assume_effects :foldable function _sort_obj_labels(
 end
 
 @inline usage(p::ConstrObject) = UsageObject(_usage_children(values(p.parsers)))
-function helpentries(p::ConstrObject{T, S, _p, PObj}, rt::OverlayContext) where {T, S <: ObjectState, _p, PObj <: NamedTuple}
+# _object_helpentries_impl is provided by static/record.jl or dynamic/record.jl
+# _focused_helpdoc_object is provided by static/record.jl or dynamic/record.jl
 
-    if @generated
-        ex = quote
-            entries = HelpEntry[]
-        end
-        for (i, type) in enumerate(fieldtypes(PObj))
-            push!(
-                ex.args,
-                :(append!(entries, helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
-            )
-        end
-        push!(ex.args, :(return entries))
-        return ex
-    else
-        entries = HelpEntry[]
-        for (child, type) in zip(values(p.parsers), fieldtypes(PObj))
-            append!(entries, helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
-        end
-        return entries
-    end
+@autospecialize p function helpentries(p::ConstrObject{T, S, _p, PObj}, rt::OverlayContext) where {T, S <: ObjectState, _p, PObj <: NamedTuple}
+    return _object_helpentries_impl(p.parsers, rt)
 end
 
-@inline function focused_helpdoc(
+@autospecialize p ctx function focused_helpdoc(
         p::ConstrObject{T, S},
         ctx::Context{S},
         prefix::Vector{String},
         rt::OverlayContext
     )::HelpDoc where {T, S <: ObjectState}
-
     return _focused_helpdoc_object(p, ctx, prefix, rt)
-end
-
-@generated function _focused_helpdoc_object(
-        p::ConstrObject{T, S, _p, PTup},
-        ctx::Context{S},
-        prefix::Vector{String},
-        rt::OverlayContext
-    ) where {T, _p, PTup <: NamedTuple, S <: ObjectState}
-    N = fieldcount(PTup)
-    body = Expr(:block)
-
-    for i in 1:N
-        child_state_t = fieldtype(S, i)
-        push!(
-            body.args, quote
-                child_state = ctx_state(ctx)[$i]::$child_state_t
-                child_ctx = widen_restate($child_state_t, ctx, child_state)
-                child_helpdoc = (focused_helpdoc(p.parsers[$i], child_ctx, prefix, descend_child(rt)))::HelpDoc
-
-                if child_helpdoc.prefix != prefix
-                    return child_helpdoc
-                end
-
-                append!(entries, helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry})
-            end
-        )
-    end
-
-    return quote
-        entries = HelpEntry[]
-        $body
-        return HelpDoc(prefix, usage(p), helpinfo(rt), entries)
-    end
 end
 
 

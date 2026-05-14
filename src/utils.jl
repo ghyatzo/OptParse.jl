@@ -29,7 +29,7 @@ end
 # SomeType{T, S} with owned={T} → SomeType{S}
 # SomeType{T}    with owned={T} → SomeType
 # Nested: Wrapper{S}  with owned={S} → nothing (fully emptied → removed from parent)
-# Nested: Vector{ParseResult{T}} with owned={T} → Vector{ParseResult}
+# Subtype: Foo{<:Bar{T}} with owned={T} → Foo (Bar{T} collapses → <:Bar collapses → Foo empty)
 function _strip_type_params(ex, owned::Set{Symbol})
     ex isa Symbol && return (ex in owned ? nothing : ex)
     if ex isa Expr && ex.head === :curly
@@ -38,15 +38,19 @@ function _strip_type_params(ex, owned::Set{Symbol})
             s = _strip_type_params(p, owned)
             s !== nothing && push!(stripped, s)
         end
-        # If all children were stripped, collapse to nothing so the parent drops us too
         isempty(stripped) && return nothing
         return Expr(:curly, ex.args[1], stripped...)
+    end
+    if ex isa Expr && ex.head === :(<:) && length(ex.args) == 1
+        inner = _strip_type_params(ex.args[1], owned)
+        return inner === nothing ? nothing : Expr(:(<:), inner)
     end
     return ex
 end
 
 # Recursively collect all symbols referenced in a type expression.
 # Foo{T, S} → Set([:T, :S]),  Vector{ParseResult{T}} → Set([:T])
+# Also handles <:Bound (e.g., <:OrState{U} → Set([:U]))
 function _collect_type_symbols(ex, out::Set{Symbol} = Set{Symbol}())
     if ex isa Symbol
         push!(out, ex)
@@ -54,16 +58,16 @@ function _collect_type_symbols(ex, out::Set{Symbol} = Set{Symbol}())
         for p in ex.args[2:end]
             _collect_type_symbols(p, out)
         end
+    elseif ex isa Expr && ex.head === :(<:) && length(ex.args) == 1
+        _collect_type_symbols(ex.args[1], out)
     end
     return out
 end
 
 # Recursively extract where-params from curly params, descending into nested types.
-# e.g. ModWithDefault{T, WithDefaultState{S}, _p, P}
-#   T at pos 1 → direct: typeof(p).parameters[1]
-#   WithDefaultState{S} at pos 2 → descend: S = typeof(p).parameters[2].parameters[1]
+# Also handles <:Bound — unwraps and descends into the bound.
 function _extract_nested_params!(owned, target_curly_params, preamble, param, access_expr, wp_names)
-    if param isa Symbol && haskey(wp_names, param) && param ∉ owned
+    return if param isa Symbol && haskey(wp_names, param) && param ∉ owned
         push!(owned, param)
         push!(target_curly_params, param)
         push!(preamble, :($param = $access_expr))
@@ -72,6 +76,8 @@ function _extract_nested_params!(owned, target_curly_params, preamble, param, ac
             sub_access = :($access_expr.parameters[$j])
             _extract_nested_params!(owned, target_curly_params, preamble, subparam, sub_access, wp_names)
         end
+    elseif param isa Expr && param.head === :(<:) && length(param.args) == 1
+        _extract_nested_params!(owned, target_curly_params, preamble, param.args[1], access_expr, wp_names)
     end
 end
 
@@ -115,7 +121,7 @@ end
 macro autospecialize(args...)
     length(args) < 1 && error("@autospecialize requires at least a function definition")
     func_expr = last(args)
-    targets = Set{Symbol}(args[i] for i in 1:length(args)-1)
+    targets = Set{Symbol}(args[i] for i in 1:(length(args) - 1))
 
     # Static path: emit the function definition unchanged
     juliac && return esc(func_expr)
@@ -160,8 +166,8 @@ macro autospecialize(args...)
     fname = get(d, :name, :unknown)
     if !isempty(shared)
         @warn "@autospecialize: in `$fname`, type parameter(s) $(join(shared, ", ")) " *
-              "appear in both targeted and non-targeted arguments. " *
-              "Non-targeted argument type annotations will be weakened."
+            "appear in both targeted and non-targeted arguments. " *
+            "Non-targeted argument type annotations will be weakened."
     end
 
     # Third pass: rebuild args — @nospecialize targets, strip owned from ALL annotations.
@@ -213,36 +219,6 @@ macro autospecialize(args...)
     d[:body] = Expr(:block, preamble..., d[:body])
 
     return esc(combinedef(d))
-end
-
-macro unroll(N::Int, loop)
-    Base.isexpr(loop, :for) || error("only works on for loops")
-    Base.isexpr(loop.args[1], :(=)) || error("This loop pattern isn't supported")
-    val, itr = esc.(loop.args[1].args)
-    body = esc(loop.args[2])
-    # @gensym loopend
-    # label = :(@label $loopend)
-    # goto = :(@goto $loopend)
-    out = Expr(:block, :(itr = $itr), :(next = iterate(itr)))
-    unrolled = map(1:N) do _
-        quote
-            isnothing(next) && @goto loopend
-            $val, state = next
-            $body
-            next = iterate(itr, state)
-        end
-    end
-    append!(out.args, unrolled)
-    remainder = quote
-        while !isnothing(next)
-            $val, state = next
-            $body
-            next = iterate(itr, state)
-        end
-        @label loopend
-    end
-    push!(out.args, remainder)
-    return out
 end
 
 __midpoint(lo::T, hi::T) where {T <: Integer} = lo + ((hi - lo) >>> 0x01)

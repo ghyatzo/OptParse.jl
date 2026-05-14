@@ -111,3 +111,40 @@ function _complete(
 
     return typedOk(T, unwrap(child_result))
 end
+
+@generated function _or_helpentries_impl(parsers::PTup, rt::OverlayContext) where {PTup <: Tuple}
+    ex = quote
+        entries = HelpEntry[]
+    end
+    for (i, type) in enumerate(fieldtypes(PTup))
+        push!(
+            ex.args,
+            :(append!(entries, helpentries(parsers[$i], descend_child(rt))::Vector{HelpEntry}))
+        )
+    end
+    push!(ex.args, :(return entries))
+    return ex
+end
+
+function focused_helpdoc(
+        p::ConstrOr{T, OrState{U}},
+        ctx::Context{OrState{U}},
+        prefix::Vector{String},
+        rt::OverlayContext
+    )::HelpDoc where {T, U}
+    is_error(ctx_state(ctx)) && return HelpDoc(
+        prefix,
+        usage(p),
+        helpinfo(rt),
+        helpentries(p, descend_child(rt))::Vector{HelpEntry}
+    )
+
+    selected = unwrap(ctx_state(ctx))
+    return @unionsplit _focused_helpdoc_or(p, selected, prefix, rt)
+end
+
+function _focused_helpdoc_or(
+        p::ConstrOr, selected::OrBranchState{I, S}, prefix::Vector{String}, rt::OverlayContext
+    )::HelpDoc where {I, S}
+    return focused_helpdoc(p.parsers[I], res_nextctx(selected.success), prefix, descend_child(rt))
+end

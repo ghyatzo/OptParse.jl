@@ -32,6 +32,10 @@ end
     # Mixed nested: Outer{Wrapper{T}, B} with owned={T} → Outer{B} (Wrapper{T} collapses)
     owned_t = Set{Symbol}([:T])
     @test _strip_type_params(:(Outer{Wrapper{T}, B}), owned_t) == :(Outer{B})
+    # Subtype bound: Foo{T, <:Bar{S}} with owned={T, S} → nothing
+    @test _strip_type_params(:(Foo{T, <:Bar{S}}), owned) === nothing
+    # Partial subtype: Foo{<:Bar{T}, B} with owned={T} → Foo{B} (<:Bar{T} collapses)
+    @test _strip_type_params(:(Foo{<:Bar{T}, B}), owned_t) == :(Foo{B})
 end
 
 @testset "Macro expansion" begin

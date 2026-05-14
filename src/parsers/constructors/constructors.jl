@@ -8,10 +8,41 @@ include("tuple.jl")
     include("static/record.jl")
     include("static/or.jl")
     include("static/tuple.jl")
+
+    @generated function _usage_children(parsers::PTup) where {PTup <: Tuple}
+        N = fieldcount(PTup)
+
+        perm = tupsortperm(fieldtypes(PTup); by = priority, rev = true)
+
+        body = Expr(:block)
+        for i in 1:N
+            push!(body.args, :(children[$i] = usage(parsers[$(perm[i])])::UsageNode))
+        end
+
+        return quote
+            children = Vector{UsageNode}(undef, $N)
+            $body
+            return children
+        end
+    end
 else
     include("dynamic/record.jl")
     include("dynamic/or.jl")
     include("dynamic/tuple.jl")
+
+    function _usage_children(@nospecialize(parsers::Tuple))
+        N = length(parsers)
+
+        # Extract priorities into a plain Int[] to avoid the sort closure
+        # capturing and specializing on the full parser tuple type.
+        prios = Int[priority(parsers[i]) for i in 1:N]
+        indices = sortperm(prios; rev = true)
+        children = Vector{UsageNode}(undef, N)
+        for (i, j) in enumerate(indices)
+            children[i] = usage(parsers[j])::UsageNode
+        end
+        return children
+    end
 end
 
 

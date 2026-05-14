@@ -42,71 +42,23 @@ ConstrTuple(parsers::PTup; label::String = "") where {PTup <: Tuple} = let
     }(map(p -> p.initialState, parsers), parsers, label)
 end
 
-@inline usage(p::ConstrTuple) = UsageTuple(_usage_children(p.parsers))
-function helpentries(p::ConstrTuple{T, S, _p, PTup}, rt::OverlayContext) where {T, S <: Tuple, _p, PTup <: Tuple}
+@inline @autospecialize p function usage(p::ConstrTuple)
+    UsageTuple(_usage_children(p.parsers))
+end
+# _tuple_helpentries_impl is provided by static/tuple.jl or dynamic/tuple.jl
+# _focused_helpdoc_tuple is provided by static/tuple.jl or dynamic/tuple.jl
 
-    if @generated
-        ex = quote
-            entries = HelpEntry[]
-        end
-        for (i, type) in enumerate(fieldtypes(PTup))
-            push!(
-                ex.args,
-                :(append!(entries, helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry}))
-            )
-        end
-        push!(ex.args, :(return entries))
-        return ex
-    else
-        entries = HelpEntry[]
-        for (child, type) in zip(values(p.parsers), fieldtypes(PTup))
-            append!(entries, helpentries(child::type, descend_child(rt))::Vector{HelpEntry})
-        end
-        return entries
-    end
-
+@autospecialize p function helpentries(p::ConstrTuple{T, S, _p, PTup}, rt::OverlayContext) where {T, S <: Tuple, _p, PTup <: Tuple}
+    return _tuple_helpentries_impl(p.parsers, rt)
 end
 
-@inline function focused_helpdoc(
+@autospecialize p ctx function focused_helpdoc(
         p::ConstrTuple{T, S},
         ctx::Context{S},
         prefix::Vector{String},
         rt::OverlayContext
     )::HelpDoc where {T, S <: Tuple}
     return _focused_helpdoc_tuple(p, ctx, prefix, rt)
-end
-
-@generated function _focused_helpdoc_tuple(
-        p::ConstrTuple{T, S, _p, PTup},
-        ctx::Context{S},
-        prefix::Vector{String},
-        rt::OverlayContext
-    ) where {T, _p, PTup <: Tuple, S <: Tuple}
-    N = fieldcount(PTup)
-    body = Expr(:block)
-
-    for i in 1:N
-        child_state_t = fieldtype(S, i)
-        push!(
-            body.args, quote
-                child_state = ctx_state(ctx)[$i]::$child_state_t
-                child_ctx = widen_restate($child_state_t, ctx, child_state)
-                child_helpdoc = (focused_helpdoc(p.parsers[$i], child_ctx, prefix, descend_child(rt)))::HelpDoc
-
-                if child_helpdoc.prefix != prefix
-                    return child_helpdoc
-                end
-
-                append!(entries, helpentries(p.parsers[$i], descend_child(rt))::Vector{HelpEntry})
-            end
-        )
-    end
-
-    return quote
-        entries = HelpEntry[]
-        $body
-        return HelpDoc(prefix, usage(p), helpinfo(rt), entries)
-    end
 end
 
 # _tup_parse_impl is provided by static/tuple.jl or dynamic/tuple.jl

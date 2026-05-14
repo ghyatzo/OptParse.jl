@@ -92,20 +92,3 @@ function _usage_push_prefix(prefix::Vector{String}, part::String)
     push!(next, part)
     return next
 end
-
-@generated function _usage_children(parsers::PTup) where {PTup <: Tuple}
-    N = fieldcount(PTup)
-
-    perm = tupsortperm(fieldtypes(PTup); by = priority, rev = true)
-
-    body = Expr(:block)
-    for i in 1:N
-        push!(body.args, :(children[$i] = usage(parsers[$(perm[i])])::UsageNode))
-    end
-
-    return quote
-        children = Vector{UsageNode}(undef, $N)
-        $body
-        return children
-    end
-end

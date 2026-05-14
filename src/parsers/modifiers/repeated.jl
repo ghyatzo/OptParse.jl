@@ -43,8 +43,8 @@ struct ModMultiple{T, S, _p, P} <: AbstractParser{T, S, _p, P}
 end
 
 
-usage(p::ModMultiple) = UsageRepeat(usage(p.parser)::UsageNode, p.min, p.max)
-function helpentries(p::ModMultiple, rt::OverlayContext)
+@autospecialize p usage(p::ModMultiple) = UsageRepeat(usage(p.parser)::UsageNode, p.min, p.max)
+@autospecialize p function helpentries(p::ModMultiple, rt::OverlayContext)
     # For group-like children, keep the child entries unchanged.
     child = p.parser
     return if (
