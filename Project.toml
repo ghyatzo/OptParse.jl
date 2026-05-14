@@ -9,6 +9,8 @@ projects = ["test", "docs"]
 [deps]
 Accessors = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
 ErrorTypes = "7f495686-c6d2-4c77-9e8e-e4c865675f9d"
+ExprTools = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
+PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 StructUtils = "ec057cc2-7a8d-4b58-b3b3-92acb9f63b42"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
@@ -17,6 +19,8 @@ WrappedUnions = "325db55a-9c6c-5b90-b1a2-ec87e7a38c44"
 [compat]
 Accessors = "0.1.42"
 ErrorTypes = "0.5.2"
+ExprTools = "0.1.10"
+PrecompileTools = "1.3.4"
 Preferences = "1.5.2"
 StructUtils = "2.8.1"
 UUIDs = "1.11.0"

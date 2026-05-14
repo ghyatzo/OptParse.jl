@@ -2,6 +2,18 @@ include("record.jl")
 include("or.jl")
 include("tuple.jl")
 
+# Conditional include: static (juliac/trim) uses @generated functions,
+# dynamic (interactive) uses runtime loops with @nospecialize.
+@static if juliac
+    include("static/record.jl")
+    include("static/or.jl")
+    include("static/tuple.jl")
+else
+    include("dynamic/record.jl")
+    include("dynamic/or.jl")
+    include("dynamic/tuple.jl")
+end
+
 
 __get_ith_l_t_pair(::Type{NamedTuple{l, ts}}, ::Val{i}) where {l, ts, i} =
     return l[i] => fieldtype(ts, i)

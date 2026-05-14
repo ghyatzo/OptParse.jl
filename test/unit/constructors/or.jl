@@ -153,11 +153,13 @@ end
         record((verify = switch("-v"),)),
     )
 
-    parser = or(
-        record((verbose = switch("-v"),)),
-        record((version = switch("-v"),)),
-        record((verify = switch("-v"),)),
-    )
+    if OptParse.juliac
+        parser = or(
+            record((verbose = switch("-v"),)),
+            record((version = switch("-v"),)),
+            record((verify = switch("-v"),)),
+        )
 
-    @test_opt optparse(parser, ["-v"])
+        @test_opt optparse(parser, ["-v"])
+    end
 end

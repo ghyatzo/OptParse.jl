@@ -49,7 +49,7 @@ function helpentries(p::ModWithDefault, rt::OverlayContext)
         helpentries(child, rt)
     end
 end
-function focused_helpdoc(
+@autospecialize p ctx function focused_helpdoc(
         p::ModWithDefault{T, WithDefaultState{S}, _p, P},
         ctx::Context{WithDefaultState{S}},
         prefix::Vector{String},
@@ -65,7 +65,7 @@ function focused_helpdoc(
     return HelpDoc(prefix, UsageOptional(child_focus.usage), rt.info, HelpEntry[])
 end
 
-function parse(
+@autospecialize p ctx function parse(
         p::ModWithDefault{T, WithDefaultState{S}, _p, P},
         ctx::Context{WithDefaultState{S}}
     )::InnerParseResult{WithDefaultState{S}} where {T, S, _p, P <: AbstractParser{<:Any, S}}
@@ -100,7 +100,7 @@ function parse(
 
 end
 
-function complete(
+@autospecialize p function complete(
         p::ModWithDefault{T, WithDefaultState{S}, _p, P},
         maybestate::WithDefaultState{S}
     )::ParseResult{T} where {T, S, _p, P <: AbstractParser{<:Any, S}}

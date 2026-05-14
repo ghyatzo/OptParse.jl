@@ -26,7 +26,7 @@ helpentries(p::ModHelp{T, S, _p, P}, rt::OverlayContext) where {T, S, _p, P <: A
         helpentries(parser, with_helpinfo(rt, p.info))::Vector{HelpEntry}
 end
 
-function focused_helpdoc(
+@autospecialize p ctx function focused_helpdoc(
         p::ModHelp{T, S, _p, P},
         ctx::Context{S},
         prefix::Vector{String},
@@ -43,7 +43,7 @@ function focused_helpdoc(
     return focused_helpdoc(parser, ctx, prefix, with_helpinfo(rt, info))::HelpDoc
 end
 
-@noinline function parse(
+@autospecialize p ctx function parse(
         p::ModHelp{T, S, _p, P},
         ctx::Context{S}
     )::InnerParseResult{S} where {T, S, _p, P <: AbstractParser{T, S}}
@@ -51,7 +51,7 @@ end
     return parse(parser, ctx)::InnerParseResult{S}
 end
 
-@noinline function complete(
+@autospecialize p function complete(
         p::ModHelp{T, S, _p, P},
         st::S
     )::ParseResult{T} where {T, S, _p, P <: AbstractParser{T, S}}

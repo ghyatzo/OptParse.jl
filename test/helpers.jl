@@ -3,9 +3,7 @@ using OptParse
 using OptParse:
     AbstractParser,
     Context,
-    Parser,
     as_tuple,
-    as_vector,
     complete,
     consumed_empty,
     ctx_optterm,
@@ -27,6 +25,7 @@ using ErrorTypes
 using WrappedUnions: @unionsplit, unwrap as unwrapunion
 using JET
 using UUIDs
+using ExprTools: splitdef
 
 # define it here for ease of use
 splitparse(p::AbstractParser, ctx::Context) = parse(p, ctx)

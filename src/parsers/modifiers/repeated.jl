@@ -61,7 +61,7 @@ function helpentries(p::ModMultiple, rt::OverlayContext)
         helpentries(child, rt)
     end
 end
-function focused_helpdoc(
+@autospecialize p ctx function focused_helpdoc(
         p::ModMultiple{T, MultipleState{S}},
         ctx::Context{MultipleState{S}},
         prefix::Vector{String},
@@ -77,7 +77,7 @@ function focused_helpdoc(
     return HelpDoc(prefix, UsageRepeat(child_focus.usage, p.min, p.max), rt.info, HelpEntry[])
 end
 
-function parse(p::ModMultiple{T, MultipleState{S}}, ctx::Context{MultipleState{S}})::InnerParseResult{MultipleState{S}} where {T, S}
+@autospecialize p ctx function parse(p::ModMultiple{T, MultipleState{S}}, ctx::Context{MultipleState{S}})::InnerParseResult{MultipleState{S}} where {T, S}
 
     #=Conceptual map:
 
@@ -190,7 +190,7 @@ function parse(p::ModMultiple{T, MultipleState{S}}, ctx::Context{MultipleState{S
 
 end
 
-function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleState{S})::ParseResult{T} where {T, S, _p, P}
+@autospecialize p function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleState{S})::ParseResult{T} where {T, S, _p, P}
     result = tval(P)[]
     for s in state
         val = complete(p.parser, s)::ParseResult{tval(p.parser)}

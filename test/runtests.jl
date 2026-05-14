@@ -107,3 +107,7 @@ end
 @testset "Aqua" begin
     include("aqua.jl")
 end
+
+@testset "@autospecialize" begin
+    include("unit/core/autospecialize.jl")
+end

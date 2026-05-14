@@ -1,11 +1,10 @@
 module OptParse
 
 # Check whether we are compiling with juliac
-using Preferences: @load_preference
+using Preferences
 const juliac = @load_preference("juliac", false)
 
 using Accessors: @o, IndexLens, PropertyLens, insert, set
-
 using WrappedUnions: @unionsplit, @wrapped,
     #=conflicts with the unwrap from ErrorTypes.jl=#
     unwrap as unwrapunion
@@ -147,7 +146,6 @@ include("core/parseresult.jl")
 include("parsers/parser.jl")
 include("display/parser_show.jl")
 
-
 """
     normalize_argv(argv) -> (expanded, origin)
 
@@ -190,19 +188,21 @@ function normalize_argv(argv::Vector{String})
 end
 
 
-function no_progress(previous_buffer, ctx)
+@autospecialize ctx function no_progress(previous_buffer, ctx)
     return ctx_length(ctx) > 0 &&
         ctx_length(ctx) == length(previous_buffer) &&
         ctx_remaining(ctx) == previous_buffer
 end
 
 
-function recover_usage_context(pp::AbstractParser{T, S}, argv::Vector{String})::Context{S} where {T, S}
+@autospecialize pp function recover_usage_context(
+        pp::AbstractParser{T, S}, argv::Vector{String}
+    )::Context{S} where {T, S}
     canonical_argv, _ = normalize_argv(argv)
-    ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = @unionsplit usage(pp))
+    ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = usage(pp))
 
     while true
-        mayberesult::InnerParseResult{S} = @unionsplit parse(pp, ctx)
+        mayberesult::InnerParseResult{S} = parse(pp, ctx)
 
         if is_error(mayberesult)
             return ctx
@@ -256,9 +256,9 @@ julia> doc.prefix
 - `generate_help`
 - `OptParse.render_helpdoc`
 """
-function build_help_doc(parser, argv)
+@autospecialize parser function build_help_doc(parser, argv)
     ctx = recover_usage_context(parser, argv)
-    return @unionsplit focused_helpdoc(parser, ctx, String[], root_overlay_context())::HelpDoc
+    return focused_helpdoc(parser, ctx, String[], root_overlay_context())::HelpDoc
 end
 
 """
@@ -302,7 +302,7 @@ Options:
 - [`optparse`](@ref)
 - [`tryoptparse`](@ref)
 """
-generate_help(parser, argv; progname = "") = render_helpdoc(build_help_doc(parser, argv); progname)
+@autospecialize parser generate_help(parser, argv; progname = "") = render_helpdoc(build_help_doc(parser, argv); progname)
 
 """
     print_help(io, parser, argv; progname = "")
@@ -323,178 +323,56 @@ Returns `nothing` after writing the rendered help text to `io`.
 - [`generate_help`](@ref)
 - [`runparse`](@ref)
 """
-function print_help(io, parser, argv; progname = "")
+@autospecialize parser function print_help(io, parser, argv; progname = "")
     helpstr = generate_help(parser, argv; progname)
     print(io, helpstr)
     return nothing
 end
 
-"""
-    tryoptparse(parser, argv)
 
-Lower-level parsing entrypoint.
-
-Returns a result container containing either the parsed value or a structured parse failure.
-Unlike [`optparse`](@ref), this function does not throw on parse failures.
-"""
-function tryoptparse(pp::AbstractParser{T, S}, args::Vector{String})::ParseResult{T} where {T, S}
-
-    canonical_argv, _ = normalize_argv(args)
-    ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = @unionsplit usage(pp))
-
-    while true
-        mayberesult::InnerParseResult{S} = @unionsplit parse(pp, ctx)
-
-        if is_error(mayberesult)
-            return typedErr(unwrap_error(mayberesult).error)
-        end
-        result = unwrap(mayberesult)
-
-        previous_buffer = ctx_remaining(ctx)
-        ctx = res_nextctx(result)
-
-        if no_progress(previous_buffer, ctx)
-            # Top-level progress guard: a parser must not report success while leaving argv unchanged.
-            return typedErr(T, main_error(MAIN_NoProgress; token = ctx_peek(ctx)))
-        end
-
-        ctx_length(ctx) > 0 || break
-    end
-
-    state = ctx_state(ctx)
-
-    ret = @unionsplit complete(pp, state)
-    return ret
-end
+include("entrypoints.jl")
 
 
-"""
-    optparse(parser, argv)
-
-High-level parsing entrypoint.
-
-This function has two modes controlled through the `juliac` preference loaded
-via `Preferences.jl`:
-
-- in normal Julia runtime usage, it returns the parsed value and throws
-  [`ParseException`](@ref) on failure
-- when `juliac` mode is enabled, it renders the error to `stderr` and returns
-  `nothing` on failure instead of throwing
-
-If you need stable non-throwing behavior across environments, use
-[`tryoptparse`](@ref) instead.
-"""
-function optparse(pp::AbstractParser{T}, args::Vector{String}) where {T}
-    mayberes = tryoptparse(pp, args)::ParseResult{T}
-
-    if is_error(mayberes)
-        @static if juliac
-            errmsg = sprint(
-                showerror, ParseException(
-                    pp, args, unwrap_error(mayberes)
+using PrecompileTools: @compile_workload
+@compile_workload begin
+    # Build a representative parser exercising all constructor + leaf types
+    _pc_parser = or(
+        command(
+            "run", record(
+                (
+                    host = default(option("--host", str("HOST")), "localhost"),
+                    port = default(option(("-p", "--port"), integer(; min = 1, max = 65535)), 8080),
+                    verbose = switch("-v", "--verbose"),
+                    debug = flag("-d"),
+                    file = arg(str("FILE")),
+                    mode = @constant(:run),
                 )
             )
-            print(Core.stderr, "Error: ")
-            println(Core.stderr, errmsg)
-            return nothing
-        else
-            throw(
-                ParseException(
-                    pp, args, unwrap_error(mayberes)
+        ),
+        command(
+            "test", record(
+                (
+                    filter = default(option("--filter", str("PATTERN")), ""),
+                    count = default(option("-n", integer()), 1),
+                    mode = @constant(:test),
                 )
             )
-        end
-    end
-
-    return unwrap(mayberes)
-end
-
-"""
-    runparse(parser, argv; progname = "", help_command = "help", help_flags = ["--help"], on_empty = ...)
-
-Application-facing parsing entrypoint with built-in help handling.
-
-`runparse` layers a small CLI policy on top of [`optparse`](@ref):
-
-- help flags such as `--help` are detected lexically and cause focused help to
-  be rendered for the current invocation
-- an explicit help subcommand is injected at the top level using
-  [`helpcommand`](@ref)
-- empty invocations can be rewritten to a caller-chosen fallback argument vector
-
-When the invocation resolves to help, `runparse` prints the rendered help page
-to `stderr` and returns `nothing`. Otherwise it behaves like [`optparse`](@ref)
-on the effective argument vector.
-
-# Keyword Arguments
-- `progname::AbstractString = ""`: Program name prefix to render in help output
-- `help_command::String = "help"`: Top-level positional help command to inject.
-  Pass `""` to disable positional help injection.
-- `help_flags::Vector{String} = ["--help"]`: Flag tokens that request help for
-  the current invocation
-- `on_empty = isempty(help_command) ? [] : [help_command]`: Replacement argv to
-  use when `argv` is empty. This lets bare invocation show help or dispatch to a
-  default command.
-
-# Notes
-- Help flags are recognized only before `--`
-- Positional help is implemented by parsing an injected hidden help branch, but
-  help is rendered from the original parser
-
-# See Also
-- [`optparse`](@ref)
-- [`tryoptparse`](@ref)
-- [`helpcommand`](@ref)
-- [`print_help`](@ref)
-"""
-function runparse(
-        parser::AbstractParser, argv::Vector{String};
-        progname = "",
-        help_command = "help",
-        help_flags = ["--help"],
-        on_empty = isempty(help_command) ? [] : [help_command]
+        ),
     )
 
-    if isempty(argv)
-        argv = on_empty
-    end
+    # Exercise parse + complete (success path)
+    tryoptparse(_pc_parser, ["run", "--host", "example.com", "-p", "3000", "-v", "out.txt"])
+    # Exercise parse + complete (different branch)
+    tryoptparse(_pc_parser, ["test", "--filter", "foo", "-n", "5"])
+    # Exercise error path
+    tryoptparse(_pc_parser, ["unknown"])
 
-    # scan the input buffer for help flags.
-    # if present, record presence, filter them and
-    # ask for help on the remaining tokens
-    nargv, _ = normalize_argv(argv)
-    newargv = String[]
-    help_request = false
-    for (i, token) in enumerate(nargv)
-        if token == "--"
-            append!(newargv, nargv[i:end])
-            break
-        end
-        if token in help_flags
-            help_request = true
-            continue
-        end
-        push!(newargv, token)
-    end
+    optparse(_pc_parser, String["run", "--host", "example.com", "-p", "3000", "-v", "out.txt"])
 
-    if help_request
-        print_help(Core.stderr, parser, newargv; progname)
-        return nothing
-    end
-
-    # inject the helpcommand (only if provided)
-    if !isempty(help_command)
-        _parser = or(hidden(helpcommand(help_command)), parser)
-        res = optparse(_parser, newargv)
-        if res isa HelpRequest
-            # important: we generate the help on the original parser!
-            print_help(Core.stderr, parser, res.argv; progname)
-            return nothing
-        end
-        return res
-    else
-        return optparse(parser, newargv)
-    end
+    runparse(_pc_parser, String["run", "--host", "example.com", "-p", "3000", "-v", "out.txt"])
+    # Exercise help generation (cold path but useful)
+    generate_help(_pc_parser, String[])
 end
+
 
 end # module OptParse

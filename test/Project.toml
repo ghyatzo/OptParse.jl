@@ -1,6 +1,7 @@
 [deps]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 ErrorTypes = "7f495686-c6d2-4c77-9e8e-e4c865675f9d"
+ExprTools = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
 JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 JuliaC = "acedd4c2-ced6-4a15-accc-2607eb759ba2"
 OptParse = "1244ff17-1aa7-4121-9347-f4ead108e58f"
