@@ -1,104 +1,30 @@
-include("helpers.jl")
+using Test
 
-@testset "Value Parsers" begin
+# ─── Functional tests with juliac from test/Project.toml preference ───
 
-    include("unit/valueparsers/string.jl")
-    include("unit/valueparsers/choice.jl")
-    include("unit/valueparsers/integer.jl")
-    include("unit/valueparsers/float.jl")
-    include("unit/valueparsers/uuid.jl")
-    include("unit/valueparsers/path.jl")
+include("runtests_inner.jl")
 
-end
-
-@testset "Primitives" failfast = true begin
-
-    @testset "Constant parser" begin
-        include("unit/primitives/constant.jl")
-    end
-
-    @testset "Flag parser" begin
-        include("unit/primitives/flag.jl")
-    end
-
-    @testset "Gate parser" begin
-        include("unit/primitives/switch.jl")
-    end
-
-    @testset "Option parser" begin
-        include("unit/primitives/option.jl")
-    end
-
-    @testset "Arg parser" begin
-        include("unit/primitives/arg.jl")
-    end
-
-    @testset "Command parser" begin
-        include("unit/primitives/command.jl")
-    end
-
-    @testset "Help command parser" begin
-        include("unit/primitives/helpcommand.jl")
+if OptParse.juliac
+    @testset "Type Stability (juliac only)" begin
+        include("unit/typestability.jl")
     end
 end
 
-@testset "Constructors" failfast = true begin
+# ─── Functional tests with flipped juliac via subprocess ───
 
-    @testset "Combine" begin
-        include("unit/constructors/combine.jl")
-    end
-
-    @testset "Records" begin
-        include("unit/constructors/record.jl")
-    end
-
-    @testset "Or" begin
-        include("unit/constructors/or.jl")
-    end
-
-    @testset "Sequence" begin
-        include("unit/constructors/sequence.jl")
-    end
-
-    @testset "Concat" begin
-        include("unit/constructors/concat.jl")
-    end
-
-end
-
-@testset "Modifiers" failfast = true begin
-
-    # @testset "Optional parser" begin
-    #     include("unit/modifiers/optional.jl")
-    # end
-
-    @testset "Default Modifier" begin
-        include("unit/modifiers/default.jl")
-    end
-
-    @testset "Repeated Modifier" begin
-        include("unit/modifiers/repeated.jl")
-    end
-
-    @testset "Construct Modifier" begin
-        include("unit/modifiers/construct.jl")
-    end
-
-end
-
-@testset "Integration Tests" failfast = true begin
-
-    @testset "Optparse" begin
-        include("integration/optparse.jl")
-    end
-
-end
-
-@testset "Usage" failfast = true begin
-    @testset "Tuple AST" begin
-        include("unit/core/usage/usage2.jl")
+@testset "OptParse (juliac=$(!OptParse.juliac))" begin
+    testdir = @__DIR__
+    localprefs = joinpath(testdir, "LocalPreferences.toml")
+    write(localprefs, "[OptParse]\njuliac = $(!OptParse.juliac)\n")
+    try
+        cmd = `$(Base.julia_cmd()) --project=$testdir $(joinpath(testdir, "runtests_inner.jl"))`
+        @test success(run(cmd))
+    finally
+        rm(localprefs; force = true)
     end
 end
+
+# ─── Mode-independent tests (run once) ───
 
 @testset "Trimming" begin
     include("trim/trimming.jl")
@@ -106,8 +32,4 @@ end
 
 @testset "Aqua" begin
     include("aqua.jl")
-end
-
-@testset "@autospecialize" begin
-    include("unit/core/autospecialize.jl")
 end

@@ -299,9 +299,4 @@ end
             debug = switch("-d", "--debug"),
         )
     )
-
-    if OptParse.juliac
-        @test_opt parse((parser), mkctx(["-c", "start", "-p", "3000", "-d"], parser.initialState))
-        @test_opt optparse(parser, ["-c", "start", "-p", "3000", "-d"])
-    end
 end

@@ -71,47 +71,15 @@ ConstrOr(parsers::PTup) where {PTup <: Tuple} = let
     }(none(InnerOrState{innerstate_U}), parsers)
 end
 
-@inline usage(p::ConstrOr) = UsageAlternative(_usage_children(p.parsers))
+@inline @autospecialize p function usage(p::ConstrOr)
+    UsageAlternative(_usage_children(p.parsers))
+end
 # _or_helpentries_impl is provided by static/or.jl or dynamic/or.jl
 # focused_helpdoc is provided by static/or.jl or dynamic/or.jl
 
 @autospecialize p function helpentries(p::ConstrOr{T, S, _p, PTup}, rt::OverlayContext) where {T, S <: OrState, _p, PTup <: Tuple}
     return _or_helpentries_impl(p.parsers, rt)
 end
-
-# @generated function _generated_or_parse(parsers::PTup, ctx::Context{OrState{U}}) where {PTup <: Tuple, U}
-#     #=
-#     # General loop logic
-#     #
-#     # current_ctx starts as the original parse context. Unlike a normal branch match,
-#     # a control-only success (for example consuming `--`) should not select an `or`
-#     # branch, but it *should* mutate the running context for the rest of the search.
-#     # This means that later branches are tried against the updated context.
-#     #
-#     # for branch in branches
-#     #     result = parse(branch, current_ctx)
-#     #
-#     #     if semantic success
-#     #         record branch selection
-#     #         merge any previously consumed control tokens
-#     #         return selected result
-#     #
-#     #     elseif control-only success
-#     #         update current_ctx
-#     #         accumulate consumed control tokens
-#     #         continue trying later branches
-#     #
-#     #     else
-#     #         maybe update best_error
-#     #     end
-#     # end
-#     #
-#     # if current_ctx changed
-#     #     return control-only success with accumulated consumption
-#     # else
-#     #     return best_error
-#     # end
-#     =#
 
 
 @autospecialize p selected currctx function _parse_branch(

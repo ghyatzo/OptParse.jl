@@ -170,14 +170,6 @@ end
 
     ctx = mkctx(["--verbose", "--host", "me", "--test", "--", "--test"], obj.initialState)
 
-    if OptParse.juliac
-        @test_opt parse((obj), ctx)
-    end
-
     res = splitparse(obj, ctx)
     succ = unwrap(res)
-
-    if OptParse.juliac
-        @test_opt complete((obj), res_nextstate(succ))
-    end
 end

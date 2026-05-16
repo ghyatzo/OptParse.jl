@@ -39,7 +39,11 @@ end
 end
 
 @testset "Macro expansion" begin
-    @testset "Full despecialize — two params from one arg" begin
+    if OptParse.juliac
+        @info "Skipping macro expansion tests (juliac=true, macro is passthrough)"
+    end
+
+    !OptParse.juliac && @testset "Full despecialize — two params from one arg" begin
         ex = @macroexpand @autospecialize pp function tryoptparse(
                 pp::AbstractParser{T, S}, args::Vector{String}
             )::ParseResult{T} where {T, S}
@@ -62,7 +66,7 @@ end
         @test occursin("AbstractParser", arg1_str)
     end
 
-    @testset "Partial despecialize — shared param stripped with warning" begin
+    !OptParse.juliac && @testset "Partial despecialize — shared param stripped with warning" begin
         # B appears in both target a and non-target b.
         # Macro should own B (extract from a), strip it from b's annotation, and warn.
         ex = @test_warn r"@autospecialize.*type parameter" @macroexpand @autospecialize a function f(
@@ -84,7 +88,7 @@ end
         @test !occursin("{B}", b_str)
     end
 
-    @testset "Multiple targets" begin
+    !OptParse.juliac && @testset "Multiple targets" begin
         ex = @macroexpand @autospecialize pp ctx function parse(
                 pp::AbstractParser{T, S}, ctx::Context{S}
             )::InnerParseResult{S} where {T, S}
@@ -106,7 +110,7 @@ end
         @test all(s -> occursin("nospecialize", s), arg_strs)
     end
 
-    @testset "No where clause — just adds @nospecialize" begin
+    !OptParse.juliac && @testset "No where clause — just adds @nospecialize" begin
         ex = @macroexpand @autospecialize parser function build_help_doc(parser, argv)
             return nothing
         end
@@ -121,7 +125,7 @@ end
         @test !occursin("nospecialize", string(d[:args][2]))
     end
 
-    @testset "Nested return type stripping" begin
+    !OptParse.juliac && @testset "Nested return type stripping" begin
         ex = @macroexpand @autospecialize p function complete(
                 p::AbstractParser{T, S}, st
             )::Result{ParseResult{T}, ParseError} where {T, S}
@@ -135,7 +139,7 @@ end
         @test d[:rtype] == :(Result{ParseError})
     end
 
-    @testset "Bounded where params" begin
+    !OptParse.juliac && @testset "Bounded where params" begin
         ex = @macroexpand @autospecialize x function g(
                 x::Foo{A}
             ) where {A <: Number}
@@ -149,7 +153,7 @@ end
         @test occursin("(typeof(x)).parameters[1]", body_str)
     end
 
-    @testset "Nested type params — ModWithDefault-style" begin
+    !OptParse.juliac && @testset "Nested type params — ModWithDefault-style" begin
         # S is nested inside Wrapper{S} at curly position 2
         ex = @macroexpand @autospecialize p function parse(
                 p::Outer{T, Wrapper{S}, P}, ctx::Context{Wrapper{S}}
