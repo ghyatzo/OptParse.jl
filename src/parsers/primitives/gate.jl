@@ -8,12 +8,11 @@ const GateState = ParseResult{Bool}
     GATE_Missing
 end
 
-arggate_error(code::GateErrCode; token = "", detail = "", subject = "") =
+arggate_error(code::GateErrCode; token = "", detail = "") =
     mkerror(
     ERR_ArgGate, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function arggate_render_error(io::IO, code::GateErrCode, err::ParseError)
@@ -96,10 +95,5 @@ function parse(p::ArgGate{Bool, GateState}, ctx::Context{GateState})::InnerParse
 end
 
 function complete(p::ArgGate, st::GateState)::ParseResult{Bool}
-    return !is_error(st) ? st : typedErr(
-            error_with_subject(
-                st,
-                p.names[1]
-            )
-        )
+    return !is_error(st) ? st : typedErr(unwrap_error(st))
 end

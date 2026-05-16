@@ -10,12 +10,11 @@ default_metavar(::PathVal) = "PATH"
     PATH_NotAbsolute
 end
 
-pathval_error(code::PathErrCode; token = "", detail = "", subject = "") =
+pathval_error(code::PathErrCode; token = "", detail = "") =
     mkerror(
     ERR_PathVal, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function pathval_render_error(io::IO, code::StringErrCode, err::ParseError)

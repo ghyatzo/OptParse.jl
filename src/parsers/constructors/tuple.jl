@@ -9,12 +9,11 @@ end
     TUPLE_NoRemainingParser
 end
 
-constrtuple_error(code::TupleErrCode; token = "", detail = "", subject = "") =
+constrtuple_error(code::TupleErrCode; token = "", detail = "") =
     mkerror(
     ERR_ConstrTuple, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function constrtuple_render_error(io::IO, code::TupleErrCode, err::ParseError)
@@ -72,14 +71,7 @@ end
     cancomplete, _result = _tuple_complete_impl(p.parsers, st)
 
     if !cancomplete
-        subject = isempty(p.label) ? "tuple" : p.label
-        return typedErr(
-            T,
-            error_with_subject(
-                _result,
-                subject
-            )
-        )
+        return typedErr(T, unwrap_error(_result))
     end
 
     return typedOk(T, _result)

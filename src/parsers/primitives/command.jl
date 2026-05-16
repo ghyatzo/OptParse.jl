@@ -8,12 +8,11 @@ _inner_state(::Type{CommandState{X}}) where {X} = X
     COMMAND_NotMatched
 end
 
-argcommand_error(code::CommandErrCode; token = "", detail = "", subject = "") =
+argcommand_error(code::CommandErrCode; token = "", detail = "") =
     mkerror(
     ERR_ArgCommand, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function argcommand_render_error(io::IO, code::CommandErrCode, err::ParseError)
@@ -125,12 +124,6 @@ end
         else
             complete(p.parser, unwrap(maybestate))
         end
-        return !is_error(result) ? result : typedErr(
-                T,
-                error_with_subject(
-                    result,
-                    p.names[1]
-                )
-            )
+        return !is_error(result) ? result : typedErr(T, unwrap_error(result))
     end
 end

@@ -5,12 +5,11 @@ const MultipleState{X} = Vector{X}
     MULTIPLE_TooMany
 end
 
-modmultiple_error(code::MultipleErrCode; token = "", detail = "", subject = "") =
+modmultiple_error(code::MultipleErrCode; token = "", detail = "") =
     mkerror(
     ERR_ModMultiple, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function modmultiple_render_error(io::IO, code::MultipleErrCode, err::ParseError)
@@ -195,13 +194,7 @@ end
     for s in state
         val = complete(p.parser, s)::ParseResult{tval(p.parser)}
         if is_error(val)
-            return typedErr(
-                T,
-                error_with_subject(
-                    val,
-                    "repeated"
-                )
-            )
+            return typedErr(T, unwrap_error(val))
         end
         val = unwrap(val)
         push!(result, val)

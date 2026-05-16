@@ -21,12 +21,11 @@ _inner_state(::Type{<:OrState{U}}) where {U} = U
     OR_Unreachable
 end
 
-constror_error(code::OrErrCode; token = "", detail = "", subject = "") =
+constror_error(code::OrErrCode; token = "", detail = "") =
     mkerror(
     ERR_ConstrOr, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function constror_render_error(io::IO, code::OrErrCode, err::ParseError)
@@ -115,9 +114,7 @@ end
         end
     elseif is_error(result)
         #= the child parser has encountered an error, we should resurface that error instead of the generic =#
-        error = error_with_subject(
-            result, "or"
-        )
+        error = res_error(result)
     end
 
     return innerErr(currctx, error)

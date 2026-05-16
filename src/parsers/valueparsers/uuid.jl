@@ -11,12 +11,11 @@ default_metavar(::UUIDVal) = "UUID"
     UUID_WrongVersion
 end
 
-uuidval_error(code::UUIDErrCode; token = "", detail = "", subject = "") =
+uuidval_error(code::UUIDErrCode; token = "", detail = "") =
     mkerror(
     ERR_UUIDVal, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function uuidval_render_error(io::IO, code::UUIDErrCode, err::ParseError)

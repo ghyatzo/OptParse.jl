@@ -27,7 +27,6 @@ struct ParseError
     code::UInt8
     token::String
     detail::String
-    subject::String
 end
 
 mkerror(
@@ -36,20 +35,18 @@ mkerror(
     ;
     token::String = "",
     detail::String = "",
-    subject::String = ""
-) = ParseError(domain, code, token, detail, subject)
+) = ParseError(domain, code, token, detail)
 
 
 @enum MainErrCode::UInt8 begin
     MAIN_NoProgress
 end
 
-main_error(code::MainErrCode; token = "", detail = "", subject = "") =
+main_error(code::MainErrCode; token = "", detail = "") =
     mkerror(
     ERR_Main, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function main_render_error(io::IO, code::MainErrCode, err::ParseError)
@@ -68,15 +65,7 @@ end
 # rendering engine
 
 function render_error(io::IO, err::ParseError)
-    render_error_subject(io, err)
     render_error_payload(io, err)
-end
-
-function render_error_subject(io::IO, err::ParseError)
-    return if !isempty(err.subject)
-        print(io, err.subject)
-        print(io, ": ")
-    end
 end
 
 function render_error_payload(io::IO, err::ParseError)

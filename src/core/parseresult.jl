@@ -167,11 +167,3 @@ end
 @inline typedOk(x) = Ok(x)
 @inline typedErr(x) = Err(x)
 
-error_with_subject(perr::ParseError, subject::String) =
-    set(perr, (@o _.subject), subject)
-
-error_with_subject(err::ParseResult, subject::String) =
-    error_with_subject(unwrap_error(err), subject)
-
-error_with_subject(err::InnerParseResult, subject::String) =
-    error_with_subject(res_error(err), subject)

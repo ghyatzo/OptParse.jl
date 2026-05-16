@@ -11,12 +11,11 @@ default_metavar(::StringVal) = "STRING"
     STRING_IsEmpty
 end
 
-stringval_error(code::StringErrCode; token = "", detail = "", subject = "") =
+stringval_error(code::StringErrCode; token = "", detail = "") =
     mkerror(
     ERR_StringVal, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function stringval_render_error(io::IO, code::StringErrCode, err::ParseError)

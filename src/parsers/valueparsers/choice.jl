@@ -24,12 +24,11 @@ default_metavar(::Choice) = "CHOICE"
     CHOICE_Invalid
 end
 
-choice_error(code::ChoiceErrCode; token = "", detail = "", subject = "") =
+choice_error(code::ChoiceErrCode; token = "", detail = "") =
     mkerror(
     ERR_ChoiceVal, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function choice_render_error(io::IO, code::ChoiceErrCode, err::ParseError)

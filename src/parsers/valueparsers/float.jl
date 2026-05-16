@@ -18,12 +18,11 @@ default_metavar(::FloatVal) = "FLOAT"
     FLOAT_NoNaN
 end
 
-floatval_error(code::FloatErrCode; token = "", detail = "", subject = "") =
+floatval_error(code::FloatErrCode; token = "", detail = "") =
     mkerror(
     ERR_FloatVal, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function floatval_render_error(io::IO, code::FloatErrCode, err::ParseError)

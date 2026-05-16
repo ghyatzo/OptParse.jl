@@ -6,13 +6,12 @@ end
     return :($(string(T)))
 end
 
-modconstruct_error(code::ConstructErrCode; token = "", detail = "", subject = "") =
+modconstruct_error(code::ConstructErrCode; token = "", detail = "") =
     mkerror(
     ERR_ModConstruct,
     UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function modconstruct_render_error(io::IO, code::ConstructErrCode, err::ParseError)
@@ -169,13 +168,7 @@ end
 
     child_res = complete(p.parser, st)
     if is_error(child_res)
-        return typedErr(
-            T,
-            error_with_subject(
-                child_res,
-                "construct"
-            )
-        )
+        return typedErr(T, unwrap_error(child_res))
     else
         val = unwrap(child_res)
         try
@@ -201,13 +194,7 @@ end
 
     child_res = complete(p.parser, st)
     if is_error(child_res)
-        return typedErr(
-            T,
-            error_with_subject(
-                child_res,
-                "construct_exact"
-            )
-        )
+        return typedErr(T, unwrap_error(child_res))
     else
         val = unwrap(child_res)
         try

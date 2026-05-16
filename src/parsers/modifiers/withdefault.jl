@@ -4,12 +4,11 @@ const WithDefaultState{X} = Option{X}
     WITHDEFAULT_DummyError
 end
 
-modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "", subject = "") =
+modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "") =
     mkerror(
     ERR_ModWithDefault, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function modwithdefault_render_error(io::IO, code::WithDefaultErrCode, err::ParseError)
@@ -122,13 +121,7 @@ end
     Given that the user explicitly passed a value, he likely does not want the default value.=#
     result = complete(p.parser, state)::ParseResult{tval(p.parser)}
     if is_error(result)
-        return typedErr(
-            T,
-            error_with_subject(
-                result,
-                "default"
-            )
-        )
+        return typedErr(T, unwrap_error(result))
     end
 
     # Rewrap as the widened output type of the modifier.

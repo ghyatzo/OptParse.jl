@@ -14,12 +14,11 @@ default_metavar(::IntegerVal) = "INTEGER"
     INTEGER_AboveMax
 end
 
-integerval_error(code::IntegerErrCode; token = "", detail = "", subject = "") =
+integerval_error(code::IntegerErrCode; token = "", detail = "") =
     mkerror(
     ERR_IntegerVal, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function integerval_render_error(io::IO, code::IntegerErrCode, err::ParseError)

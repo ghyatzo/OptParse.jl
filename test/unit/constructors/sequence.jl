@@ -121,7 +121,6 @@ end
     err = parse_fail(parser, ["--", "hello"])
     @test err.domain == OptParse.ERR_ArgGate
     @test OptParse.GateErrCode(err.code) == OptParse.GATE_Missing
-    @test !isempty(err.subject)
 end
 
 @testset "should propagate control-only consumption to later tuple elements" begin

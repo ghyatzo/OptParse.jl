@@ -7,12 +7,11 @@ const ArgumentState{X} = Option{ParseResult{X}}
     ARGUMENT_TooFew
 end
 
-argargument_error(code::ArgumentErrCode; token = "", detail = "", subject = "") =
+argargument_error(code::ArgumentErrCode; token = "", detail = "") =
     mkerror(
     ERR_ArgArgument, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function argargument_render_error(io::IO, code::ArgumentErrCode, err::ParseError)
@@ -126,12 +125,7 @@ function complete(p::ArgArgument{T, <:ArgumentState}, maybest::TState)::ParseRes
 
     st = unwrap(maybest)
     #=The parser matched but there was a parsing error.=#
-    is_error(st) && return typedErr(
-        error_with_subject(
-            st,
-            trymetavar(p.valparser)
-        )
-    )
+    is_error(st) && return typedErr(unwrap_error(st))
 
     return st
 end

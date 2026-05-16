@@ -6,12 +6,11 @@ const ObjectState{L, P} = NamedTuple{L, P}
     OBJECT_MaxIter
 end
 
-constrobject_error(code::ObjectErrCode; token = "", detail = "", subject = "") =
+constrobject_error(code::ObjectErrCode; token = "", detail = "") =
     mkerror(
     ERR_ConstrObject, UInt8(code);
     token,
-    detail,
-    subject
+    detail
 )
 
 function constrobject_render_error(io::IO, code::ObjectErrCode, err::ParseError)
@@ -131,14 +130,7 @@ end
     cancomplete, _result = _object_complete_impl(p.parsers, st)
 
     if !cancomplete
-        subject = isempty(p.label) ? "record" : p.label
-        return typedErr(
-            T,
-            error_with_subject(
-                _result,
-                subject
-            )
-        )
+        return typedErr(T, unwrap_error(_result))
     end
 
     return typedOk(T, _result)
