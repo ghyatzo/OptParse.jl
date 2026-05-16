@@ -20,10 +20,10 @@ end
 
 floatval_error(code::FloatErrCode; token = "", detail = "", subject = "") =
     mkerror(
-    ValuePhase, ERR_FloatVal, UInt8(code);
+    ERR_FloatVal, UInt8(code);
     token,
     detail,
-    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_FloatVal, subject)]
+    subject
 )
 
 function floatval_render_error(io::IO, code::FloatErrCode, err::ParseError)

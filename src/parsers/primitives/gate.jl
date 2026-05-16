@@ -10,10 +10,10 @@ end
 
 arggate_error(code::GateErrCode; token = "", detail = "", subject = "") =
     mkerror(
-    ParsePhase, ERR_ArgGate, UInt8(code);
+    ERR_ArgGate, UInt8(code);
     token,
     detail,
-    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgGate, subject)]
+    subject
 )
 
 function arggate_render_error(io::IO, code::GateErrCode, err::ParseError)
@@ -97,10 +97,8 @@ end
 
 function complete(p::ArgGate, st::GateState)::ParseResult{Bool}
     return !is_error(st) ? st : typedErr(
-            error_with_trace(
+            error_with_subject(
                 st,
-                CompletePhase,
-                ERR_ArgGate,
                 p.names[1]
             )
         )

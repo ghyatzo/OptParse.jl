@@ -7,10 +7,10 @@ end
 
 modmultiple_error(code::MultipleErrCode; token = "", detail = "", subject = "") =
     mkerror(
-    CompletePhase, ERR_ModMultiple, UInt8(code);
+    ERR_ModMultiple, UInt8(code);
     token,
     detail,
-    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModMultiple, subject)]
+    subject
 )
 
 function modmultiple_render_error(io::IO, code::MultipleErrCode, err::ParseError)
@@ -197,10 +197,8 @@ end
         if is_error(val)
             return typedErr(
                 T,
-                error_with_trace(
+                error_with_subject(
                     val,
-                    CompletePhase,
-                    ERR_ModMultiple,
                     "repeated"
                 )
             )

@@ -103,8 +103,8 @@ function _complete(
     child_result = complete(p.parsers[I], ℒ_nextstate(selected.success))
     if is_error(child_result)
         return typedErr(
-            T, error_with_trace(
-                child_result, CompletePhase, ERR_ConstrOr, "or"
+            T, error_with_subject(
+                child_result, "or"
             )
         )
     end

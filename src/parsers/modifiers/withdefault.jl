@@ -6,10 +6,10 @@ end
 
 modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "", subject = "") =
     mkerror(
-    CompletePhase, ERR_ModWithDefault, UInt8(code);
+    ERR_ModWithDefault, UInt8(code);
     token,
     detail,
-    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModWithDefault, subject)]
+    subject
 )
 
 function modwithdefault_render_error(io::IO, code::WithDefaultErrCode, err::ParseError)
@@ -124,10 +124,8 @@ end
     if is_error(result)
         return typedErr(
             T,
-            error_with_trace(
+            error_with_subject(
                 result,
-                CompletePhase,
-                ERR_ModWithDefault,
                 "default"
             )
         )

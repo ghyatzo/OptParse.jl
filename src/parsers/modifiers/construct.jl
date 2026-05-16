@@ -8,12 +8,11 @@ end
 
 modconstruct_error(code::ConstructErrCode; token = "", detail = "", subject = "") =
     mkerror(
-    CompletePhase,
     ERR_ModConstruct,
     UInt8(code);
     token,
     detail,
-    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(CompletePhase, ERR_ModConstruct, subject)]
+    subject
 )
 
 function modconstruct_render_error(io::IO, code::ConstructErrCode, err::ParseError)
@@ -172,10 +171,8 @@ end
     if is_error(child_res)
         return typedErr(
             T,
-            error_with_trace(
+            error_with_subject(
                 child_res,
-                CompletePhase,
-                ERR_ModConstruct,
                 "construct"
             )
         )
@@ -206,10 +203,8 @@ end
     if is_error(child_res)
         return typedErr(
             T,
-            error_with_trace(
+            error_with_subject(
                 child_res,
-                CompletePhase,
-                ERR_ModConstruct,
                 "construct_exact"
             )
         )

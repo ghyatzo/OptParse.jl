@@ -1,9 +1,3 @@
-@enum ErrorPhase::UInt8 begin
-    ParsePhase
-    ValuePhase
-    CompletePhase
-end
-
 @enum ErrorDomain::UInt8 begin
     ERR_Main
 
@@ -28,30 +22,22 @@ end
     ERR_PathVal
 end
 
-struct ErrorSite
-    phase::ErrorPhase
-    domain::ErrorDomain
-    subject::String
-end
-
 struct ParseError
-    phase::ErrorPhase
     domain::ErrorDomain
     code::UInt8
     token::String
     detail::String
-    trace::Vector{ErrorSite}
+    subject::String
 end
 
 mkerror(
-    phase::ErrorPhase,
     domain::ErrorDomain,
     code::UInt8,
     ;
     token::String = "",
     detail::String = "",
-    trace::Vector{ErrorSite} = ErrorSite[]
-) = ParseError(phase, domain, code, token, detail, trace)
+    subject::String = ""
+) = ParseError(domain, code, token, detail, subject)
 
 
 @enum MainErrCode::UInt8 begin
@@ -60,10 +46,10 @@ end
 
 main_error(code::MainErrCode; token = "", detail = "", subject = "") =
     mkerror(
-    ParsePhase, ERR_Main, UInt8(code);
+    ERR_Main, UInt8(code);
     token,
     detail,
-    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_Main, subject)]
+    subject
 )
 
 function main_render_error(io::IO, code::MainErrCode, err::ParseError)
@@ -87,8 +73,8 @@ function render_error(io::IO, err::ParseError)
 end
 
 function render_error_subject(io::IO, err::ParseError)
-    return if !isempty(err.trace)
-        print(io, last(err.trace).subject)
+    return if !isempty(err.subject)
+        print(io, err.subject)
         print(io, ": ")
     end
 end

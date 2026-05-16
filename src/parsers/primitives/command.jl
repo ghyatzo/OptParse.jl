@@ -10,10 +10,10 @@ end
 
 argcommand_error(code::CommandErrCode; token = "", detail = "", subject = "") =
     mkerror(
-    ParsePhase, ERR_ArgCommand, UInt8(code);
+    ERR_ArgCommand, UInt8(code);
     token,
     detail,
-    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgCommand, subject)]
+    subject
 )
 
 function argcommand_render_error(io::IO, code::CommandErrCode, err::ParseError)
@@ -127,10 +127,8 @@ end
         end
         return !is_error(result) ? result : typedErr(
                 T,
-                error_with_trace(
+                error_with_subject(
                     result,
-                    CompletePhase,
-                    ERR_ArgCommand,
                     p.names[1]
                 )
             )

@@ -12,10 +12,10 @@ end
 
 pathval_error(code::PathErrCode; token = "", detail = "", subject = "") =
     mkerror(
-    ValuePhase, ERR_PathVal, UInt8(code);
+    ERR_PathVal, UInt8(code);
     token,
     detail,
-    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_PathVal, subject)]
+    subject
 )
 
 function pathval_render_error(io::IO, code::StringErrCode, err::ParseError)

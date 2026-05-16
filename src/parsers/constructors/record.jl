@@ -8,10 +8,10 @@ end
 
 constrobject_error(code::ObjectErrCode; token = "", detail = "", subject = "") =
     mkerror(
-    ParsePhase, ERR_ConstrObject, UInt8(code);
+    ERR_ConstrObject, UInt8(code);
     token,
     detail,
-    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrObject, subject)]
+    subject
 )
 
 function constrobject_render_error(io::IO, code::ObjectErrCode, err::ParseError)
@@ -134,10 +134,8 @@ end
         subject = isempty(p.label) ? "record" : p.label
         return typedErr(
             T,
-            error_with_trace(
+            error_with_subject(
                 _result,
-                CompletePhase,
-                ERR_ConstrObject,
                 subject
             )
         )

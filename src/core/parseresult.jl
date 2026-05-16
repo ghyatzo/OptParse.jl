@@ -167,14 +167,11 @@ end
 @inline typedOk(x) = Ok(x)
 @inline typedErr(x) = Err(x)
 
-error_with_trace(perr::ParseError, phase::ErrorPhase, domain::ErrorDomain, subject::String) = let
-    errsite = ErrorSite(phase, domain, subject)
-    push!(perr.trace, errsite)
-    return perr
-end
+error_with_subject(perr::ParseError, subject::String) =
+    set(perr, (@o _.subject), subject)
 
-error_with_trace(err::ParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String) =
-    error_with_trace(unwrap_error(err), phase, domain, subject)
+error_with_subject(err::ParseResult, subject::String) =
+    error_with_subject(unwrap_error(err), subject)
 
-error_with_trace(err::InnerParseResult, phase::ErrorPhase, domain::ErrorDomain, subject::String) =
-    error_with_trace(res_error(err), phase, domain, subject)
+error_with_subject(err::InnerParseResult, subject::String) =
+    error_with_subject(res_error(err), subject)

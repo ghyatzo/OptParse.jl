@@ -16,10 +16,10 @@ end
 
 integerval_error(code::IntegerErrCode; token = "", detail = "", subject = "") =
     mkerror(
-    ValuePhase, ERR_IntegerVal, UInt8(code);
+    ERR_IntegerVal, UInt8(code);
     token,
     detail,
-    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ValuePhase, ERR_IntegerVal, subject)]
+    subject
 )
 
 function integerval_render_error(io::IO, code::IntegerErrCode, err::ParseError)

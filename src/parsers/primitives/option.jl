@@ -11,10 +11,10 @@ end
 
 argoption_error(code::OptionErrCode; token = "", detail = "", subject = "") =
     mkerror(
-    ParsePhase, ERR_ArgOption, UInt8(code);
+    ERR_ArgOption, UInt8(code);
     token,
     detail,
-    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ArgOption, subject)]
+    subject
 )
 
 function argoption_render_error(io::IO, code::OptionErrCode, err::ParseError)
@@ -141,10 +141,8 @@ function complete(p::ArgOption{T, OptionState{T}}, st::OptionState{T})::ParseRes
     # if the state is an error it means that the valueparser returned an error. we then just need to append
     # a new context to the error and resurface
     return !is_error(st) ? st : typedErr(
-            error_with_trace(
+            error_with_subject(
                 st,
-                CompletePhase,
-                ERR_ArgOption,
                 p.names[1]
             )
         )

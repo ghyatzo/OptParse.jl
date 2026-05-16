@@ -23,10 +23,10 @@ end
 
 constror_error(code::OrErrCode; token = "", detail = "", subject = "") =
     mkerror(
-    ParsePhase, ERR_ConstrOr, UInt8(code);
+    ERR_ConstrOr, UInt8(code);
     token,
     detail,
-    trace = isempty(subject) ? ErrorSite[] : ErrorSite[ErrorSite(ParsePhase, ERR_ConstrOr, subject)]
+    subject
 )
 
 function constror_render_error(io::IO, code::OrErrCode, err::ParseError)
@@ -115,8 +115,8 @@ end
         end
     elseif is_error(result)
         #= the child parser has encountered an error, we should resurface that error instead of the generic =#
-        error = error_with_trace(
-            result, ParsePhase, ERR_ConstrOr, "or"
+        error = error_with_subject(
+            result, "or"
         )
     end
 
