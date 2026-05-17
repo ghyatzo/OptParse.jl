@@ -21,7 +21,7 @@ function render_error(io::IO, err::ModMultipleError)
     end
 end
 
-struct ModMultiple{T, S, _p, P} <: AbstractParser{T, S, _p, P}
+struct ModMultiple{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S
     parser::P
     #
@@ -31,9 +31,10 @@ struct ModMultiple{T, S, _p, P} <: AbstractParser{T, S, _p, P}
     ModMultiple(parser::P; min::Integer = 0, max::Integer = typemax(Int)) where {P <: AbstractParser} = let
         new{
             Vector{tval(P)},
+            Nothing,
             MultipleState{tstate(P)},
-            priority(P),
             P,
+            priority(P),
         }(tstate(P)[], parser, min, max)
     end
 end
@@ -58,7 +59,7 @@ end
     end
 end
 @autospecialize p ctx function focused_helpdoc(
-        p::ModMultiple{T, MultipleState{S}},
+        p::ModMultiple{T, <:Any, MultipleState{S}},
         ctx::Context{MultipleState{S}},
         prefix::Vector{String},
         rt::OverlayContext
@@ -73,7 +74,7 @@ end
     return HelpDoc(prefix, UsageRepeat(child_focus.usage, p.min, p.max), rt.info, HelpEntry[])
 end
 
-@autospecialize p ctx function parse(p::ModMultiple{T, MultipleState{S}}, ctx::Context{MultipleState{S}})::InnerParseResult{MultipleState{S}} where {T, S}
+@autospecialize p ctx function parse(p::ModMultiple{T, <:Any, MultipleState{S}}, ctx::Context{MultipleState{S}})::InnerParseResult{MultipleState{S}} where {T, S}
 
     #=Conceptual map:
 
@@ -186,7 +187,7 @@ end
 
 end
 
-@autospecialize p function complete(p::ModMultiple{T, MultipleState{S}, _p, P}, state::MultipleState{S})::ParseResult{T} where {T, S, _p, P}
+@autospecialize p function complete(p::ModMultiple{T, _E, MultipleState{S}, P}, state::MultipleState{S})::ParseResult{T} where {T, _E, S, P}
     result = tval(P)[]
     for s in state
         val = complete(p.parser, s)::ParseResult{tval(p.parser)}

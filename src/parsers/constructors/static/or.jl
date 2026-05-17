@@ -65,7 +65,7 @@
 
 end
 
-parse(p::ConstrOr{T, OrState{U}, _p, PTup}, ctx::Context{OrState{U}}) where {T, U, _p, PTup <: Tuple} = let
+parse(p::ConstrOr{T, <:Any, OrState{U}, PTup}, ctx::Context{OrState{U}}) where {T, U, PTup <: Tuple} = let
 
     error = ctx_haslessthan(1, ctx) ?
         InnerParseFailure(0, parse_error(ConstrOrError(OR_EndOfInput, "", ""))) :
@@ -96,7 +96,7 @@ function complete(p::ConstrOr{T}, orstate::OrState{U})::ParseResult{T} where {T,
 end
 
 function _complete(
-        p::ConstrOr{T, <:OrState{U}},
+        p::ConstrOr{T, <:Any, <:OrState{U}},
         selected::OrBranchState{I, S}
     ) where {T, I, S, U}
 
@@ -123,7 +123,7 @@ end
 end
 
 function focused_helpdoc(
-        p::ConstrOr{T, OrState{U}},
+        p::ConstrOr{T, <:Any, OrState{U}},
         ctx::Context{OrState{U}},
         prefix::Vector{String},
         rt::OverlayContext

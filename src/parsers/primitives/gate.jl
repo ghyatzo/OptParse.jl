@@ -31,7 +31,7 @@ function render_error(io::IO, err::ArgGateError)
 end
 
 # single boolean flags: -q --long
-struct ArgGate{T, S, p, P} <: AbstractParser{T, S, p, P}
+struct ArgGate{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S
     _dummy::P
     #
@@ -48,7 +48,11 @@ struct ArgGate{T, S, p, P} <: AbstractParser{T, S, p, P}
             end
 
         end
-        new{Bool, GateState, 9, Nothing}(typedErr(parse_error(ArgGateError(GATE_Missing, "", "$(names)"))), nothing, [names...])
+        new{Bool, Nothing, GateState, Nothing, 9}(
+            typedErr(parse_error(ArgGateError(GATE_Missing, "", "$(names)"))), 
+            nothing, 
+            [names...]
+        )
     end
 end
 
@@ -61,7 +65,7 @@ focused_helpdoc(
     rt::OverlayContext
 ) = HelpDoc(prefix, usage(p), helpinfo(rt), HelpEntry[])
 
-function parse(p::ArgGate{Bool, GateState}, ctx::Context{GateState})::InnerParseResult{GateState}
+function parse(p::ArgGate{Bool, <:Any, GateState}, ctx::Context{GateState})::InnerParseResult{GateState}
 
     if ctx_optterm(ctx)
         return innerErr(ctx, ArgGateError(GATE_NoMoreOptions, "", ""))

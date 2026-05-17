@@ -23,7 +23,7 @@ function render_error(io::IO, err::ConstrObjectError)
     end
 end
 
-struct ConstrObject{T, S, p, P} <: AbstractParser{T, S, p, P}
+struct ConstrObject{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S # NamedTuple of the states of its parsers
     #
     parsers::P
@@ -50,9 +50,10 @@ function ConstrObject(parsers_obj::NT; label = "") where {NT <: NamedTuple}
 
     return ConstrObject{
         parsers_obj_tval,
+        Nothing,
         typeof(init_state),
-        mapreduce(p -> priority(p), max, parsers_obj),
         typeof(parsers_obj),
+        mapreduce(p -> priority(p), max, parsers_obj),
     }(init_state, parsers_obj, label)
 end
 #=
@@ -85,12 +86,12 @@ end
 # _object_helpentries_impl is provided by static/record.jl or dynamic/record.jl
 # _focused_helpdoc_object is provided by static/record.jl or dynamic/record.jl
 
-@autospecialize p function helpentries(p::ConstrObject{T, S, _p, PObj}, rt::OverlayContext) where {T, S <: ObjectState, _p, PObj <: NamedTuple}
+@autospecialize p function helpentries(p::ConstrObject{T, _E, S, PObj}, rt::OverlayContext) where {T, _E, S <: ObjectState, PObj <: NamedTuple}
     return _object_helpentries_impl(p.parsers, rt)
 end
 
 @autospecialize p ctx function focused_helpdoc(
-        p::ConstrObject{T, S},
+        p::ConstrObject{T, <:Any, S},
         ctx::Context{S},
         prefix::Vector{String},
         rt::OverlayContext
@@ -102,7 +103,7 @@ end
 # _object_parse_impl is provided by static/record.jl or dynamic/record.jl
 # _object_complete_impl is provided by static/record.jl or dynamic/record.jl
 
-@autospecialize p ctx function parse(p::ConstrObject{T, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: ObjectState}
+@autospecialize p ctx function parse(p::ConstrObject{T, <:Any, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: ObjectState}
 
     outctx, error, allconsumed, anysuccess = _object_parse_impl(p.parsers, ctx)
 

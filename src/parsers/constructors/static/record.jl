@@ -129,11 +129,11 @@ end
 end
 
 @generated function _focused_helpdoc_object(
-        p::ConstrObject{T, S, _p, PTup},
+        p::ConstrObject{T, <:Any, S, PTup},
         ctx::Context{S},
         prefix::Vector{String},
         rt::OverlayContext
-    ) where {T, _p, PTup <: NamedTuple, S <: ObjectState}
+    ) where {T, PTup <: NamedTuple, S <: ObjectState}
     N = fieldcount(PTup)
     body = Expr(:block)
 

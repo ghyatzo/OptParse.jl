@@ -175,11 +175,11 @@ end
 end
 
 @generated function _focused_helpdoc_tuple(
-        p::ConstrTuple{T, S, _p, PTup},
+        p::ConstrTuple{T, <:Any, S, PTup},
         ctx::Context{S},
         prefix::Vector{String},
         rt::OverlayContext
-    ) where {T, _p, PTup <: Tuple, S <: Tuple}
+    ) where {T, PTup <: Tuple, S <: Tuple}
     N = fieldcount(PTup)
     body = Expr(:block)
 

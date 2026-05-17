@@ -34,7 +34,7 @@ function render_error(io::IO, err::ArgOptionError)
 end
 
 # options with values: -o 123 / --option valu
-struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
+struct ArgOption{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S
     valparser::P
     #
@@ -51,8 +51,8 @@ struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
             end
         end
 
-        new{T, OptionState{T}, 10, typeof(valparser)}(
-            typedErr(parse_error(ArgOptionError(OPTION_Missing, "", "$(names)"))),
+        new{T, Nothing, OptionState{T}, typeof(valparser), 10}(
+            ypedErr(parse_error(ArgOptionError(OPTION_Missing, "", "$(names)"))),
             valparser,
             [names...]
         )
@@ -64,14 +64,14 @@ usage(p::ArgOption) = UsageOption(p.names, trymetavar(p.valparser))
 helpentries(p::ArgOption, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
 
 focused_helpdoc(
-    p::ArgOption{T, OptionState{T}},
+    p::ArgOption{T, <:Any, OptionState{T}},
     ctx::Context{OptionState{T}},
     prefix::Vector{String},
     rt::OverlayContext
 ) where {T} = HelpDoc(prefix, usage(p), helpinfo(rt), HelpEntry[])
 
 
-function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::InnerParseResult{OptionState{T}} where {T}
+function parse(p::ArgOption{T, <:Any, OptionState{T}}, ctx::Context{OptionState{T}})::InnerParseResult{OptionState{T}} where {T}
 
     if ctx_optterm(ctx)
         return innerErr(ctx, ArgOptionError(OPTION_NoMoreOptions, "", ""))
@@ -135,7 +135,7 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
     return innerErr(ctx, ArgOptionError(OPTION_NoMatch, tok, ""))
 end
 
-function complete(p::ArgOption{T, OptionState{T}}, st::OptionState{T})::ParseResult{T} where {T}
+function complete(p::ArgOption{T, <:Any, OptionState{T}}, st::OptionState{T})::ParseResult{T} where {T}
     # if the state is an error it means that the valueparser returned an error. we then just need to append
     # a new context to the error and resurface
     return !is_error(st) ? st : typedErr(unwrap_error(st))

@@ -1,4 +1,4 @@
-struct ConstrTuple{T, S, p, P} <: AbstractParser{T, S, p, P}
+struct ConstrTuple{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S
     parsers::P
     #
@@ -33,9 +33,10 @@ ConstrTuple(parsers::PTup; label::String = "") where {PTup <: Tuple} = let
 
     ConstrTuple{
         Tuple{map(tval, parsers)...},
+        Nothing,
         Tuple{map(tstate, parsers)...},
-        mapreduce(priority, max, parsers, init = 0),
         PTup,
+        mapreduce(priority, max, parsers, init = 0),
     }(map(p -> p.initialState, parsers), parsers, label)
 end
 
@@ -45,12 +46,12 @@ end
 # _tuple_helpentries_impl is provided by static/tuple.jl or dynamic/tuple.jl
 # _focused_helpdoc_tuple is provided by static/tuple.jl or dynamic/tuple.jl
 
-@autospecialize p function helpentries(p::ConstrTuple{T, S, _p, PTup}, rt::OverlayContext) where {T, S <: Tuple, _p, PTup <: Tuple}
+@autospecialize p function helpentries(p::ConstrTuple{T, _E, S, PTup}, rt::OverlayContext) where {T, _E, S <: Tuple, PTup <: Tuple}
     return _tuple_helpentries_impl(p.parsers, rt)
 end
 
 @autospecialize p ctx function focused_helpdoc(
-        p::ConstrTuple{T, S},
+        p::ConstrTuple{T, <:Any, S},
         ctx::Context{S},
         prefix::Vector{String},
         rt::OverlayContext
@@ -61,11 +62,11 @@ end
 # _tup_parse_impl is provided by static/tuple.jl or dynamic/tuple.jl
 # _tuple_complete_impl is provided by static/tuple.jl or dynamic/tuple.jl
 
-@autospecialize p ctx function parse(p::ConstrTuple{T, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: Tuple}
+@autospecialize p ctx function parse(p::ConstrTuple{T, <:Any, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: Tuple}
     return _tup_parse_impl(p.parsers, ctx)
 end
 
-@autospecialize p function complete(p::ConstrTuple{T, TState}, st::TState)::ParseResult{T} where {T, TState <: Tuple}
+@autospecialize p function complete(p::ConstrTuple{T, <:Any, TState}, st::TState)::ParseResult{T} where {T, TState <: Tuple}
     cancomplete, _result = _tuple_complete_impl(p.parsers, st)
 
     if !cancomplete

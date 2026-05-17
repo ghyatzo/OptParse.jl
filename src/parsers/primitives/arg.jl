@@ -32,24 +32,24 @@ function render_error(io::IO, err::ArgArgumentError)
 end
 
 
-struct ArgArgument{T, S, p, P} <: AbstractParser{T, S, p, P}
+struct ArgArgument{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S
     valparser::P
 
     ArgArgument(valparser::AbstractValueParser{T}) where {T} =
-        new{T, ArgumentState{T}, 5, typeof(valparser)}(none(ParseResult{T}), valparser)
+        new{T, Nothing, ArgumentState{T}, typeof(valparser), 5}(none(ParseResult{T}), valparser)
 end
 
 usage(p::ArgArgument) = UsageArgument(trymetavar(p.valparser))
 helpentries(p::ArgArgument, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
 focused_helpdoc(
-    p::ArgArgument{T, ArgumentState{S}},
-    ctx::Context{ArgumentState{S}},
+    p::ArgArgument{T, <:Any, ArgumentState{S}},
+    ::Context{ArgumentState{S}},
     prefix::Vector{String},
     rt::OverlayContext
 ) where {T, S} = HelpDoc(prefix, usage(p), helpinfo(rt), HelpEntry[])
 
-function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S}})::InnerParseResult{ArgumentState{S}} where {T, S}
+function parse(p::ArgArgument{T, <:Any, ArgumentState{S}}, ctx::Context{ArgumentState{S}})::InnerParseResult{ArgumentState{S}} where {T, S}
     optpattern = r"^--?[a-z0-9-]+$"i
 
     if ctx_hasnone(ctx)
@@ -115,7 +115,7 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
 
 end
 
-function complete(p::ArgArgument{T, <:ArgumentState}, maybest::TState)::ParseResult{T} where {T, TState <: ArgumentState}
+function complete(p::ArgArgument{T, <:Any, <:ArgumentState}, maybest::TState)::ParseResult{T} where {T, TState <: ArgumentState}
 
     #=The parser never matched anything.=#
     is_error(maybest) && return typedErr(

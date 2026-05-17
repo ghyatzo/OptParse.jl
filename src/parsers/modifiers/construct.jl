@@ -22,12 +22,12 @@ function render_error(io::IO, err::ModConstructError)
 end
 
 
-struct ModConstruct{T, S, p, P} <: AbstractParser{T, S, p, P}
+struct ModConstruct{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S
     parser::P
 
-    function ModConstruct(p::AbstractParser{K, S, prio}, ::Type{T}) where {
-            T, K <: Union{NamedTuple, Tuple}, S, prio,
+    function ModConstruct(p::AbstractParser{K}, ::Type{T}) where {
+            T, K <: Union{NamedTuple, Tuple},
         }
 
         if !Base.isstructtype(T)
@@ -40,16 +40,16 @@ struct ModConstruct{T, S, p, P} <: AbstractParser{T, S, p, P}
             end
         end
 
-        return new{T, S, prio, typeof(p)}(p.initialState, p)
+        return new{T, Nothing, tstate(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
     end
 end
 
-struct ModConstructExact{T, S, p, P} <: AbstractParser{T, S, p, P}
+struct ModConstructExact{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S
     parser::P
 
-    function ModConstructExact(p::AbstractParser{K, S, prio}, ::Type{T}) where {
-            T, K <: Union{NamedTuple, Tuple}, S, prio,
+    function ModConstructExact(p::AbstractParser{K}, ::Type{T}) where {
+            T, K <: Union{NamedTuple, Tuple},
         }
 
         if !Base.isstructtype(T)
@@ -66,7 +66,7 @@ struct ModConstructExact{T, S, p, P} <: AbstractParser{T, S, p, P}
             _validate_exact_sequence(T, K)
         end
 
-        return new{T, S, prio, typeof(p)}(p.initialState, p)
+        return new{T, Nothing, tstate(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
     end
 end
 
@@ -138,31 +138,31 @@ end
 @inline @autospecialize p helpentries(p::ModConstructExact, rt::OverlayContext) = helpentries(p.parser, rt)
 
 @inline @autospecialize p ctx focused_helpdoc(
-    p::ModConstruct{T, S, _p, P},
+    p::ModConstruct{T, _E, S, P},
     ctx::Context{S},
     prefix::Vector{String},
     rt::OverlayContext
-) where {T, S, _p, P <: AbstractParser{<:Any, S}} =
+) where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}} =
     focused_helpdoc(p.parser, ctx, prefix, rt)
 
 @inline @autospecialize p ctx focused_helpdoc(
-    p::ModConstructExact{T, S, _p, P},
+    p::ModConstructExact{T, _E, S, P},
     ctx::Context{S},
     prefix::Vector{String},
     rt::OverlayContext
-) where {T, S, _p, P <: AbstractParser{<:Any, S}} =
+) where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}} =
     focused_helpdoc(p.parser, ctx, prefix, rt)
 
-@inline @autospecialize p ctx parse(p::ModConstruct{T, S, _p, P}, ctx::Context{S}) where {T, S, _p, P <: AbstractParser{<:Any, S}} =
+@inline @autospecialize p ctx parse(p::ModConstruct{T, _E, S, P}, ctx::Context{S}) where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}} =
     parse(p.parser, ctx)
 
-@inline @autospecialize p ctx parse(p::ModConstructExact{T, S, _p, P}, ctx::Context{S}) where {T, S, _p, P <: AbstractParser{<:Any, S}} =
+@inline @autospecialize p ctx parse(p::ModConstructExact{T, _E, S, P}, ctx::Context{S}) where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}} =
     parse(p.parser, ctx)
 
 @autospecialize p function complete(
-        p::ModConstruct{T, S, _p, P},
+        p::ModConstruct{T, _E, S, P},
         st::S
-    )::ParseResult{T} where {T, S, _p, P <: AbstractParser{<:Any, S}}
+    )::ParseResult{T} where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}}
 
     child_res = complete(p.parser, st)
     if is_error(child_res)
@@ -186,9 +186,9 @@ end
 end
 
 @autospecialize p function complete(
-        p::ModConstructExact{T, S, _p, P},
+        p::ModConstructExact{T, _E, S, P},
         st::S
-    )::ParseResult{T} where {T, S, _p, P <: AbstractParser{<:Any, S}}
+    )::ParseResult{T} where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}}
 
     child_res = complete(p.parser, st)
     if is_error(child_res)

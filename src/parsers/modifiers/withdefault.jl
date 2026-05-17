@@ -1,6 +1,6 @@
 const WithDefaultState{X} = Option{X}
 
-struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
+struct ModWithDefault{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S
     parser::P
     #
@@ -8,7 +8,7 @@ struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
 
     ModWithDefault(parser::P, default::T) where {T, P <: AbstractParser} = let
         retval_t = tval(P) == T ? T : Union{tval(P), T}
-        new{retval_t, WithDefaultState{tstate(P)}, priority(P), P}(none(tstate(P)), parser, default)
+        new{retval_t, Nothing, WithDefaultState{tstate(P)}, P, priority(P)}(none(tstate(P)), parser, default)
     end
 end
 
@@ -30,11 +30,11 @@ end
     end
 end
 @autospecialize p ctx function focused_helpdoc(
-        p::ModWithDefault{T, WithDefaultState{S}, _p, P},
+        p::ModWithDefault{T, _E, WithDefaultState{S}, P},
         ctx::Context{WithDefaultState{S}},
         prefix::Vector{String},
         rt::OverlayContext
-    )::HelpDoc where {T, S, _p, P <: AbstractParser{<:Any, S}}
+    )::HelpDoc where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}}
     child_state = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))
     child_ctx = widen_restate(S, ctx, child_state)
     # we don't reset the OverlayContext because the modifiers are sort of "behavioural overlays"
@@ -46,9 +46,9 @@ end
 end
 
 @autospecialize p ctx function parse(
-        p::ModWithDefault{T, WithDefaultState{S}, _p, P},
+        p::ModWithDefault{T, _E, WithDefaultState{S}, P},
         ctx::Context{WithDefaultState{S}}
-    )::InnerParseResult{WithDefaultState{S}} where {T, S, _p, P <: AbstractParser{<:Any, S}}
+    )::InnerParseResult{WithDefaultState{S}} where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}}
 
     childstate = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))
     childctx = ctx_with_state(ctx, childstate)
@@ -81,9 +81,9 @@ end
 end
 
 @autospecialize p function complete(
-        p::ModWithDefault{T, WithDefaultState{S}, _p, P},
+        p::ModWithDefault{T, _E, WithDefaultState{S}, P},
         maybestate::WithDefaultState{S}
-    )::ParseResult{T} where {T, S, _p, P <: AbstractParser{<:Any, S}}
+    )::ParseResult{T} where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}}
 
     # The state can be missing (none), in which case return the default.
     if is_error(maybestate)

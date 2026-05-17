@@ -27,14 +27,14 @@ function render_error(io::IO, err::ArgCommandError)
 end
 
 
-struct ArgCommand{T, S, _p, P} <: AbstractParser{T, S, _p, P}
+struct ArgCommand{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S
     parser::P
     #
     names::Vector{String}
 
     ArgCommand(names::Tuple{Vararg{String}}, parser::P) where {P <: AbstractParser} =
-        new{tval(P), CommandState{tstate(P)}, 15, P}(
+        new{tval(P), Nothing, CommandState{tstate(P)}, P, 15}(
         none(Option{tstate(P)}),
         parser,
         [names...],
@@ -46,7 +46,7 @@ usage(p::ArgCommand) = UsageCommand(p.names, usage(p.parser)::UsageNode)
 helpentries(p::ArgCommand, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
 
 @autospecialize p ctx function focused_helpdoc(
-        p::ArgCommand{T, S},
+        p::ArgCommand{T, <:Any, S},
         ctx::Context{S},
         prefix::Vector{String},
         rt::OverlayContext
@@ -69,7 +69,7 @@ helpentries(p::ArgCommand, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(r
     return focused_helpdoc(p.parser, child_ctx, child_prefix, descend_child(rt))::HelpDoc
 end
 
-@autospecialize p ctx function parse(p::ArgCommand{T, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: CommandState}
+@autospecialize p ctx function parse(p::ArgCommand{T, <:Any, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: CommandState}
     if is_error(ctx_state(ctx))
         # command not yet matched
         # check if it starts with our command name
@@ -110,7 +110,7 @@ end
     end
 end
 
-@autospecialize p function complete(p::ArgCommand{T, S}, maybemaybestate::S)::ParseResult{T} where {T, S <: CommandState}
+@autospecialize p function complete(p::ArgCommand{T, <:Any, S}, maybemaybestate::S)::ParseResult{T} where {T, S <: CommandState}
 
     if is_error(maybemaybestate)
         # command never matched

@@ -52,7 +52,7 @@ Base.@assume_effects :foldable function _or_inner_branch_union(::Type{PTup}) whe
 end
 
 # a parser that returns the first parsers that matches, in the order provided!
-struct ConstrOr{T, S, p, P} <: AbstractParser{T, S, p, P}
+struct ConstrOr{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S
     parsers::P
 end
@@ -63,9 +63,10 @@ ConstrOr(parsers::PTup) where {PTup <: Tuple} = let
 
     ConstrOr{
         Union{map(tval, parsers)...},
+        Nothing,
         OrState{innerstate_U},
-        mapreduce(p -> priority(p), max, parsers),
         typeof(parsers),
+        mapreduce(p -> priority(p), max, parsers),
     }(none(InnerOrState{innerstate_U}), parsers)
 end
 
@@ -75,13 +76,13 @@ end
 # _or_helpentries_impl is provided by static/or.jl or dynamic/or.jl
 # focused_helpdoc is provided by static/or.jl or dynamic/or.jl
 
-@autospecialize p function helpentries(p::ConstrOr{T, S, _p, PTup}, rt::OverlayContext) where {T, S <: OrState, _p, PTup <: Tuple}
+@autospecialize p function helpentries(p::ConstrOr{T, _E, S, PTup}, rt::OverlayContext) where {T, _E, S <: OrState, PTup <: Tuple}
     return _or_helpentries_impl(p.parsers, rt)
 end
 
 
 @autospecialize p selected currctx function _parse_branch(
-        p::ConstrOr{T, <:U}, selected::OrBranchState{I, S}, currctx::Context{U},
+        p::ConstrOr{T, <:Any, <:U}, selected::OrBranchState{I, S}, currctx::Context{U},
         allconsumed::Vector{Consumed}, error::InnerParseFailure
     ) where {T, U, I, S}
 
