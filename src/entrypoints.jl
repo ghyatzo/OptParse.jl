@@ -10,15 +10,15 @@ Returns a result container containing either the parsed value or a structured pa
 Unlike [`optparse`](@ref), this function does not throw on parse failures.
 """
 @autospecialize pp function tryoptparse(
-        pp::AbstractParser{T, S},
+        pp::AbstractParser{T, E, S},
         args::Vector{String}
-    )::ParseResult{T} where {T, S}
+    )::ParseResult{T, E} where {T, E, S}
 
     canonical_argv, _ = normalize_argv(args)
     ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = usage(pp))
 
     while true
-        mayberesult::InnerParseResult{S} = parse(pp, ctx)
+        mayberesult::InnerParseResult{S, E} = parse(pp, ctx)
 
         if is_error(mayberesult)
             return typedErr(T, unwrap_error(mayberesult).error)
@@ -51,8 +51,8 @@ When `juliac` mode is enabled, renders the error to `stderr` and returns
 If you need stable non-throwing behavior across environments, use
 [`tryoptparse`](@ref) instead.
 """
-@autospecialize pp function optparse(pp::AbstractParser{T}, args::Vector{String}) where {T}
-    mayberes = tryoptparse(pp, args)::ParseResult{T}
+@autospecialize pp function optparse(pp::AbstractParser{T, E}, args::Vector{String}) where {T, E}
+    mayberes = tryoptparse(pp, args)::ParseResult{T, E}
 
     if is_error(mayberes)
         errmsg = sprint(

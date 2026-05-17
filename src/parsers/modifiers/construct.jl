@@ -6,17 +6,15 @@ end
     return :($(string(T)))
 end
 
-modconstruct_error(code::ConstructErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_ModConstruct,
-    UInt8(code);
-    token,
-    detail
-)
+struct ModConstructError <: AbstractParseError
+    code::ConstructErrCode
+    typename::String
+    detail::String
+end
 
-function modconstruct_render_error(io::IO, code::ConstructErrCode, err::ParseError)
-    return if code == CONSTRUCT_MakeFailed
-        print(io, "Could not construct type ", err.token)
+function render_error(io::IO, err::ModConstructError)
+    return if err.code == CONSTRUCT_MakeFailed
+        print(io, "Could not construct type ", err.typename)
         !isempty(err.detail) && print(io, ". ", err.detail)
     else
         print(io, "unreachable")
@@ -177,10 +175,10 @@ end
             err isa InterruptException && rethrow()
             return typedErr(
                 T,
-                modconstruct_error(
-                    CONSTRUCT_MakeFailed;
-                    token = construct_type_name(T),
-                    detail = "Check that field names and types match and that the target constructor accepts the provided values."
+                ModConstructError(
+                    CONSTRUCT_MakeFailed,
+                    construct_type_name(T),
+                    "Check that field names and types match and that the target constructor accepts the provided values."
                 )
             )
         end
@@ -203,10 +201,10 @@ end
             err isa InterruptException && rethrow()
             return typedErr(
                 T,
-                modconstruct_error(
-                    CONSTRUCT_MakeFailed;
-                    token = construct_type_name(T),
-                    detail = "Check that field names, field order, and types match the exact constructor."
+                ModConstructError(
+                    CONSTRUCT_MakeFailed,
+                    construct_type_name(T),
+                    "Check that field names, field order, and types match the exact constructor."
                 )
             )
         end

@@ -8,23 +8,22 @@ const GateState = ParseResult{Bool}
     GATE_Missing
 end
 
-arggate_error(code::GateErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_ArgGate, UInt8(code);
-    token,
-    detail
-)
+struct ArgGateError <: AbstractParseError
+    code::GateErrCode
+    token::String
+    detail::String
+end
 
-function arggate_render_error(io::IO, code::GateErrCode, err::ParseError)
-    return if code == GATE_NoMoreOptions
+function render_error(io::IO, err::ArgGateError)
+    return if err.code == GATE_NoMoreOptions
         print(io, "No more options can be parsed")
-    elseif code == GATE_EndOfInput
+    elseif err.code == GATE_EndOfInput
         print(io, "Expected a flag, got end of input")
-    elseif code == GATE_Duplicate
+    elseif err.code == GATE_Duplicate
         print(io, "Flag $(err.token) cannot be used multiple times")
-    elseif code == GATE_NoMatch
+    elseif err.code == GATE_NoMatch
         print(io, "Unexpected flag: $(err.token)")
-    elseif code == GATE_Missing
+    elseif err.code == GATE_Missing
         print(io, "Missing required flag(s): $(err.detail)")
     else
         print(io, "unreachable")
@@ -49,7 +48,7 @@ struct ArgGate{T, S, p, P} <: AbstractParser{T, S, p, P}
             end
 
         end
-        new{Bool, GateState, 9, Nothing}(typedErr(arggate_error(GATE_Missing; detail = "$(names)")), nothing, [names...])
+        new{Bool, GateState, 9, Nothing}(typedErr(parse_error(ArgGateError(GATE_Missing, "", "$(names)"))), nothing, [names...])
     end
 end
 
@@ -65,9 +64,9 @@ focused_helpdoc(
 function parse(p::ArgGate{Bool, GateState}, ctx::Context{GateState})::InnerParseResult{GateState}
 
     if ctx_optterm(ctx)
-        return innerErr(ctx, arggate_error(GATE_NoMoreOptions))
+        return innerErr(ctx, ArgGateError(GATE_NoMoreOptions, "", ""))
     elseif ctx_hasnone(ctx)
-        return innerErr(ctx, arggate_error(GATE_EndOfInput))
+        return innerErr(ctx, ArgGateError(GATE_EndOfInput, "", ""))
     end
 
     tok = ctx_peek(ctx)
@@ -84,14 +83,14 @@ function parse(p::ArgGate{Bool, GateState}, ctx::Context{GateState})::InnerParse
     if tok in p.names
 
         if !is_error(ctx_state(ctx))
-            return innerErr(ctx, arggate_error(GATE_Duplicate; token = tok); consumed = 1)
+            return innerErr(ctx, ArgGateError(GATE_Duplicate, tok, ""); consumed = 1)
         end
 
         nextctx = ctx_with_state(consume(ctx, 1), GateState(typedOk(true)))
         return innerOk(ctx, 1; nextctx)
     end
 
-    return innerErr(ctx, arggate_error(GATE_NoMatch; token = tok))
+    return innerErr(ctx, ArgGateError(GATE_NoMatch, tok, ""))
 end
 
 function complete(p::ArgGate, st::GateState)::ParseResult{Bool}

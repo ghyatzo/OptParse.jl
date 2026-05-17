@@ -50,3 +50,5 @@ This could very well go hand in hand with
 
 We should start defining abstract traits to lift some of the parsers behaviours in the
 type system. This is long term.
+
+## Investigate compilation times/generating functions

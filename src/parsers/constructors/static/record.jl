@@ -52,8 +52,8 @@
     return quote
         #= if nothing inside the record can match our token, then it's "unexpected" =#
         error = ctx_hasmore(ctx) > 0 ?
-            InnerParseFailure(0, constrobject_error(OBJECT_UnexpectedToken; token = ctx_peek(ctx))) :
-            InnerParseFailure(0, constrobject_error(OBJECT_EndOfInput))
+            InnerParseFailure(0, parse_error(ConstrObjectError(OBJECT_UnexpectedToken, ctx_peek(ctx)))) :
+            InnerParseFailure(0, parse_error(ConstrObjectError(OBJECT_EndOfInput, "")))
         #= greedy parsing trying to consume as many field as possible =#
         anysuccess = false
         allconsumed = Consumed[consumed_empty(ctx)]
@@ -72,7 +72,7 @@
         end
 
         if iter == maxiter
-            error = InnerParseFailure(0, constrobject_error(OBJECT_MaxIter))
+            error = InnerParseFailure(0, parse_error(ConstrObjectError(OBJECT_MaxIter, "")))
         end
 
         return current_ctx, error, allconsumed, anysuccess

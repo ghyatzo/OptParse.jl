@@ -1,24 +1,5 @@
 const WithDefaultState{X} = Option{X}
 
-@enum WithDefaultErrCode::UInt8 begin
-    WITHDEFAULT_DummyError
-end
-
-modwithdefault_error(code::WithDefaultErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_ModWithDefault, UInt8(code);
-    token,
-    detail
-)
-
-function modwithdefault_render_error(io::IO, code::WithDefaultErrCode, err::ParseError)
-    return if code == WITHDEFAULT_DummyError
-        print(io, "default internal error")
-    else
-        print(io, "unreachable")
-    end
-end
-
 struct ModWithDefault{T, S, p, P} <: AbstractParser{T, S, p, P}
     initialState::S
     parser::P

@@ -6,19 +6,17 @@ const ObjectState{L, P} = NamedTuple{L, P}
     OBJECT_MaxIter
 end
 
-constrobject_error(code::ObjectErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_ConstrObject, UInt8(code);
-    token,
-    detail
-)
+struct ConstrObjectError <: AbstractParseError
+    code::ObjectErrCode
+    token::String
+end
 
-function constrobject_render_error(io::IO, code::ObjectErrCode, err::ParseError)
-    return if code == OBJECT_UnexpectedToken
+function render_error(io::IO, err::ConstrObjectError)
+    return if err.code == OBJECT_UnexpectedToken
         print(io, "Unexpected option or argument: $(err.token)")
-    elseif code == OBJECT_EndOfInput
+    elseif err.code == OBJECT_EndOfInput
         print(io, "Expected an option or argument, got end of input")
-    elseif code == OBJECT_MaxIter
+    elseif err.code == OBJECT_MaxIter
         print(io, "Internal error: record parser reached its iteration limit")
     else
         print(io, "unreachable")

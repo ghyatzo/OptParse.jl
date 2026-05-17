@@ -9,25 +9,24 @@ const OptionState{X} = ParseResult{X}
     OPTION_Missing
 end
 
-argoption_error(code::OptionErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_ArgOption, UInt8(code);
-    token,
-    detail
-)
+struct ArgOptionError <: AbstractParseError
+    code::OptionErrCode
+    token::String
+    detail::String
+end
 
-function argoption_render_error(io::IO, code::OptionErrCode, err::ParseError)
-    return if code == OPTION_NoMoreOptions
+function render_error(io::IO, err::ArgOptionError)
+    return if err.code == OPTION_NoMoreOptions
         print(io, "No more options can be parsed")
-    elseif code == OPTION_EndOfInput
+    elseif err.code == OPTION_EndOfInput
         print(io, "Expected an option, got end of input")
-    elseif code == OPTION_Duplicate
+    elseif err.code == OPTION_Duplicate
         print(io, "Option $(err.token) cannot be used multiple times")
-    elseif code == OPTION_MissingValue
+    elseif err.code == OPTION_MissingValue
         print(io, "Option $(err.token) requires a value")
-    elseif code == OPTION_NoMatch
+    elseif err.code == OPTION_NoMatch
         print(io, "Unexpected option: $(err.token)")
-    elseif code == OPTION_Missing
+    elseif err.code == OPTION_Missing
         print(io, "Missing required option(s): $(err.detail)")
     else
         print(io, "unreachable")
@@ -53,7 +52,7 @@ struct ArgOption{T, S, p, P} <: AbstractParser{T, S, p, P}
         end
 
         new{T, OptionState{T}, 10, typeof(valparser)}(
-            typedErr(argoption_error(OPTION_Missing; detail = "$(names)")),
+            typedErr(parse_error(ArgOptionError(OPTION_Missing, "", "$(names)"))),
             valparser,
             [names...]
         )
@@ -75,9 +74,9 @@ focused_helpdoc(
 function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::InnerParseResult{OptionState{T}} where {T}
 
     if ctx_optterm(ctx)
-        return innerErr(ctx, argoption_error(OPTION_NoMoreOptions))
+        return innerErr(ctx, ArgOptionError(OPTION_NoMoreOptions, "", ""))
     elseif ctx_hasnone(ctx)
-        return innerErr(ctx, argoption_error(OPTION_EndOfInput))
+        return innerErr(ctx, ArgOptionError(OPTION_EndOfInput, "", ""))
     end
 
     tok = ctx_peek(ctx)
@@ -96,11 +95,11 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
 
         # st = @? ctx.state
         if !is_error(ctx_state(ctx)) && unwrap(ctx_state(ctx)) isa T
-            return innerErr(ctx, argoption_error(OPTION_Duplicate; token = tok); consumed = 1)
+            return innerErr(ctx, ArgOptionError(OPTION_Duplicate, tok, ""); consumed = 1)
         end
 
         if ctx_haslessthan(2, ctx) || ctx_peek(ctx, 2) == "--"
-            return innerErr(ctx, argoption_error(OPTION_MissingValue; token = tok); consumed = 1)
+            return innerErr(ctx, ArgOptionError(OPTION_MissingValue, tok, ""); consumed = 1)
         end
 
         result = p.valparser(ctx_peek(ctx, 2))::ParseResult{T}
@@ -120,7 +119,7 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
 
         if !is_error(ctx_state(ctx))
 
-            return innerErr(ctx, argoption_error(OPTION_Duplicate; token = prefix[1:(end - 1)]); consumed = 1)
+            return innerErr(ctx, ArgOptionError(OPTION_Duplicate, prefix[1:(end - 1)], ""); consumed = 1)
         end
 
         value = tok[(length(prefix) + 1):end]
@@ -133,7 +132,7 @@ function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::I
 
     end
 
-    return innerErr(ctx, argoption_error(OPTION_NoMatch; token = tok))
+    return innerErr(ctx, ArgOptionError(OPTION_NoMatch, tok, ""))
 end
 
 function complete(p::ArgOption{T, OptionState{T}}, st::OptionState{T})::ParseResult{T} where {T}

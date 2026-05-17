@@ -21,23 +21,22 @@ _inner_state(::Type{<:OrState{U}}) where {U} = U
     OR_Unreachable
 end
 
-constror_error(code::OrErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_ConstrOr, UInt8(code);
-    token,
-    detail
-)
+struct ConstrOrError <: AbstractParseError
+    code::OrErrCode
+    token::String
+    detail::String
+end
 
-function constror_render_error(io::IO, code::OrErrCode, err::ParseError)
-    return if code == OR_EndOfInput
+function render_error(io::IO, err::ConstrOrError)
+    return if err.code == OR_EndOfInput
         print(io, "Expected an option or command, got end of input")
-    elseif code == OR_UnexpectedToken
+    elseif err.code == OR_UnexpectedToken
         print(io, "Unexpected option or subcommand: $(err.token)")
-    elseif code == OR_Conflict
+    elseif err.code == OR_Conflict
         print(io, "$(err.detail) and $(err.token) can't be used together")
-    elseif code == OR_NoMatch
+    elseif err.code == OR_NoMatch
         print(io, "No matching option or command")
-    elseif code == OR_Unreachable
+    elseif err.code == OR_Unreachable
         print(io, "Internal error: reached an unreachable or-branch state")
     else
         print(io, "unreachable")

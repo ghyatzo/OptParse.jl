@@ -5,20 +5,17 @@ const MultipleState{X} = Vector{X}
     MULTIPLE_TooMany
 end
 
-modmultiple_error(code::MultipleErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_ModMultiple, UInt8(code);
-    token,
-    detail
-)
+struct ModMultipleError <: AbstractParseError
+    code::MultipleErrCode
+    expected::Int
+    got::Int
+end
 
-function modmultiple_render_error(io::IO, code::MultipleErrCode, err::ParseError)
-    return if code == MULTIPLE_TooFew
-        min, got = split(err.detail, ","; limit = 2)
-        print(io, "Expected at least $(min) values, but got only $(got)")
-    elseif code == MULTIPLE_TooMany
-        max, got = split(err.detail, ","; limit = 2)
-        print(io, "Expected at most $(max) values, but got $(got)")
+function render_error(io::IO, err::ModMultipleError)
+    return if err.code == MULTIPLE_TooFew
+        print(io, "Expected at least $(err.expected) values, but got only $(err.got)")
+    elseif err.code == MULTIPLE_TooMany
+        print(io, "Expected at most $(err.expected) values, but got $(err.got)")
     else
         print(io, "unreachable")
     end
@@ -202,15 +199,11 @@ end
 
     if length(result) < p.min
         return typedErr(
-            T, modmultiple_error(
-                MULTIPLE_TooFew; detail = "$(p.min),$(length(result))"
-            )
+            T, ModMultipleError(MULTIPLE_TooFew, p.min, length(result))
         )
     elseif length(result) > p.max
         return typedErr(
-            T, modmultiple_error(
-                MULTIPLE_TooMany; detail = "$(p.max),$(length(result))"
-            )
+            T, ModMultipleError(MULTIPLE_TooMany, p.max, length(result))
         )
     end
 

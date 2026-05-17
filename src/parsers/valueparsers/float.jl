@@ -1,7 +1,6 @@
 @kwdef struct FloatVal{T} <: AbstractValueParser{T}
     metavar::String = ""
     #
-    type::Type = T
     min::Union{T, Nothing} = nothing
     max::Union{T, Nothing} = nothing
     allow_infinity::Bool = false
@@ -18,23 +17,22 @@ default_metavar(::FloatVal) = "FLOAT"
     FLOAT_NoNaN
 end
 
-floatval_error(code::FloatErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_FloatVal, UInt8(code);
-    token,
-    detail
-)
+struct FloatValError <: AbstractParseError
+    code::FloatErrCode
+    token::String
+    detail::String
+end
 
-function floatval_render_error(io::IO, code::FloatErrCode, err::ParseError)
-    return if code == FLOAT_Invalid
+function render_error(io::IO, err::FloatValError)
+    return if err.code == FLOAT_Invalid
         print(io, "Expected a valid float, got $(err.token)")
-    elseif code == FLOAT_BelowMin
+    elseif err.code == FLOAT_BelowMin
         print(io, "Value $(err.token) is below the minimum allowed: $(err.detail)")
-    elseif code == FLOAT_AboveMax
+    elseif err.code == FLOAT_AboveMax
         print(io, "Value $(err.token) is above the maximum allowed: $(err.detail)")
-    elseif code == FLOAT_NoInf
+    elseif err.code == FLOAT_NoInf
         print(io, "Infinite floats are not allowed")
-    elseif code == FLOAT_NoNaN
+    elseif err.code == FLOAT_NoNaN
         print(io, "NaNs are not allowed")
     else
         print(io, "unreachable")
@@ -45,24 +43,20 @@ end
 ((f::FloatVal{T})(input::String)::ParseResult{T}) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
-        return typedErr(floatval_error(FLOAT_Invalid; token = input))
-        # return typedErr("Expected valid float, got `$input`")
+        return typedErr(FloatValError(FLOAT_Invalid, input, ""))
     end
 
     if isinf(val) && !f.allow_infinity
-        return typedErr(floatval_error(FLOAT_NoInf; token = input))
-        # return typedErr("Infinite floats are not allowed.")
+        return typedErr(FloatValError(FLOAT_NoInf, input, ""))
     end
 
     if isnan(val) && !f.allow_nan
-        return typedErr(floatval_error(FLOAT_NoNaN; token = input))
-        # return typedErr("NaNs are not allowed.")
+        return typedErr(FloatValError(FLOAT_NoNaN, input, ""))
     end
 
-    (!isnothing(f.min) && val < f.min) && return typedErr(floatval_error(FLOAT_BelowMin; token = input, detail = string(f.min)))
-    (!isnothing(f.max) && val > f.max) && return typedErr(floatval_error(FLOAT_AboveMax; token = input, detail = string()))
-    # (!isnothing(f.min) && val < f.min) && return typedErr("Value $input is below the minimum: $(f.min)")
-    # (!isnothing(f.max) && val > f.max) && return typedErr("Value $input is above the maximum: $(f.max)")
+    (!isnothing(f.min) && val < f.min) && return typedErr(FloatValError(FLOAT_BelowMin, input, string(f.min)))
+    (!isnothing(f.max) && val > f.max) && return typedErr(FloatValError(FLOAT_AboveMax, input, string(f.max)))
+
 
     return typedOk(val)
 end

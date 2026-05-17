@@ -99,13 +99,13 @@ struct InnerParseSuccess{S}
     counts_as_match::Bool
 end
 
-struct InnerParseFailure
+struct InnerParseFailure{E}
     consumed::Int
-    error::ParseError
+    error::ParseError{E}
 end
 
 
-const InnerParseResult{S} = Result{InnerParseSuccess{S}, InnerParseFailure}
+const InnerParseResult{S, E} = Result{InnerParseSuccess{S}, InnerParseFailure{E}}
 
 
 const ℒ_nextctx = @o _.next
@@ -139,8 +139,8 @@ end
     return Ok(InnerParseSuccess{S}(cons, next, counts_as_match))
 end
 
-@inline function innerErr(ctx::Context{S}, e::ParseError; consumed::Int = 0)::InnerParseResult{S} where {S}
-    return Err(InnerParseFailure(consumed, e))
+@inline function innerErr(ctx::Context{S}, e::AbstractParseError; consumed::Int = 0)::InnerParseResult{S} where {S}
+    return Err(InnerParseFailure(consumed, ParseError(e)))
 end
 
 @inline function innerErr(ctx::Context{S}, perr::InnerParseFailure)::InnerParseResult{S} where {S}
@@ -152,18 +152,15 @@ end
 end
 
 
-const ParseResult{T} = Result{T, ParseError}
+const ParseResult{T, E} = Result{T, ParseError{E}}
 
 @inline function typedOk(::Type{T}, value::V)::ParseResult{T} where {T, V <: T}
-    # return ParseResult{T}(ErrorTypes.Ok{T}(ErrorTypes.unsafe, convert(T, value)))
     return Ok{T}(convert(T, value))
 end
 
-@inline function typedErr(::Type{T}, err::ParseError)::ParseResult{T} where {T}
-    # return ParseResult{T}(ErrorTypes.Err{ParseError}(ErrorTypes.unsafe, err))
+@inline function typedErr(::Type{T}, err::AbstractParseError)::ParseResult{T} where {T}
     return Err(err)
 end
 
 @inline typedOk(x) = Ok(x)
 @inline typedErr(x) = Err(x)
-

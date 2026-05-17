@@ -1,61 +1,31 @@
-@enum ErrorDomain::UInt8 begin
-    ERR_Main
+abstract type AbstractParseError end
 
-    ERR_ArgGate
-    ERR_ArgArgument
-    ERR_ArgOption
-    ERR_ArgCommand
-
-    ERR_ConstrObject
-    ERR_ConstrOr
-    ERR_ConstrTuple
-
-    ERR_ModWithDefault
-    ERR_ModMultiple
-    ERR_ModConstruct
-
-    ERR_StringVal
-    ERR_ChoiceVal
-    ERR_IntegerVal
-    ERR_FloatVal
-    ERR_UUIDVal
-    ERR_PathVal
+# type E will always be Union!
+# this is NOT and abstractParseError.
+@wrapped struct ParseError{E}
+    union::E
 end
 
-struct ParseError
-    domain::ErrorDomain
-    code::UInt8
-    token::String
-    detail::String
-end
-
-mkerror(
-    domain::ErrorDomain,
-    code::UInt8,
-    ;
-    token::String = "",
-    detail::String = "",
-) = ParseError(domain, code, token, detail)
+parse_error(err::E) where {E <: AbstractParseError} = ParseError(err)
+parse_error(newerr::E, ::Type{ParseError{U}}) where {E <: AbstractParseError, U <: Union{<:AbstractParseError}} = ParseError{Union{U, E}}(newerr)
+widen_error(p::ParseError{U}, ::Type{E}) where {E <: AbstractParseError, U <: Union{<:AbstractParseError}} = ParseError{Union{U, E}}(unwrapunion(p))
 
 
 @enum MainErrCode::UInt8 begin
     MAIN_NoProgress
+    MAIN_UnexpectedToken
 end
 
-main_error(code::MainErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_Main, UInt8(code);
-    token,
-    detail
-)
+struct MainError <: AbstractParseError
+    code::MainErrCode
+    token::String
+end
 
-function main_render_error(io::IO, code::MainErrCode, err::ParseError)
-    return if code == MAIN_NoProgress
-        if isempty(err.token)
-            print(io, "Parser made no progress")
-        else
-            print(io, "Unexpected option or argument: $(err.token)")
-        end
+function render_error(io::IO, err::MainError)
+    return if err.code == MAIN_NoProgress
+        print(io, "Parser made no progress")
+    elseif err.code == MAIN_UnexpectedToken
+        print(io, "Unexpected option or argument: $(err.token)")
     else
         print(io, "unreachable")
     end
@@ -65,47 +35,7 @@ end
 # rendering engine
 
 function render_error(io::IO, err::ParseError)
-    render_error_payload(io, err)
-end
-
-function render_error_payload(io::IO, err::ParseError)
-    return if err.domain == ERR_Main
-        main_render_error(io, MainErrCode(err.code), err)
-    elseif err.domain == ERR_ArgGate
-        arggate_render_error(io, GateErrCode(err.code), err)
-    elseif err.domain == ERR_ArgArgument
-        argargument_render_error(io, ArgumentErrCode(err.code), err)
-    elseif err.domain == ERR_ArgOption
-        argoption_render_error(io, OptionErrCode(err.code), err)
-    elseif err.domain == ERR_ArgCommand
-        argcommand_render_error(io, CommandErrCode(err.code), err)
-    elseif err.domain == ERR_ConstrObject
-        constrobject_render_error(io, ObjectErrCode(err.code), err)
-    elseif err.domain == ERR_ConstrOr
-        constror_render_error(io, OrErrCode(err.code), err)
-    elseif err.domain == ERR_ConstrTuple
-        constrtuple_render_error(io, TupleErrCode(err.code), err)
-    elseif err.domain == ERR_ModWithDefault
-        modwithdefault_render_error(io, WithDefaultErrCode(err.code), err)
-    elseif err.domain == ERR_ModMultiple
-        modmultiple_render_error(io, MultipleErrCode(err.code), err)
-    elseif err.domain == ERR_ModConstruct
-        modconstruct_render_error(io, ConstructErrCode(err.code), err)
-    elseif err.domain == ERR_StringVal
-        stringval_render_error(io, StringErrCode(err.code), err)
-    elseif err.domain == ERR_ChoiceVal
-        choice_render_error(io, ChoiceErrCode(err.code), err)
-    elseif err.domain == ERR_IntegerVal
-        integerval_render_error(io, IntegerErrCode(err.code), err)
-    elseif err.domain == ERR_FloatVal
-        floatval_render_error(io, FloatErrCode(err.code), err)
-    elseif err.domain == ERR_UUIDVal
-        uuidval_render_error(io, UUIDErrCode(err.code), err)
-    elseif err.domain == ERR_PathVal
-        pathval_render_error(io, PathErrCode(err.code), err)
-    else
-        print(io, "Unreachable")
-    end
+    return @unionsplit render_error(io, err)
 end
 
 Base.string(perr::ParseError) = let
@@ -119,10 +49,10 @@ end
 
 Exception thrown by [`optparse`](@ref) when parsing fails.
 """
-struct ParseException{P <: AbstractParser} <: Exception
+struct ParseException{P <: AbstractParser, E} <: Exception
     parser::P
     argv::Vector{String}
-    err::ParseError
+    err::ParseError{E}
 end
 
 Base.showerror(io::IO, e::ParseException{P}) where {P <: AbstractParser} = let

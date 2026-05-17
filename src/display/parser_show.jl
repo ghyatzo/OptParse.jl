@@ -14,7 +14,7 @@ show_compact(io::IO, v::AbstractValueParser) = let
     print(io, typeof(v), "()")
 end
 
-show_compact(io::IO, p::Choice) = let
+show_compact(io::IO, p::ChoiceVal) = let
     print(io, "choice(")
     print(io, join(string.(p.values), '|'))
     if !isempty(p.metavar)
@@ -192,7 +192,7 @@ end
 
 
 show_pretty(io::IO, v::AbstractValueParser, _indent::Int = 0) = show_compact(io, v)
-show_pretty(io::IO, p::Choice, _indent::Int = 0) = show_compact(io, p)
+show_pretty(io::IO, p::ChoiceVal, _indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::StringVal, _indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::IntegerVal, _indent::Int = 0) = show_compact(io, p)
 show_pretty(io::IO, p::FloatVal, _indent::Int = 0) = show_compact(io, p)
@@ -275,7 +275,7 @@ function show_pretty(io::IO, p::ModConstruct{T}, indent::Int = 0) where {T}
 
     print(io, "\n")
     _print_indent(io, indent + 1)
-    show_pretty(io, p.parser, indent + 1)
+    return show_pretty(io, p.parser, indent + 1)
 end
 
 function show_pretty(io::IO, p::ModConstructExact{T}, indent::Int = 0) where {T}
@@ -301,5 +301,5 @@ function show_pretty(io::IO, p::ModConstructExact{T}, indent::Int = 0) where {T}
 
     print(io, "\n")
     _print_indent(io, indent + 1)
-    show_pretty(io, p.parser, indent + 1)
+    return show_pretty(io, p.parser, indent + 1)
 end

@@ -65,23 +65,26 @@ export
     valuetype
 
 
-abstract type AbstractParser{T, S, p, P} end
+abstract type AbstractParser{T, E, S, P, R} end
 
 tval(::Type{<:AbstractParser{T}}) where {T} = T
 tval(::AbstractParser{T}) where {T} = T
 
-tstate(::Type{<:AbstractParser{T, S}}) where {T, S} = S
-tstate(::AbstractParser{T, S}) where {T, S} = S
+terr(::Type{<:AbstractParser{T, E}}) where {T, E} = E
+terr(::AbstractParser{T, E}) where {T, E} = E
 
-function priority(::Type{<:AbstractParser{T, S, _p}})::Int where {T, S, _p}
-    return _p
-end
-function priority(::AbstractParser{T, S, _p})::Int where {T, S, _p}
-    return _p
-end
+tstate(::Type{<:AbstractParser{T, E, S}}) where {T, E, S} = S
+tstate(::AbstractParser{T, E, S}) where {T, E, S} = S
 
-ptypes(::Type{<:AbstractParser{T, S, _p, P}}) where {T, S, _p, P} = P
-ptypes(::AbstractParser{T, S, _p, P}) where {T, S, _p, P} = P
+ptypes(::Type{<:AbstractParser{T, E, S, P}}) where {T, E, S, P} = P
+ptypes(::AbstractParser{T, E, S, P}) where {T, E, S, P} = P
+
+function priority(::Type{<:AbstractParser{T, E, S, P, R}})::Int where {T, E, S, P, R}
+    return R
+end
+function priority(::AbstractParser{T, E, S, P, R})::Int where {T, E, S, P, R}
+    return R
+end
 
 """
     valuetype(parser_or_type)
@@ -117,8 +120,8 @@ you do not want to introduce a dedicated struct type.
 - [`tryoptparse`](@ref)
 - [`construct`](@ref)
 """
-valuetype(::Type{<:AbstractParser{T}}) where {T} = T
-valuetype(::AbstractParser{T}) where {T} = T
+valuetype(::Type{A}) where {A <: AbstractParser} = tval(A)
+valuetype(p::AbstractParser) = tval(p)
 
 """
     HelpRequest
@@ -196,13 +199,13 @@ end
 
 
 @autospecialize pp function recover_usage_context(
-        pp::AbstractParser{T, S}, argv::Vector{String}
-    )::Context{S} where {T, S}
+        pp::AbstractParser{T, E, S}, argv::Vector{String}
+    )::Context{S} where {T, E, S}
     canonical_argv, _ = normalize_argv(argv)
     ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = usage(pp))
 
     while true
-        mayberesult::InnerParseResult{S} = parse(pp, ctx)
+        mayberesult::InnerParseResult{S, E} = parse(pp, ctx)
 
         if is_error(mayberesult)
             return ctx

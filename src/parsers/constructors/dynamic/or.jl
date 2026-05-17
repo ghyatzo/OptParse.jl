@@ -41,8 +41,8 @@ function parse(@nospecialize(p::ConstrOr), @nospecialize(ctx::Context))
     PTup = ptypes(typeof(p))
 
     error = ctx_haslessthan(1, ctx) ?
-        InnerParseFailure(0, constror_error(OR_EndOfInput)) :
-        InnerParseFailure(0, constror_error(OR_UnexpectedToken; token = ctx_peek(ctx)))
+        InnerParseFailure(0, parse_error(ConstrOrError(OR_EndOfInput, "", ""))) :
+        InnerParseFailure(0, parse_error(ConstrOrError(OR_UnexpectedToken, ctx_peek(ctx), "")))
     current_ctx = ctx
     allconsumed = Consumed[consumed_empty(ctx)]
 
@@ -63,7 +63,7 @@ end
 function complete(@nospecialize(p::ConstrOr), @nospecialize(orstate))
     T = tval(typeof(p))
     is_error(orstate) &&
-        return typedErr(T, constror_error(OR_NoMatch))
+        return typedErr(T, ConstrOrError(OR_NoMatch, "", ""))
 
     selected = unwrap(orstate)
     return _complete(p, unwrapunion(selected))

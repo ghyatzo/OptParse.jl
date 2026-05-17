@@ -94,12 +94,12 @@ julia> optparse(arg(level), ["warn"])
 warn::LogLevel = 1
 ```
 """
-choice(values::AbstractVector{<:AbstractString}; kw...) = Choice(String.(values); kw...)
+choice(values::AbstractVector{<:AbstractString}; kw...) = ChoiceVal(String.(values); kw...)
 choice(metavar::AbstractString, values::AbstractVector{<:AbstractString}; kw...) =
-    Choice(String.(values); metavar = String(metavar), kw...)
-choice(::Type{AnEnum}; kw...) where {AnEnum <: Enum} = Choice(AnEnum; kw...)
+    ChoiceVal(String.(values); metavar = String(metavar), kw...)
+choice(::Type{AnEnum}; kw...) where {AnEnum <: Enum} = ChoiceVal(AnEnum; kw...)
 choice(metavar::AbstractString, ::Type{AnEnum}; kw...) where {AnEnum <: Enum} =
-    Choice(AnEnum; metavar = String(metavar), kw...)
+    ChoiceVal(AnEnum; metavar = String(metavar), kw...)
 
 """
     integer(::Type{T}; kw...) where {T <: Integer}

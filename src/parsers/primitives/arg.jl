@@ -7,25 +7,24 @@ const ArgumentState{X} = Option{ParseResult{X}}
     ARGUMENT_TooFew
 end
 
-argargument_error(code::ArgumentErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_ArgArgument, UInt8(code);
-    token,
-    detail
-)
+struct ArgArgumentError <: AbstractParseError
+    code::ArgumentErrCode
+    token::String
+    detail::String
+end
 
-function argargument_render_error(io::IO, code::ArgumentErrCode, err::ParseError)
-    return if code == ARGUMENT_EndOfInput
+function render_error(io::IO, err::ArgArgumentError)
+    return if err.code == ARGUMENT_EndOfInput
         print(io, "Expected $(err.detail), got end of input")
-    elseif code == ARGUMENT_GotOption
+    elseif err.code == ARGUMENT_GotOption
         if isempty(err.token)
             print(io, "Expected $(err.detail), got an option or flag")
         else
             print(io, "Expected $(err.detail), got option or flag $(err.token)")
         end
-    elseif code == ARGUMENT_Duplicate
+    elseif err.code == ARGUMENT_Duplicate
         print(io, "Argument $(err.detail) cannot be used multiple times")
-    elseif code == ARGUMENT_TooFew
+    elseif err.code == ARGUMENT_TooFew
         print(io, "Expected $(err.detail), but too few arguments")
     else
         print(io, "unreachable")
@@ -55,9 +54,9 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
 
     if ctx_hasnone(ctx)
         return innerErr(
-            ctx, argargument_error(
-                ARGUMENT_EndOfInput;
-                detail = trymetavar(p.valparser)
+            ctx, ArgArgumentError(
+                ARGUMENT_EndOfInput, "",
+                trymetavar(p.valparser)
             )
         )
     end
@@ -76,10 +75,10 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
         elseif !isnothing(match(optpattern, ctx_peek(ctx, 1 + i)))
             #=Otherwise, check that we are not matching an option.=#
             return innerErr(
-                ctx, argargument_error(
-                    ARGUMENT_GotOption;
-                    token = ctx_peek(ctx, 1 + i),
-                    detail = trymetavar(p.valparser)
+                ctx, ArgArgumentError(
+                    ARGUMENT_GotOption,
+                    ctx_peek(ctx, 1 + i),
+                    trymetavar(p.valparser)
                 );
                 consumed = i
             )
@@ -89,9 +88,9 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
     if ctx_haslessthan(1 + i, ctx)
         #=Check again, in case we only had a "--" in the buffer.=#
         return innerErr(
-            ctx, argargument_error(
-                ARGUMENT_EndOfInput;
-                detail = trymetavar(p.valparser)
+            ctx, ArgArgumentError(
+                ARGUMENT_EndOfInput, "",
+                trymetavar(p.valparser)
             );
             consumed = i
         )
@@ -101,9 +100,9 @@ function parse(p::ArgArgument{T, ArgumentState{S}}, ctx::Context{ArgumentState{S
         #=The state is a some, so this parser matched already with something.
         Add one to the consumed since we're technically consuming this duplicate=#
         return innerErr(
-            ctx, argargument_error(
-                ARGUMENT_Duplicate;
-                detail = trymetavar(p.valparser)
+            ctx, ArgArgumentError(
+                ARGUMENT_Duplicate, "",
+                trymetavar(p.valparser)
             );
             consumed = 1 + i
         )
@@ -120,7 +119,7 @@ function complete(p::ArgArgument{T, <:ArgumentState}, maybest::TState)::ParseRes
 
     #=The parser never matched anything.=#
     is_error(maybest) && return typedErr(
-        argargument_error(ARGUMENT_TooFew; detail = trymetavar(p.valparser))
+        T, ArgArgumentError(ARGUMENT_TooFew, "", trymetavar(p.valparser))
     )
 
     st = unwrap(maybest)

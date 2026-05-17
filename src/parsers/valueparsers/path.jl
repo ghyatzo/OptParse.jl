@@ -10,17 +10,15 @@ default_metavar(::PathVal) = "PATH"
     PATH_NotAbsolute
 end
 
-pathval_error(code::PathErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_PathVal, UInt8(code);
-    token,
-    detail
-)
+struct PathValError <: AbstractParseError
+    code::PathErrCode
+    token::String
+end
 
-function pathval_render_error(io::IO, code::StringErrCode, err::ParseError)
-    return if code == PATH_NotFound
+function render_error(io::IO, err::PathValError)
+    return if err.code == PATH_NotFound
         print(io, "Could not find path specified: '$(err.token)'")
-    elseif code == PATH_NotAbsolute
+    elseif err.code == PATH_NotAbsolute
         print(io, "Expected an absolute path, got '$(err.token)'")
     else
         print(io, "unreachable")
@@ -28,20 +26,11 @@ function pathval_render_error(io::IO, code::StringErrCode, err::ParseError)
 end
 
 (p::PathVal)(input::String)::ParseResult{String} = let
-    !isfile(input) && return typedErr(
-        pathval_error(
-            PATH_NotFound;
-            token = input
-        )
-    )
+    # TODO, finish this up properly.
+    !isfile(input) && return typedErr(PathValError(PATH_NotFound, input))
 
     if p.absolute && !isabspath(input)
-        return typedErr(
-            pathval_error(
-                PATH_NotAbsolute;
-                token = input
-            )
-        )
+        return typedErr(PathValError(PATH_NotAbsolute, input))
     end
 
     return typedOk(input)

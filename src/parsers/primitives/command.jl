@@ -8,19 +8,18 @@ _inner_state(::Type{CommandState{X}}) where {X} = X
     COMMAND_NotMatched
 end
 
-argcommand_error(code::CommandErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_ArgCommand, UInt8(code);
-    token,
-    detail
-)
+struct ArgCommandError <: AbstractParseError
+    code::CommandErrCode
+    token::String
+    detail::String
+end
 
-function argcommand_render_error(io::IO, code::CommandErrCode, err::ParseError)
-    return if code == COMMAND_EndOfInput
+function render_error(io::IO, err::ArgCommandError)
+    return if err.code == COMMAND_EndOfInput
         print(io, "Expected command $(err.detail), got end of input")
-    elseif code == COMMAND_WrongName
+    elseif err.code == COMMAND_WrongName
         print(io, "Expected command $(err.detail), got $(err.token)")
-    elseif code == COMMAND_NotMatched
+    elseif err.code == COMMAND_NotMatched
         print(io, "Command $(err.detail) was not matched")
     else
         print(io, "unreachable")
@@ -78,10 +77,10 @@ end
             actual = ctx_hasnone(ctx) ? nothing : ctx_peek(ctx)
 
             if actual === nothing
-                return innerErr(ctx, argcommand_error(COMMAND_EndOfInput; detail = p.names[1]))
+                return innerErr(ctx, ArgCommandError(COMMAND_EndOfInput, "", p.names[1]))
             end
 
-            return innerErr(ctx, argcommand_error(COMMAND_WrongName; token = actual, detail = p.names[1]))
+            return innerErr(ctx, ArgCommandError(COMMAND_WrongName, actual, p.names[1]))
         end
 
         # command matched, consume it and move to the matched state
@@ -115,7 +114,7 @@ end
 
     if is_error(maybemaybestate)
         # command never matched
-        return typedErr(T, argcommand_error(COMMAND_NotMatched; detail = p.names[1]))
+        return typedErr(T, ArgCommandError(COMMAND_NotMatched, "", p.names[1]))
     else
         maybestate = unwrap(maybemaybestate)
         result = if is_error(maybestate)

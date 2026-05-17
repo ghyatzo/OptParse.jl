@@ -20,10 +20,10 @@ function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Conte
 
         error = InnerParseFailure(
             0,
-            constrtuple_error(
-                TUPLE_NoRemainingParser;
-                token = ctx_hasmore(current_ctx) ? ctx_peek(current_ctx) : "",
-            )
+            parse_error(ConstrTupleError(
+                TUPLE_NoRemainingParser,
+                ctx_hasmore(current_ctx) ? ctx_peek(current_ctx) : "",
+            ))
         )
 
         # Pass 1: try consuming parsers in priority order

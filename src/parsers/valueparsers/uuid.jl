@@ -11,18 +11,17 @@ default_metavar(::UUIDVal) = "UUID"
     UUID_WrongVersion
 end
 
-uuidval_error(code::UUIDErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_UUIDVal, UInt8(code);
-    token,
-    detail
-)
+struct UUIDValError <: AbstractParseError
+    code::UUIDErrCode
+    token::String
+    allowed_versions::String
+end
 
-function uuidval_render_error(io::IO, code::UUIDErrCode, err::ParseError)
-    return if code == UUID_Invalid
+function render_error(io::IO, err::UUIDValError)
+    return if err.code == UUID_Invalid
         print(io, "Malformed UUID string: $(err.token)")
-    elseif code == UUID_WrongVersion
-        print(io, "Expected a UUID of version [$(err.detail)], got version $(err.token)")
+    elseif err.code == UUID_WrongVersion
+        print(io, "Expected a UUID of version [$(err.allowed_versions)], got version $(err.token)")
     else
         print(io, "unreachable")
     end
@@ -36,12 +35,8 @@ end
         nothing
     end
     if isnothing(maybeuuid)
-        # return typedErr("Malformed UUID string: `$input`.")
         return typedErr(
-            uuidval_error(
-                UUID_Invalid;
-                token = input
-            )
+            UUIDValError(UUID_Invalid, input, "")
         )
     end
 
@@ -50,12 +45,7 @@ end
         return typedOk(maybeuuid)
     end
 
-    # return typedErr("Expected UUID of version [$(join(u.allowed_versions, ','))], but got version $version")
     return typedErr(
-        uuidval_error(
-            UUID_WrongVersion;
-            token = string(version),
-            detail = join(u.allowed_versions, ',')
-        )
+        UUIDValError(UUID_WrongVersion, string(version), join(u.allowed_versions, ','))
     )
 end

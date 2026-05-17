@@ -9,15 +9,13 @@ end
     TUPLE_NoRemainingParser
 end
 
-constrtuple_error(code::TupleErrCode; token = "", detail = "") =
-    mkerror(
-    ERR_ConstrTuple, UInt8(code);
-    token,
-    detail
-)
+struct ConstrTupleError <: AbstractParseError
+    code::TupleErrCode
+    token::String
+end
 
-function constrtuple_render_error(io::IO, code::TupleErrCode, err::ParseError)
-    return if code == TUPLE_NoRemainingParser
+function render_error(io::IO, err::ConstrTupleError)
+    return if err.code == TUPLE_NoRemainingParser
         if isempty(err.token)
             print(io, "No remaining tuple element could match the input")
         else

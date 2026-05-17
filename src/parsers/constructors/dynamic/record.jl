@@ -13,8 +13,8 @@ function _object_parse_impl(@nospecialize(parsers::NamedTuple), @nospecialize(ct
     S = typeof(ctx_state(ctx))
 
     error = ctx_hasmore(ctx) ?
-        InnerParseFailure(0, constrobject_error(OBJECT_UnexpectedToken; token = ctx_peek(ctx))) :
-        InnerParseFailure(0, constrobject_error(OBJECT_EndOfInput))
+        InnerParseFailure(0, parse_error(ConstrObjectError(OBJECT_UnexpectedToken, ctx_peek(ctx)))) :
+        InnerParseFailure(0, parse_error(ConstrObjectError(OBJECT_EndOfInput, "")))
 
     anysuccess = false
     allconsumed = Consumed[consumed_empty(ctx)]
@@ -58,7 +58,7 @@ function _object_parse_impl(@nospecialize(parsers::NamedTuple), @nospecialize(ct
     end
 
     if iter == maxiter
-        error = InnerParseFailure(0, constrobject_error(OBJECT_MaxIter))
+        error = InnerParseFailure(0, parse_error(ConstrObjectError(OBJECT_MaxIter, "")))
     end
 
     return current_ctx, error, allconsumed, anysuccess

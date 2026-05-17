@@ -99,10 +99,10 @@
 
             error = InnerParseFailure(
                 0,
-                constrtuple_error(
-                    TUPLE_NoRemainingParser;
-                    token = ctx_hasmore(current_ctx) > 0 ? ctx_peek(current_ctx) : "",
-                )
+                parse_error(ConstrTupleError(
+                    TUPLE_NoRemainingParser,
+                    ctx_hasmore(current_ctx) > 0 ? ctx_peek(current_ctx) : "",
+                ))
             )
 
             #= instead of filtering by the already matched parsers
