@@ -28,7 +28,8 @@ LocalPreferences.toml
 JuliaLocalPreferences.toml
 .sublime
 manifest*
-HANDOFF.md
+TRIM*.md
+scripts/
 
 test/trim/trimmability/build
 

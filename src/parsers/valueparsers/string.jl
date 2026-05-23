@@ -1,11 +1,3 @@
-@kwdef struct StringVal{T} <: AbstractValueParser{T}
-    metavar::String = ""
-    pattern::Regex = r".*"
-    allow_empty::Bool = false
-end
-
-default_metavar(::StringVal) = "STRING"
-
 @enum StringErrCode::UInt8 begin
     STRING_InvalidPattern
     STRING_IsEmpty
@@ -27,16 +19,24 @@ function render_error(io::IO, err::StringValError)
     end
 end
 
-(s::StringVal)(input::String)::ParseResult{String} = let
+@kwdef struct StringVal{T} <: AbstractValueParser{T, StringValError}
+    metavar::String = ""
+    pattern::Regex = r".*"
+    allow_empty::Bool = false
+end
+
+default_metavar(::StringVal) = "STRING"
+
+(s::StringVal)(input::String) = let
     m = match(s.pattern, input)
-    isnothing(m) && return typedErr(
+    isnothing(m) && return ParseResult{String, StringValError}(Err(
         StringValError(STRING_InvalidPattern, input, string(s.pattern))
-    )
+    ))
 
     if isempty(input) && !s.allow_empty
-        return typedErr(
+        return ParseResult{String, StringValError}(Err(
             StringValError(STRING_IsEmpty, "", "")
-        )
+        ))
     end
-    return typedOk(input)
+    return ParseResult{String, StringValError}(Ok(input))
 end

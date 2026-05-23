@@ -1,11 +1,3 @@
-@kwdef struct UUIDVal{T} <: AbstractValueParser{T}
-    metavar::String = ""
-    #
-    allowed_versions::Vector{Int} = Int[]
-end
-
-default_metavar(::UUIDVal) = "UUID"
-
 @enum UUIDErrCode::UInt8 begin
     UUID_Invalid
     UUID_WrongVersion
@@ -27,7 +19,15 @@ function render_error(io::IO, err::UUIDValError)
     end
 end
 
-((u::UUIDVal)(input::String)::ParseResult{UUID}) = let
+@kwdef struct UUIDVal{T} <: AbstractValueParser{T, UUIDValError}
+    metavar::String = ""
+    #
+    allowed_versions::Vector{Int} = Int[]
+end
+
+default_metavar(::UUIDVal) = "UUID"
+
+(u::UUIDVal)(input::String)= let
 
     maybeuuid = try
         UUID(input)
@@ -35,17 +35,17 @@ end
         nothing
     end
     if isnothing(maybeuuid)
-        return typedErr(
+        return ParseResult{UUID, UUIDValError}(Err(
             UUIDValError(UUID_Invalid, input, "")
-        )
+        ))
     end
 
     version = uuid_version(maybeuuid)
     if isempty(u.allowed_versions) || version ∈ u.allowed_versions
-        return typedOk(maybeuuid)
+        return ParseResult{UUID, UUIDValError}(Ok(maybeuuid))
     end
 
-    return typedErr(
+    return ParseResult{UUID, UUIDValError}(Err(
         UUIDValError(UUID_WrongVersion, string(version), join(u.allowed_versions, ','))
-    )
+    ))
 end

@@ -11,15 +11,15 @@ end
 @testset "should parse simple flag successfully" begin
     parser = switch("-v")
     err = parse_fail(parser, ["--help"])
-    @test err.domain == OptParse.ERR_ArgGate
-    @test OptParse.GateErrCode(err.code) == OptParse.GATE_NoMatch
+    @test err isa OptParse.ArgGateError
+    @test err.code == OptParse.GATE_NoMatch
 end
 
 @testset "should handle empty arguments" begin
     parser = switch("-v")
     err = parse_fail(parser, String[])
-    @test err.domain == OptParse.ERR_ArgGate
-    @test OptParse.GateErrCode(err.code) == OptParse.GATE_EndOfInput
+    @test err isa OptParse.ArgGateError
+    @test err.code == OptParse.GATE_EndOfInput
 end
 
 @testset "should process all arguments" begin
@@ -96,8 +96,8 @@ end
     parser = or(group1, group2)
 
     err = parse_fail(parser, ["--allow", "--foo"])
-    @test err.domain == OptParse.ERR_ConstrObject
-    @test OptParse.ObjectErrCode(err.code) == OptParse.OBJECT_UnexpectedToken
+    @test err isa OptParse.ConstrObjectError
+    @test err.code == OptParse.OBJECT_UnexpectedToken
 end
 
 @testset "should handle mixed option styles" begin
@@ -152,10 +152,10 @@ end
     @test val.host == "some_server10"
 
     err = parse_fail(server_parser, ["-p", "100", "-h", "abc"])
-    @test err.domain == OptParse.ERR_IntegerVal
+    @test err isa OptParse.IntegerValError
 
     err = parse_fail(server_parser, ["-p", "8080", "-v", "-h", "123abc"])
-    @test err.domain == OptParse.ERR_StringVal
+    @test err isa OptParse.StringValError
 end
 
 @testset "should handle three way mutually exclusive options" begin
@@ -174,9 +174,9 @@ end
     val = parse_ok(parser, ["-c"])
     val.optionC == true
 
-    @test parse_fail(parser, ["-a", "-b"]).domain == OptParse.ERR_ConstrOr
-    @test parse_fail(parser, ["-c", "-b"]).domain == OptParse.ERR_ConstrOr
-    @test parse_fail(parser, ["-c", "-a"]).domain == OptParse.ERR_ConstrOr
+    @test parse_fail(parser, ["-a", "-b"]) isa OptParse.ConstrOrError
+    @test parse_fail(parser, ["-c", "-b"]) isa OptParse.ConstrOrError
+    @test parse_fail(parser, ["-c", "-a"]) isa OptParse.ConstrOrError
 
 end
 

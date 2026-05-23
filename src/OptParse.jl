@@ -9,7 +9,7 @@ using WrappedUnions: @unionsplit, @wrapped,
     #=conflicts with the unwrap from ErrorTypes.jl=#
     unwrap as unwrapunion
 
-using ErrorTypes: @?, Err, ErrorTypes, Ok, Option, Result, base, is_error,
+using ErrorTypes: @?, Err, ErrorTypes, Ok, Option, Result, ResultConstructor, base, is_error,
     none, some, unwrap, unwrap_error
 
 using UUIDs: UUID, uuid_version
@@ -191,7 +191,7 @@ function normalize_argv(argv::Vector{String})
 end
 
 
-@autospecialize ctx function no_progress(previous_buffer, ctx)
+function no_progress(previous_buffer, @nospecialize(ctx))
     return ctx_length(ctx) > 0 &&
         ctx_length(ctx) == length(previous_buffer) &&
         ctx_remaining(ctx) == previous_buffer
@@ -205,7 +205,7 @@ end
     ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = usage(pp))
 
     while true
-        mayberesult::InnerParseResult{S, E} = parse(pp, ctx)
+        mayberesult = parse(pp, ctx)::InnerParseResult{S, E}
 
         if is_error(mayberesult)
             return ctx

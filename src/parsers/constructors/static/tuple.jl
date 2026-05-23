@@ -5,6 +5,7 @@
 
     N = fieldcount(PTup)
     perm, sorted_ptup = _sortperm_by_priority(fieldtypes(parsers))
+    E = Union{ConstrTupleError, map(p -> terr(p), fieldtypes(PTup))...}
 
     whilebody_consumers = Expr(:block)
     whilebody_nonconsumers = Expr(:block)
@@ -47,7 +48,8 @@
                         end
 
                     elseif is_error(result) && res_num_consumed(error) < res_num_consumed(result)
-                        error = unwrap_error(result)
+                        parse_err = unwrap_error(result)
+                        error = InnerParseFailure{$E}(parse_err.consumed, parse_err.error)
                     end
                 end
             end
@@ -97,12 +99,12 @@
         while length(matched_parsers) < length(parsers)
             found_match = false
 
-            error = InnerParseFailure(
+            error = InnerParseFailure{$E}(
                 0,
-                parse_error(ConstrTupleError(
+                ConstrTupleError(
                     TUPLE_NoRemainingParser,
                     ctx_hasmore(current_ctx) > 0 ? ctx_peek(current_ctx) : "",
-                ))
+                )
             )
 
             #= instead of filtering by the already matched parsers
@@ -122,12 +124,11 @@
 
             if !found_match
                 #=If we still haven't found a match then cry=#
-                return innerErr(current_ctx, error)
+                return current_ctx, error, merge(allconsumed), found_match
             end
         end
 
-        mergedcons = merge(allconsumed)
-        return innerOk(current_ctx, mergedcons)
+        return current_ctx, error, merge(allconsumed), true
     end
 
 end
@@ -136,26 +137,27 @@ end
     Ps = PTup.parameters
     Ss = STup.parameters
     T = Tuple{map(tval, Ps)...}
+    E = Union{ConstrTupleError, map(terr, Ps)...}
 
-    ex = Expr(:block, :(output = ()))
+    ex = Expr(:block)
+
+    # Phase 1: complete each child into a typed local, early-return on error
     for i in eachindex(Ps)
-        Ti = tval(Ps[i])
         S = Ss[i]
+        result_sym = Symbol("result_", i)
         push!(
             ex.args, quote
                 child_state = state[$i]::$S
                 child_parser = p[$i]
-
-                result = (complete(child_parser, child_state))::ParseResult{$Ti}
-                if is_error(result)
-                    return false, ParseResult{$T}(typedErr(unwrap_error(result)))
-                end
-
-                output = insert(output, IndexLens($i), unwrap(result))
+                $result_sym = complete(child_parser, child_state)
+                is_error($result_sym) && return Result{$T, $E}(typedErr($E, unwrap_error($result_sym)))
             end
         )
     end
-    push!(ex.args, :(return true, output::$T))
+
+    # Phase 2: construct the Tuple from all successful results
+    unwraps = [:(unwrap($(Symbol("result_", i)))::$(tval(Ps[i]))) for i in eachindex(Ps)]
+    push!(ex.args, :(return Result{$T, $E}(typedOk($T, ($(unwraps...),)::$T))))
 
     return ex
 end

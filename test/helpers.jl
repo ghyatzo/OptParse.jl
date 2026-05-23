@@ -50,12 +50,11 @@ render_fail(p, argv) = sprint() do io
     OptParse.render_error(io, parse_fail(p, argv))
 end
 
-macro test_parse_error(parser, argv, domain, code)
+macro test_parse_error(parser, argv, errtype, code)
     return quote
         err = parse_fail($(esc(parser)), $(esc(argv)))
-        _code = $(esc(code))
-        @test err.domain == $(esc(domain))
-        @test typeof(_code)(err.code) == _code
+        @test err isa $(esc(errtype))
+        @test err.code == $(esc(code))
         err
     end
 end

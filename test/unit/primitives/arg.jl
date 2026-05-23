@@ -2,7 +2,7 @@
     parser = arg(str(; metavar = "FILE"))
 
     @test priority(parser) == 5
-    @test getproperty((parser), :initialState) === none(OptParse.ParseResult{String})
+    @test getproperty((parser), :initialState) === none(OptParse.ParseResult{String, OptParse.StringValError})
 end
 
 @testset "should parse a string argument" begin
@@ -56,8 +56,8 @@ end
 
     err = unwrap_error(res)
     @test res_num_consumed(err) == 0
-    @test err.error.domain == OptParse.ERR_ArgArgument
-    @test OptParse.ArgumentErrCode(err.error.code) == OptParse.ARGUMENT_EndOfInput
+    @test err.error isa OptParse.ArgArgumentError
+    @test err.error.code == OptParse.ARGUMENT_EndOfInput
 end
 
 @testset "should propagate value parser failures" begin
@@ -74,13 +74,13 @@ end
     @test st !== nothing
     @test is_error(unwrap(st))
     err = unwrap_error(unwrap(st))
-    @test err.domain == OptParse.ERR_IntegerVal
-    @test OptParse.IntegerErrCode(err.code) == OptParse.INTEGER_Invalid
+    @test err isa OptParse.IntegerValError
+    @test err.code == OptParse.INTEGER_Invalid
 end
 
 @testset "should complete successfully with valid state" begin
     parser = arg(str(; metavar = "FILE"))
-    validState = some(OptParse.ParseResult{String}(Ok("test.txt")))
+    validState = some(OptParse.ParseResult{String, OptParse.StringValError}(Ok("test.txt")))
 
     res = splitcomplete(parser, validState)
     @test !is_error(res)
@@ -94,8 +94,8 @@ end
     res = splitcomplete(parser, invalidState)
     @test is_error(res)
     err = unwrap_error(res)
-    @test err.domain == OptParse.ERR_StringVal
-    @test OptParse.StringErrCode(err.code) == OptParse.STRING_InvalidPattern
+    @test err isa OptParse.StringValError
+    @test err.code == OptParse.STRING_InvalidPattern
 end
 
 @testset "should work with different value parser constraints" begin
@@ -105,12 +105,12 @@ end
     # valid file
     @test parse_ok(fileParser, ["readme.txt"]) == "readme.txt"
     # invalid file
-    @test parse_fail(fileParser, ["script.js"]).domain == OptParse.ERR_StringVal
+    @test parse_fail(fileParser, ["script.js"]) isa OptParse.StringValError
 
     # valid port
     @test parse_ok(portParser, ["8080"]) == 8080
     # invalid port
-    @test parse_fail(portParser, ["80"]).domain == OptParse.ERR_IntegerVal
+    @test parse_fail(portParser, ["80"]) isa OptParse.IntegerValError
 end
 
 @testset "should handle -- edge cases correctly" begin
@@ -129,7 +129,7 @@ end
     val = splitcomplete(parser, res_nextstate(pok))
     @test (@? val) == "abc"
 
-    err = @test_parse_error parser ["--"] OptParse.ERR_ArgArgument OptParse.ARGUMENT_EndOfInput
+    err = @test_parse_error parser ["--"] OptParse.ArgArgumentError OptParse.ARGUMENT_EndOfInput
     @test err.detail == "STRING"
 end
 

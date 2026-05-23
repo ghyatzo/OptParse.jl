@@ -78,9 +78,9 @@ end
     ))
 
     err = parse_fail(parser, ["--value", "-1"])
-    @test err.domain == OptParse.ERR_ModConstruct
-    @test OptParse.ConstructErrCode(err.code) == OptParse.CONSTRUCT_MakeFailed
-    @test occursin("PositiveOnly", err.token)
+    @test err isa OptParse.ModConstructError
+    @test err.code == OptParse.CONSTRUCT_MakeFailed
+    @test occursin("PositiveOnly", err.typename)
     @test occursin("field names and types", err.detail)
 end
 

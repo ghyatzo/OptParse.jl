@@ -1,10 +1,3 @@
-@kwdef struct PathVal{T} <: AbstractValueParser{T}
-    metavar::String = ""
-    absolute::Bool = false
-end
-
-default_metavar(::PathVal) = "PATH"
-
 @enum PathErrCode::UInt8 begin
     PATH_NotFound
     PATH_NotAbsolute
@@ -25,13 +18,20 @@ function render_error(io::IO, err::PathValError)
     end
 end
 
-(p::PathVal)(input::String)::ParseResult{String} = let
+@kwdef struct PathVal{T} <: AbstractValueParser{T, PathValError}
+    metavar::String = ""
+    absolute::Bool = false
+end
+
+default_metavar(::PathVal) = "PATH"
+
+(p::PathVal)(input::String) = let
     # TODO, finish this up properly.
-    !isfile(input) && return typedErr(PathValError(PATH_NotFound, input))
+    !isfile(input) && return ParseResult{String, PathValError}(Err(PathValError(PATH_NotFound, input)))
 
     if p.absolute && !isabspath(input)
-        return typedErr(PathValError(PATH_NotAbsolute, input))
+        return ParseResult{String, PathValError}(Err(PathValError(PATH_NotAbsolute, input)))
     end
 
-    return typedOk(input)
+    return ParseResult{String, PathValError}(Ok(input))
 end

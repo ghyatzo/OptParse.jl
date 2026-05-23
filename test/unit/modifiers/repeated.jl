@@ -54,8 +54,8 @@ end
     # `--` is consumed only to propagate option termination.
     # It must not count as satisfying the minimum repetition count.
     err = parse_fail(parser, ["--"])
-    @test err.domain == OptParse.ERR_ModMultiple
-    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooFew
+    @test err isa OptParse.ModMultipleError
+    @test err.code == OptParse.MULTIPLE_TooFew
 end
 
 @testset "should keep parsing positional repetitions after --" begin
@@ -70,8 +70,8 @@ end
     repeatedParser = repeated(baseParser; min = 2)
 
     err1 = parse_fail(repeatedParser, ["-l", "en"])
-    @test err1.domain == OptParse.ERR_ModMultiple
-    @test OptParse.MultipleErrCode(err1.code) == OptParse.MULTIPLE_TooFew
+    @test err1 isa OptParse.ModMultipleError
+    @test err1.code == OptParse.MULTIPLE_TooFew
 
     val = parse_ok(repeatedParser, ["-l", "en", "-l", "fr"])
     @test val == ["en", "fr"]
@@ -82,8 +82,8 @@ end
     repeatedParser = repeated(baseParser; max = 2)
 
     err = parse_fail(repeatedParser, ["file1.txt", "file2.txt", "file3.txt"])
-    @test err.domain == OptParse.ERR_Main
-    @test OptParse.MainErrCode(err.code) == OptParse.MAIN_NoProgress
+    @test err isa OptParse.MainError
+    @test err.code == OptParse.MAIN_NoProgress
 
     val = parse_ok(repeatedParser, ["file1.txt", "file2.txt"])
     @test val == ["file1.txt", "file2.txt"]
@@ -95,12 +95,12 @@ end
 
     # With `min=1`, an empty input is now a proper `repeated` arity failure.
     err = parse_fail(repeatedParser, String[])
-    @test err.domain == OptParse.ERR_ModMultiple
-    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooFew
+    @test err isa OptParse.ModMultipleError
+    @test err.code == OptParse.MULTIPLE_TooFew
 
     err = parse_fail(repeatedParser, ["a", "b", "c", "d"])
-    @test err.domain == OptParse.ERR_Main
-    @test OptParse.MainErrCode(err.code) == OptParse.MAIN_NoProgress
+    @test err isa OptParse.MainError
+    @test err.code == OptParse.MAIN_NoProgress
 
     val = parse_ok(repeatedParser, ["a", "b"])
     @test val == ["a", "b"]
@@ -155,8 +155,8 @@ end
 
     err = parse_fail(repeatedParser, ["-p", "8080", "-p", "invalid"])
     # The failure should come from the invalid integer parsing
-    @test err.domain == OptParse.ERR_IntegerVal
-    @test OptParse.IntegerErrCode(err.code) == OptParse.INTEGER_Invalid
+    @test err isa OptParse.IntegerValError
+    @test err.code == OptParse.INTEGER_Invalid
 end
 
 @testset "should handle mixed successful and failed parsing attempts in record context" begin
@@ -224,7 +224,7 @@ end
     repeatedParser = many(baseParser)
 
 
-    mockStates = OptParse.ParseResult{Int}[Ok(42), Ok(100), Ok(7)]
+    mockStates = OptParse.ParseResult{Int, Union{OptParse.ArgOptionError, OptParse.IntegerValError}}[Ok(42), Ok(100), Ok(7)]
     comp = splitcomplete(repeatedParser, mockStates)
     @test !is_error(comp)
     @test unwrap(comp) == [42, 100, 7]
@@ -234,34 +234,34 @@ end
     baseParser = option("-n", "--number", integer())
     repeatedParser = many(baseParser)
 
-    mockStates = OptParse.ParseResult{Int}[Ok(42), Err(OptParse.integerval_error(OptParse.INTEGER_Invalid)), Ok(7)]
+    mockStates = OptParse.ParseResult{Int, Union{OptParse.ArgOptionError, OptParse.IntegerValError}}[Ok(42), Err(OptParse.IntegerValError(OptParse.INTEGER_Invalid, "", "")), Ok(7)]
     comp = splitcomplete(repeatedParser, mockStates)
     @test is_error(comp)
     err = unwrap_error(comp)
-    @test err.domain == OptParse.ERR_IntegerVal
+    @test err isa OptParse.IntegerValError
 end
 
 @testset "should handle empty state array with min constraint" begin
     baseParser = option(("-l", "--locale"), str())
     repeatedParser = many1(baseParser)
 
-    comp = splitcomplete(repeatedParser, OptParse.ParseResult{String}[])
+    comp = splitcomplete(repeatedParser, OptParse.ParseResult{String, Union{OptParse.ArgOptionError, OptParse.StringValError}}[])
     @test is_error(comp)
     err = unwrap_error(comp)
-    @test err.domain == OptParse.ERR_ModMultiple
-    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooFew
+    @test err isa OptParse.ModMultipleError
+    @test err.code == OptParse.MULTIPLE_TooFew
 end
 
 @testset "should handle max constraint at completion" begin
     baseParser = option(("-l", "--locale"), str())
     repeatedParser = repeated(baseParser; max = 2)
 
-    mockStates = OptParse.ParseResult{String}[Ok("en"), Ok("fr"), Ok("de")]
+    mockStates = OptParse.ParseResult{String, Union{OptParse.ArgOptionError, OptParse.StringValError}}[Ok("en"), Ok("fr"), Ok("de")]
     comp = splitcomplete(repeatedParser, mockStates)
     @test is_error(comp)
     err = unwrap_error(comp)
-    @test err.domain == OptParse.ERR_ModMultiple
-    @test OptParse.MultipleErrCode(err.code) == OptParse.MULTIPLE_TooMany
+    @test err isa OptParse.ModMultipleError
+    @test err.code == OptParse.MULTIPLE_TooMany
 end
 
 @testset "should work with constant parsers" begin
@@ -301,8 +301,8 @@ end
     # Constraint violation: once `max` is reached, the extra positional is left
     # to the parent parser and surfaces as no further progress at top level.
     err = parse_fail(parser2, ["-t", "Title", "id1", "id2", "id3", "id4"])
-    @test err.domain == OptParse.ERR_Main
-    @test OptParse.MainErrCode(err.code) == OptParse.MAIN_NoProgress
+    @test err isa OptParse.MainError
+    @test err.code == OptParse.MAIN_NoProgress
 end
 
 @testset "should handle options terminator correctly" begin
@@ -350,11 +350,11 @@ end
     @test validVals == [8080, 9000, 3000]
 
     invalidErr = parse_fail(repeatedParser, ["-p", "8080", "-p", "100"])
-    @test invalidErr.domain == OptParse.ERR_IntegerVal  # Should fail due to port 100 being below minimum
+    @test invalidErr isa OptParse.IntegerValError  # Should fail due to port 100 being below minimum
 
     tooManyErr = parse_fail(repeatedParser, ["-p", "8080", "-p", "9000", "-p", "3000", "-p", "4000", "-p", "5000", "-p", "6000"])
-    @test tooManyErr.domain == OptParse.ERR_Main
-    @test OptParse.MainErrCode(tooManyErr.code) == OptParse.MAIN_NoProgress
+    @test tooManyErr isa OptParse.MainError
+    @test tooManyErr.code == OptParse.MAIN_NoProgress
 end
 
 @testset "should maintain type safety with different value types" begin

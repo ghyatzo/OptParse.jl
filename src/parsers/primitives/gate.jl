@@ -1,5 +1,3 @@
-const GateState = ParseResult{Bool}
-
 @enum GateErrCode::UInt8 begin
     GATE_NoMoreOptions
     GATE_EndOfInput
@@ -30,6 +28,8 @@ function render_error(io::IO, err::ArgGateError)
     end
 end
 
+const GateState = ParseResult{Bool, ArgGateError}
+
 # single boolean flags: -q --long
 struct ArgGate{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S
@@ -48,9 +48,9 @@ struct ArgGate{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
             end
 
         end
-        new{Bool, Nothing, GateState, Nothing, 9}(
-            typedErr(parse_error(ArgGateError(GATE_Missing, "", "$(names)"))), 
-            nothing, 
+        new{Bool, ArgGateError, GateState, Nothing, 9}(
+            ParseResult{Bool, ArgGateError}(Err(ArgGateError(GATE_Missing, "", "$(names)"))),
+            nothing,
             [names...]
         )
     end
@@ -60,43 +60,40 @@ usage(p::ArgGate) = UsageFlag(p.names)
 helpentries(p::ArgGate, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
 focused_helpdoc(
     p::ArgGate,
-    ctx::Context{GateState},
+    ::Context{GateState},
     prefix::Vector{String},
     rt::OverlayContext
 ) = HelpDoc(prefix, usage(p), helpinfo(rt), HelpEntry[])
 
-function parse(p::ArgGate{Bool, <:Any, GateState}, ctx::Context{GateState})::InnerParseResult{GateState}
+function parse(p::ArgGate{Bool, ArgGateError, S}, ctx::Context{S}) where {S <: GateState}
 
     if ctx_optterm(ctx)
-        return innerErr(ctx, ArgGateError(GATE_NoMoreOptions, "", ""))
+        return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_NoMoreOptions, "", "")))
     elseif ctx_hasnone(ctx)
-        return innerErr(ctx, ArgGateError(GATE_EndOfInput, "", ""))
+        return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_EndOfInput, "", "")))
     end
 
     tok = ctx_peek(ctx)
 
     #= When the input contains `--` stop parsing options =#
     if (tok === "--")
-        return innerOk(
-            ctx, 1;
-            nextctx = ctx_with_options_terminated(consume(ctx, 1), true),
-            counts_as_match = false
-        )
+        nextctx = ctx_with_options_terminated(ctx, true)
+        return InnerParseResult{S, ArgGateError}(innerOk(nextctx, 1; counts_as_match = false))
     end
 
     if tok in p.names
 
         if !is_error(ctx_state(ctx))
-            return innerErr(ctx, ArgGateError(GATE_Duplicate, tok, ""); consumed = 1)
+            return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_Duplicate, tok, ""); consumed = 1))
         end
 
-        nextctx = ctx_with_state(consume(ctx, 1), GateState(typedOk(true)))
-        return innerOk(ctx, 1; nextctx)
+        nextctx = ctx_with_state(ctx, ParseResult{Bool, ArgGateError}(Ok(true)))
+        return InnerParseResult{S, ArgGateError}(innerOk(nextctx, 1))
     end
 
-    return innerErr(ctx, ArgGateError(GATE_NoMatch, tok, ""))
+    return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_NoMatch, tok, "")))
 end
 
-function complete(p::ArgGate, st::GateState)::ParseResult{Bool}
-    return !is_error(st) ? st : typedErr(unwrap_error(st))
+function complete(p::ArgGate, st::GateState)
+    return st
 end

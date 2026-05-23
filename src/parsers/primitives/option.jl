@@ -1,4 +1,4 @@
-const OptionState{X} = ParseResult{X}
+const OptionState{X, E} = ParseResult{X, E}
 
 @enum OptionErrCode::UInt8 begin
     OPTION_NoMoreOptions
@@ -41,7 +41,7 @@ struct ArgOption{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     names::Vector{String}
 
 
-    ArgOption(names::Tuple{Vararg{String}}, valparser::AbstractValueParser{T}) where {T} = begin
+    ArgOption(names::Tuple{Vararg{String}}, valparser::AbstractValueParser{T, IE}) where {T, IE} = begin
         for name in names
             if !startswith(name, r"^--?[^-]")
                 throw(ArgumentError("Flags and option names must start with `-` or `--`."))
@@ -51,8 +51,9 @@ struct ArgOption{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
             end
         end
 
-        new{T, Nothing, OptionState{T}, typeof(valparser), 10}(
-            ypedErr(parse_error(ArgOptionError(OPTION_Missing, "", "$(names)"))),
+        UE = Union{ArgOptionError, IE}
+        new{T, UE, OptionState{T, UE}, typeof(valparser), 10}(
+            ParseResult{T, UE}(Err(ArgOptionError(OPTION_Missing, "", "$(names)"))),
             valparser,
             [names...]
         )
@@ -64,30 +65,27 @@ usage(p::ArgOption) = UsageOption(p.names, trymetavar(p.valparser))
 helpentries(p::ArgOption, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
 
 focused_helpdoc(
-    p::ArgOption{T, <:Any, OptionState{T}},
-    ctx::Context{OptionState{T}},
+    p::ArgOption{<:Any, <:Any, <:OptionState},
+    ::Context{<:OptionState},
     prefix::Vector{String},
     rt::OverlayContext
-) where {T} = HelpDoc(prefix, usage(p), helpinfo(rt), HelpEntry[])
+) = HelpDoc(prefix, usage(p), helpinfo(rt), HelpEntry[])
 
 
-function parse(p::ArgOption{T, <:Any, OptionState{T}}, ctx::Context{OptionState{T}})::InnerParseResult{OptionState{T}} where {T}
+function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <: OptionState{T, IE}}
 
     if ctx_optterm(ctx)
-        return innerErr(ctx, ArgOptionError(OPTION_NoMoreOptions, "", ""))
+        return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_NoMoreOptions, "", "")))
     elseif ctx_hasnone(ctx)
-        return innerErr(ctx, ArgOptionError(OPTION_EndOfInput, "", ""))
+        return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_EndOfInput, "", "")))
     end
 
     tok = ctx_peek(ctx)
 
     # When the input contains `--` is a signal to stop parsing options
     if (tok === "--")
-        return innerOk(
-            ctx, 1;
-            nextctx = ctx_with_options_terminated(consume(ctx, 1), true),
-            counts_as_match = false
-        )
+        nextctx = ctx_with_options_terminated(ctx, true)
+        return InnerParseResult{S, E}(innerOk(nextctx, 1; counts_as_match = false))
     end
 
     # when options are of the form `--option value`
@@ -95,16 +93,17 @@ function parse(p::ArgOption{T, <:Any, OptionState{T}}, ctx::Context{OptionState{
 
         # st = @? ctx.state
         if !is_error(ctx_state(ctx)) && unwrap(ctx_state(ctx)) isa T
-            return innerErr(ctx, ArgOptionError(OPTION_Duplicate, tok, ""); consumed = 1)
+            return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_Duplicate, tok, ""); consumed = 1))
         end
 
         if ctx_haslessthan(2, ctx) || ctx_peek(ctx, 2) == "--"
-            return innerErr(ctx, ArgOptionError(OPTION_MissingValue, tok, ""); consumed = 1)
+            return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_MissingValue, tok, ""); consumed = 1))
         end
 
-        result = p.valparser(ctx_peek(ctx, 2))::ParseResult{T}
+        result = p.valparser(ctx_peek(ctx, 2))
 
-        return innerOk(ctx, 2; nextctx = ctx_with_state(consume(ctx, 2), result))
+        nextctx = widen_restate(S, ctx, result)
+        return InnerParseResult{S, E}(innerOk(nextctx, 2))
     end
 
     # when options are of the form `--option=value`
@@ -119,24 +118,20 @@ function parse(p::ArgOption{T, <:Any, OptionState{T}}, ctx::Context{OptionState{
 
         if !is_error(ctx_state(ctx))
 
-            return innerErr(ctx, ArgOptionError(OPTION_Duplicate, prefix[1:(end - 1)], ""); consumed = 1)
+            return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_Duplicate, prefix[1:(end - 1)], ""); consumed = 1))
         end
 
         value = tok[(length(prefix) + 1):end]
-        result = p.valparser(value)::ParseResult{T}
+        result = p.valparser(value)
 
-        return innerOk(
-            ctx, 1;
-            nextctx = ctx_with_state(consume(ctx, 1), result)
-        )
+        nextctx = widen_restate(S, ctx, result)
+        return InnerParseResult{S, E}(innerOk(nextctx, 1))
 
     end
 
-    return innerErr(ctx, ArgOptionError(OPTION_NoMatch, tok, ""))
+    return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_NoMatch, tok, "")))
 end
 
-function complete(p::ArgOption{T, <:Any, OptionState{T}}, st::OptionState{T})::ParseResult{T} where {T}
-    # if the state is an error it means that the valueparser returned an error. we then just need to append
-    # a new context to the error and resurface
-    return !is_error(st) ? st : typedErr(unwrap_error(st))
+function complete(p::ArgOption{T, E, S}, st::S) where {T, E, IE <: E, S <: OptionState{T, IE}}
+    return !is_error(st) ? ParseResult{T, E}(typedOk(T, unwrap(st))) : ParseResult{T, E}(typedErr(E, unwrap_error(st)))
 end

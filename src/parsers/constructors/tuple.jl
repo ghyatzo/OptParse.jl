@@ -1,10 +1,3 @@
-struct ConstrTuple{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
-    initialState::S
-    parsers::P
-    #
-    label::String
-end
-
 @enum TupleErrCode::UInt8 begin
     TUPLE_NoRemainingParser
 end
@@ -26,19 +19,32 @@ function render_error(io::IO, err::ConstrTupleError)
     end
 end
 
-ConstrTuple(parsers::PTup; label::String = "") where {PTup <: Tuple} = let
-    if !all(pt <: AbstractParser for pt in fieldtypes(PTup))
-        throw(ArgumentError("sequence only accepts a tuple of parsers."))
-    end
 
-    ConstrTuple{
-        Tuple{map(tval, parsers)...},
-        Nothing,
-        Tuple{map(tstate, parsers)...},
-        PTup,
-        mapreduce(priority, max, parsers, init = 0),
-    }(map(p -> p.initialState, parsers), parsers, label)
+
+
+
+struct ConstrTuple{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
+    initialState::S
+    parsers::P
+    #
+    label::String
+
+    ConstrTuple(parsers::PTup; label::String = "") where {PTup <: Tuple} = let
+        if !all(pt <: AbstractParser for pt in fieldtypes(PTup))
+            throw(ArgumentError("sequence only accepts a tuple of parsers."))
+        end
+
+        new{
+            Tuple{map(tval, parsers)...},
+            Union{ConstrTupleError, map(terr, parsers)...},
+            Tuple{map(tstate, parsers)...},
+            PTup,
+            mapreduce(priority, max, parsers, init = 0),
+        }(map(p -> p.initialState, parsers), parsers, label)
+    end
 end
+
+
 
 @inline @autospecialize p function usage(p::ConstrTuple)
     UsageTuple(_usage_children(p.parsers))
@@ -59,19 +65,22 @@ end
     return _focused_helpdoc_tuple(p, ctx, prefix, rt)
 end
 
+
+
+
 # _tup_parse_impl is provided by static/tuple.jl or dynamic/tuple.jl
 # _tuple_complete_impl is provided by static/tuple.jl or dynamic/tuple.jl
 
-@autospecialize p ctx function parse(p::ConstrTuple{T, <:Any, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: Tuple}
-    return _tup_parse_impl(p.parsers, ctx)
+@autospecialize p ctx function parse(p::ConstrTuple{T, E, S}, ctx::Context{S}) where {T, E, S <: Tuple}
+
+    outctx, error, allconsumed, found_match = _tup_parse_impl(p.parsers, ctx)
+    if found_match
+        return InnerParseResult{S, E}(innerOk(outctx, allconsumed))
+    else
+        return InnerParseResult{S, E}(typedErr(InnerParseFailure{E}, error))
+    end
 end
 
-@autospecialize p function complete(p::ConstrTuple{T, <:Any, TState}, st::TState)::ParseResult{T} where {T, TState <: Tuple}
-    cancomplete, _result = _tuple_complete_impl(p.parsers, st)
-
-    if !cancomplete
-        return typedErr(T, unwrap_error(_result))
-    end
-
-    return typedOk(T, _result)
+@autospecialize p function complete(p::ConstrTuple{T, E, TState}, st::TState) where {T, E, TState <: Tuple}
+    return _tuple_complete_impl(p.parsers, st)::ParseResult{T, E}
 end

@@ -40,7 +40,7 @@ struct ModConstruct{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
             end
         end
 
-        return new{T, Nothing, tstate(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
+        return new{T, Union{ModConstructError, terr(p)}, tstate(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
     end
 end
 
@@ -66,7 +66,7 @@ struct ModConstructExact{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
             _validate_exact_sequence(T, K)
         end
 
-        return new{T, Nothing, tstate(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
+        return new{T, Union{ModConstructError, terr(p)}, tstate(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
     end
 end
 
@@ -138,75 +138,73 @@ end
 @inline @autospecialize p helpentries(p::ModConstructExact, rt::OverlayContext) = helpentries(p.parser, rt)
 
 @inline @autospecialize p ctx focused_helpdoc(
-    p::ModConstruct{T, _E, S, P},
+    p::ModConstruct{<:Any, <:Any, S, P},
     ctx::Context{S},
     prefix::Vector{String},
     rt::OverlayContext
-) where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}} =
+) where {S, P <: AbstractParser{<:Any, <:Any, S}} =
     focused_helpdoc(p.parser, ctx, prefix, rt)
 
 @inline @autospecialize p ctx focused_helpdoc(
-    p::ModConstructExact{T, _E, S, P},
+    p::ModConstructExact{<:Any, <:Any, S, P},
     ctx::Context{S},
     prefix::Vector{String},
     rt::OverlayContext
-) where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}} =
+) where {S, P <: AbstractParser{<:Any, <:Any, S}} =
     focused_helpdoc(p.parser, ctx, prefix, rt)
 
-@inline @autospecialize p ctx parse(p::ModConstruct{T, _E, S, P}, ctx::Context{S}) where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}} =
-    parse(p.parser, ctx)
+@inline @autospecialize p ctx parse(p::ModConstruct{T, E, S, P}, ctx::Context{S}) where {T, E, S, P <: AbstractParser{<:Any, <:E, S}} =
+    InnerParseResult{S, E}(parse(p.parser, ctx))
 
-@inline @autospecialize p ctx parse(p::ModConstructExact{T, _E, S, P}, ctx::Context{S}) where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}} =
-    parse(p.parser, ctx)
+@inline @autospecialize p ctx parse(p::ModConstructExact{T, E, S, P}, ctx::Context{S}) where {T, E, S, P <: AbstractParser{<:Any, <:Any, S}} =
+    InnerParseResult{S, E}(parse(p.parser, ctx))
 
 @autospecialize p function complete(
-        p::ModConstruct{T, _E, S, P},
+        p::ModConstruct{T, E, S, P},
         st::S
-    )::ParseResult{T} where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}}
+    ) where {T, E, S, P <: AbstractParser{<:Any, <:Any, S}}
 
     child_res = complete(p.parser, st)
     if is_error(child_res)
-        return typedErr(T, unwrap_error(child_res))
+        return ParseResult{T, E}(typedErr(E, unwrap_error(child_res)))
     else
         val = unwrap(child_res)
         try
-            return typedOk(T, StructUtils.make(T, val))
+            return ParseResult{T, E}(typedOk(T, StructUtils.make(T, val)))
         catch err
             err isa InterruptException && rethrow()
-            return typedErr(
-                T,
+            return ParseResult{T, E}(typedErr(E,
                 ModConstructError(
                     CONSTRUCT_MakeFailed,
                     construct_type_name(T),
                     "Check that field names and types match and that the target constructor accepts the provided values."
                 )
-            )
+            ))
         end
     end
 end
 
 @autospecialize p function complete(
-        p::ModConstructExact{T, _E, S, P},
+        p::ModConstructExact{T, E, S, P},
         st::S
-    )::ParseResult{T} where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}}
+    ) where {T, E, S, P <: AbstractParser{<:Any, <:Any, S}}
 
     child_res = complete(p.parser, st)
     if is_error(child_res)
-        return typedErr(T, unwrap_error(child_res))
+        return ParseResult{T, E}(typedErr(E, unwrap_error(child_res)))
     else
         val = unwrap(child_res)
         try
-            return typedOk(T, _make_exact(T, val))
+            return ParseResult{T, E}(typedOk(T, _make_exact(T, val)))
         catch err
             err isa InterruptException && rethrow()
-            return typedErr(
-                T,
+            return ParseResult{T, E}(typedErr(E,
                 ModConstructError(
                     CONSTRUCT_MakeFailed,
                     construct_type_name(T),
                     "Check that field names, field order, and types match the exact constructor."
                 )
-            )
+            ))
         end
     end
 end

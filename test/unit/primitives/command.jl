@@ -65,7 +65,7 @@ end
         ),
     )
 
-    err = @test_parse_error showParser ["edit", "item123"] OptParse.ERR_ArgCommand OptParse.COMMAND_WrongName
+    err = @test_parse_error showParser ["edit", "item123"] OptParse.ArgCommandError OptParse.COMMAND_WrongName
     @test err.detail == "show"
     @test err.token == "edit"
 end
@@ -82,8 +82,8 @@ end
     )
 
     err = parse_fail(editParser, ["edit"])
-    @test err.domain == OptParse.ERR_ArgArgument
-    @test OptParse.ArgumentErrCode(err.code) == OptParse.ARGUMENT_TooFew
+    @test err isa OptParse.ArgArgumentError
+    @test err.code == OptParse.ARGUMENT_TooFew
 end
 
 @testset "should handle optional options in subcommands" begin
@@ -173,8 +173,8 @@ end
     )
 
     err = parse_fail(parser, ["delete", "item123"])
-    @test err.domain == OptParse.ERR_ConstrOr
-    @test OptParse.OrErrCode(err.code) == OptParse.OR_UnexpectedToken
+    @test err isa OptParse.ConstrOrError
+    @test err.code == OptParse.OR_UnexpectedToken
 end
 
 @testset "should handle empty input" begin
@@ -188,7 +188,7 @@ end
         ),
     )
 
-    err = @test_parse_error showParser String[] OptParse.ERR_ArgCommand OptParse.COMMAND_EndOfInput
+    err = @test_parse_error showParser String[] OptParse.ArgCommandError OptParse.COMMAND_EndOfInput
     @test err.detail == "show"
 end
 

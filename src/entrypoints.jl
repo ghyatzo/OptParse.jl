@@ -12,16 +12,18 @@ Unlike [`optparse`](@ref), this function does not throw on parse failures.
 @autospecialize pp function tryoptparse(
         pp::AbstractParser{T, E, S},
         args::Vector{String}
-    )::ParseResult{T, E} where {T, E, S}
+    )::ParseResult{T, Union{E, MainError}} where {T, E, S}
 
+    UE = Union{E, MainError}
     canonical_argv, _ = normalize_argv(args)
     ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = usage(pp))
 
     while true
-        mayberesult::InnerParseResult{S, E} = parse(pp, ctx)
+        mayberesult = parse(pp, ctx)::InnerParseResult{S, E}
 
         if is_error(mayberesult)
-            return typedErr(T, unwrap_error(mayberesult).error)
+            err = unwrap_error(mayberesult)::InnerParseFailure{E}
+            return Result{T, UE}(typedErr(UE, ℒ_error(err)))
         end
         result = unwrap(mayberesult)
 
@@ -29,15 +31,20 @@ Unlike [`optparse`](@ref), this function does not throw on parse failures.
         ctx = res_nextctx(result)
 
         if no_progress(previous_buffer, ctx)
-            return typedErr(T, main_error(MAIN_NoProgress; token = ctx_peek(ctx)))
+            return Result{T, UE}(typedErr(UE, MainError(MAIN_NoProgress, ctx_peek(ctx))))
         end
 
         ctx_length(ctx) > 0 || break
     end
 
     state = ctx_state(ctx)
+    res = complete(pp, state)::ParseResult{T, E}
 
-    return complete(pp, state)
+    if is_error(res)
+        return Result{T, UE}(typedErr(UE, unwrap_error(res)))
+    else
+        return Result{T, UE}(typedOk(T, unwrap(res)))
+    end
 end
 
 """
@@ -52,12 +59,12 @@ If you need stable non-throwing behavior across environments, use
 [`tryoptparse`](@ref) instead.
 """
 @autospecialize pp function optparse(pp::AbstractParser{T, E}, args::Vector{String}) where {T, E}
-    mayberes = tryoptparse(pp, args)::ParseResult{T, E}
+    mayberes = tryoptparse(pp, args)::ParseResult{T, Union{E, MainError}}
 
     if is_error(mayberes)
         errmsg = sprint(
             showerror, ParseException(
-                pp, args, unwrap_error(mayberes)
+                pp, args, ParseError{E}(unwrap_error(mayberes))
             )
         )
         print(Core.stderr, "Error: ")

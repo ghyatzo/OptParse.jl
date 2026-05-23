@@ -8,7 +8,7 @@ struct ModWithDefault{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
 
     ModWithDefault(parser::P, default::T) where {T, P <: AbstractParser} = let
         retval_t = tval(P) == T ? T : Union{tval(P), T}
-        new{retval_t, Nothing, WithDefaultState{tstate(P)}, P, priority(P)}(none(tstate(P)), parser, default)
+        new{retval_t, terr(P), WithDefaultState{tstate(P)}, P, priority(P)}(none(tstate(P)), parser, default)
     end
 end
 
@@ -30,11 +30,11 @@ end
     end
 end
 @autospecialize p ctx function focused_helpdoc(
-        p::ModWithDefault{T, _E, WithDefaultState{S}, P},
+        p::ModWithDefault{<:Any, <:Any, WithDefaultState{S}, P},
         ctx::Context{WithDefaultState{S}},
         prefix::Vector{String},
         rt::OverlayContext
-    )::HelpDoc where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}}
+    )::HelpDoc where {S, P <: AbstractParser{<:Any, <:Any, S}}
     child_state = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))
     child_ctx = widen_restate(S, ctx, child_state)
     # we don't reset the OverlayContext because the modifiers are sort of "behavioural overlays"
@@ -46,23 +46,23 @@ end
 end
 
 @autospecialize p ctx function parse(
-        p::ModWithDefault{T, _E, WithDefaultState{S}, P},
+        p::ModWithDefault{<:Any, E, WithDefaultState{S}, P},
         ctx::Context{WithDefaultState{S}}
-    )::InnerParseResult{WithDefaultState{S}} where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}}
+    ) where {E, S, P <: AbstractParser{<:Any, <:Any, S}}
+    WDS = WithDefaultState{S}
 
     childstate = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))
     childctx = ctx_with_state(ctx, childstate)
 
-    result = parse(p.parser, childctx)::InnerParseResult{S}
+    result = parse(p.parser, childctx)
 
     if is_error(result)
-        parse_err = unwrap_error(result)
         #=the inner parser failed without consuming any input, which means that it wasn't matched.=#
-        if res_num_consumed(parse_err) == 0
-            return innerOk(ctx, consumed_empty(ctx))
+        if res_num_consumed(result) == 0
+            return InnerParseResult{WDS, E}(innerOk(ctx, consumed_empty(ctx)))
         else
             #=otherwise the parser failed midway, and that we should propagate.=#
-            return innerErr(ctx, parse_err)
+            return InnerParseResult{WDS, E}(innerErr(E, result))
         end
     end
 
@@ -76,18 +76,18 @@ end
         newctx = ctx_restate(res_nextctx(parse_ok), ctx_state(ctx))
     end
 
-    return innerOk(newctx, res_consumed(parse_ok))
+    return InnerParseResult{WDS, E}(innerOk(newctx, res_consumed(parse_ok)))
 
 end
 
 @autospecialize p function complete(
-        p::ModWithDefault{T, _E, WithDefaultState{S}, P},
+        p::ModWithDefault{T, E, WithDefaultState{S}, P},
         maybestate::WithDefaultState{S}
-    )::ParseResult{T} where {T, _E, S, P <: AbstractParser{<:Any, <:Any, S}}
+    ) where {T, E, S, P <: AbstractParser{<:Any, <:Any, S}}
 
     # The state can be missing (none), in which case return the default.
     if is_error(maybestate)
-        return typedOk(T, p.default)
+        return ParseResult{T, E}(typedOk(T, p.default))
     end
     state = unwrap(maybestate)
 
@@ -95,16 +95,16 @@ end
     #=This approach would also work, but is less conceptually correct. We're assuming that a state is a Result.
     This may lead to further headaches in the future. Instead we catch this case at parse time. (see if else on success)=#
     # The state exists but is an error.
-    #state isa Result && is_error(state) && return typedOk(p.default)
+    #state isa Result && is_error(state) && return ParseResult{T, E}(Ok(p.default))
 
     #= Otherwise just ask the inner state to complete itself.
     In case of validation errors from the value parser, we want to return an error instead of the default.
     Given that the user explicitly passed a value, he likely does not want the default value.=#
-    result = complete(p.parser, state)::ParseResult{tval(p.parser)}
+    result = complete(p.parser, state)
     if is_error(result)
-        return typedErr(T, unwrap_error(result))
+        return ParseResult{T, E}(typedErr(E, unwrap_error(result)))
     end
 
     # Rewrap as the widened output type of the modifier.
-    return typedOk(T, unwrap(result)::T)
+    return ParseResult{T, E}(typedOk(T, unwrap(result)))
 end

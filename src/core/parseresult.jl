@@ -88,6 +88,11 @@ function merge(consumed::Vector{Consumed})
 end
 
 
+function consume(ctx, n)
+    p = ctx_pos(ctx)
+    return ctx_consume(ctx, n), Consumed(ctx_buffer(ctx), [p:(p + n - 1)])
+end
+
 #-----------------------------------------
 #   Results / Errors
 #--------------------------------------------
@@ -99,11 +104,20 @@ struct InnerParseSuccess{S}
     counts_as_match::Bool
 end
 
-struct InnerParseFailure{E}
-    consumed::Int
-    error::ParseError{E}
+function Base.convert(::InnerParseSuccess{S}, x::InnerParseSuccess{S2}) where {S, S2 <: S}
+    InnerParseSuccess(
+        ℒ_consumed(inner),
+        widen_state(S, ℒ_nextctx(inner)),
+        ℒ_matchcounts(inner)
+    )
 end
 
+struct InnerParseFailure{E}
+    consumed::Int
+    error::E
+end
+
+InnerParseFailure{E}(x::InnerParseFailure{E2}) where {E, E2 <: E} = InnerParseFailure{E}(x.consumed, x.error)
 
 const InnerParseResult{S, E} = Result{InnerParseSuccess{S}, InnerParseFailure{E}}
 
@@ -129,38 +143,73 @@ res_error(f::InnerParseFailure) = ℒ_error(f)
 res_error(r::InnerParseResult) = res_error(unwrap_error(r))
 
 
-@inline function innerOk(ctx::Context{S}, n::Int; nextctx::Context{S} = consume(ctx, n), counts_as_match = true)::InnerParseResult{S} where {S}
-    p = ctx_pos(ctx)
-    consumed = Consumed(ctx_buffer(ctx), [p:(p + n - 1)])
-    return Ok(InnerParseSuccess{S}(consumed, nextctx, counts_as_match))
+# ---- InnerParseResult widening constructors ----
+# These accept ResultConstructors from innerOk/innerErr and widen type params.
+# Used by the untyped innerOk/innerErr helpers (concrete types only).
+
+function InnerParseResult{S, E}(x::ErrorTypes.ResultConstructor{InnerParseSuccess{S2}, Ok}) where {S, E, S2 <: S}
+    inner = x.x
+    return Result{InnerParseSuccess{S}, InnerParseFailure{E}}(typedOk(InnerParseSuccess{S},
+        InnerParseSuccess(
+            ℒ_consumed(inner),
+            widen_state(S, ℒ_nextctx(inner)),
+            ℒ_matchcounts(inner)
+        )
+    ))
 end
 
-@inline function innerOk(next::Context{S}, cons::Consumed, counts_as_match = true)::InnerParseResult{S} where {S}
-    return Ok(InnerParseSuccess{S}(cons, next, counts_as_match))
+function InnerParseResult{S, E}(x::ErrorTypes.ResultConstructor{InnerParseFailure{E2}, <:Err}) where {S, E, E2 <: E}
+    inner = x.x
+    return Result{InnerParseSuccess{S}, InnerParseFailure{E}}(
+        typedErr(InnerParseFailure{E}, InnerParseFailure{E}(ℒ_consumed(inner), ℒ_error(inner))
+    ))
 end
 
-@inline function innerErr(ctx::Context{S}, e::AbstractParseError; consumed::Int = 0)::InnerParseResult{S} where {S}
-    return Err(InnerParseFailure(consumed, ParseError(e)))
+# Trim-safe widening from a child InnerParseResult with narrower S2/E2 to wider S/E.
+function InnerParseResult{S, E}(res::Result{InnerParseSuccess{S2}, InnerParseFailure{E2}}) where {S, E, S2 <: S, E2 <: E}
+    inner = res.x
+    if inner isa Err
+        child_fail = inner.x
+        return Result{InnerParseSuccess{S}, InnerParseFailure{E}}(
+            typedErr(InnerParseFailure{E}, InnerParseFailure{E}(child_fail.consumed, child_fail.error))        )
+    else
+        child_ok = inner.x
+        return Result{InnerParseSuccess{S}, InnerParseFailure{E}}(
+            typedOk(InnerParseSuccess{S},
+                InnerParseSuccess(child_ok.consumed, widen_state(S, child_ok.next), child_ok.counts_as_match))
+        )
+    end
 end
 
-@inline function innerErr(ctx::Context{S}, perr::InnerParseFailure)::InnerParseResult{S} where {S}
-    return Err(InnerParseFailure(ℒ_consumed(perr), ℒ_error(perr)))
+# ---- InnerParseResult helpers ----
+
+# Success: produces ResultConstructor → widened by constructor above
+function innerOk(nextctx::Context, cons::Consumed; counts_as_match = true)
+    return Ok(InnerParseSuccess(cons, nextctx, counts_as_match))
 end
 
-@inline function innerErr(ctx::Context{S}, res::InnerParseResult)::InnerParseResult{S} where {S}
-    return innerErr(ctx, unwrap_error(res))
+function innerOk(nextctx::Context, n; counts_as_match = true)
+    return innerOk(consume(nextctx, n)...; counts_as_match)
 end
 
-
-const ParseResult{T, E} = Result{T, ParseError{E}}
-
-@inline function typedOk(::Type{T}, value::V)::ParseResult{T} where {T, V <: T}
-    return Ok{T}(convert(T, value))
+# Failure from concrete error: produces ResultConstructor → widened by constructor above
+function innerErr(e::AbstractParseError; consumed = 0)
+    return Err(InnerParseFailure(consumed, e))
 end
 
-@inline function typedErr(::Type{T}, err::AbstractParseError)::ParseResult{T} where {T}
-    return Err(err)
+# Failure by widening child result: typed, produces Err{InnerParseFailure{E}} directly.
+# Use this when E is a union or when the child result's error type needs widening.
+function innerErr(::Type{E}, res::InnerParseResult) where {E}
+    @assert is_error(res)
+    child_err = unwrap_error(res)
+    return typedErr(InnerParseFailure{E}, InnerParseFailure{E}(child_err.consumed, child_err.error))
 end
 
-@inline typedOk(x) = Ok(x)
-@inline typedErr(x) = Err(x)
+# ---- ParseResult helpers ----
+
+const ParseResult{T, E} = Result{T, E}
+
+# Typed Ok/Err construction — bypasses ResultConstructor entirely.
+# Use these when T or E is a union type (trimmer-safe).
+typedOk(::Type{T}, value) where {T} = Ok{T}(ErrorTypes.unsafe, value)
+typedErr(::Type{E}, error) where {E} = Err{E}(ErrorTypes.unsafe, error)

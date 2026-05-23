@@ -54,7 +54,7 @@ end
 
         # where clause should be gone
         @test isempty(get(d, :whereparams, []))
-        # return type should be fully deleted (all params owned)
+        # return type should be fully deleted
         @test !haskey(d, :rtype)
         # body should contain parameter extraction
         body_str = string(d[:body])
@@ -125,20 +125,6 @@ end
         @test !occursin("nospecialize", string(d[:args][2]))
     end
 
-    !OptParse.juliac && @testset "Nested return type stripping" begin
-        ex = @macroexpand @autospecialize p function complete(
-                p::AbstractParser{T, S}, st
-            )::Result{ParseResult{T}, ParseError} where {T, S}
-            return nothing
-        end
-
-        d = splitdef(ex)
-
-        # Result{ParseResult{T}, ParseError} → T stripped → ParseResult emptied →
-        # Result{ParseError} (ParseResult collapses, ParseError remains)
-        @test d[:rtype] == :(Result{ParseError})
-    end
-
     !OptParse.juliac && @testset "Bounded where params" begin
         ex = @macroexpand @autospecialize x function g(
                 x::Foo{A}
@@ -172,7 +158,7 @@ end
         @test occursin("parameters[2]", body_str) && occursin("parameters[1]", body_str)
         # P from position 3 (direct)
         @test occursin("(typeof(p)).parameters[3]", body_str)
-        # Return type fully deleted (all params owned)
+        # Return type fully deleted
         @test !haskey(d, :rtype) || d[:rtype] === nothing
     end
 

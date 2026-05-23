@@ -7,12 +7,18 @@
 # function parse end # String -> ParseResult{T}
 # function format end # T -> String
 
-abstract type AbstractValueParser{T} end
+abstract type AbstractValueParser{T, E} end
+
+tval(::Type{<:AbstractValueParser{T}}) where {T} = T
+tval(::X) where {T, X <: AbstractValueParser{T}} = T
+
+terr(::Type{<:AbstractValueParser{T, E}}) where {T, E} = E
+terr(::X) where {T, E, X <: AbstractValueParser{T, E}} = E
 
 metavar(v::AbstractValueParser) = v.metavar
 trymetavar(v::AbstractValueParser) = isempty(metavar(v)) ? default_metavar(v) : metavar(v)
 
-((v::AbstractValueParser{T})(input::String)::ParseResult{T}) where {T} = tryparse(v, input)
+((v::AbstractValueParser{T, E})(input::String)::ParseResult{T, E}) where {T, E} = tryparse(v, input)
 
 
 include("string.jl")
@@ -135,9 +141,9 @@ julia> optparse(arg(small), ["12"])
 - [`i8`](@ref), [`i16`](@ref), [`i32`](@ref), [`i64`](@ref)
 - [`u8`](@ref), [`u16`](@ref), [`u32`](@ref), [`u64`](@ref)
 """
-integer(::Type{T}; kw...) where {T <: Integer} = IntegerVal{T}(; type = T, kw...)
+integer(::Type{T}; kw...) where {T <: Integer} = IntegerVal{T}(; kw...)
 integer(metavar::AbstractString, ::Type{T}; kw...) where {T <: Integer} =
-    IntegerVal{T}(; metavar = String(metavar), type = T, kw...)
+    IntegerVal{T}(; metavar = String(metavar), kw...)
 integer(; kw...) = IntegerVal{Int}(; kw...)
 integer(metavar::AbstractString; kw...) = IntegerVal{Int}(; metavar = String(metavar), kw...)
 
@@ -254,9 +260,9 @@ Float32
 - [`flt32`](@ref)
 - [`flt64`](@ref)
 """
-flt(::Type{T}; kw...) where {T} = FloatVal{T}(; type = T, kw...)
+flt(::Type{T}; kw...) where {T} = FloatVal{T}(; kw...)
 flt(metavar::AbstractString, ::Type{T}; kw...) where {T} =
-    FloatVal{T}(; metavar = String(metavar), type = T, kw...)
+    FloatVal{T}(; metavar = String(metavar), kw...)
 flt(; kw...) = flt64(; kw...)
 flt(metavar::AbstractString; kw...) = flt64(metavar; kw...)
 

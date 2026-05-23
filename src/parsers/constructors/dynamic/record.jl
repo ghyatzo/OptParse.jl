@@ -11,10 +11,13 @@ end
 function _object_parse_impl(@nospecialize(parsers::NamedTuple), @nospecialize(ctx::Context))
     sorted_keys = _sort_obj_labels_dynamic(parsers)
     S = typeof(ctx_state(ctx))
+    E = Union{ConstrObjectError, map(p -> terr(typeof(p)), values(parsers))...}
 
-    error = ctx_hasmore(ctx) ?
-        InnerParseFailure(0, parse_error(ConstrObjectError(OBJECT_UnexpectedToken, ctx_peek(ctx)))) :
-        InnerParseFailure(0, parse_error(ConstrObjectError(OBJECT_EndOfInput, "")))
+    error = InnerParseFailure{E}(0,
+        ctx_hasmore(ctx) ?
+            ConstrObjectError(OBJECT_UnexpectedToken, ctx_peek(ctx)) :
+            ConstrObjectError(OBJECT_EndOfInput, "")
+    )
 
     anysuccess = false
     allconsumed = Consumed[consumed_empty(ctx)]
@@ -38,7 +41,7 @@ function _object_parse_impl(@nospecialize(parsers::NamedTuple), @nospecialize(ct
             if is_error(result)
                 parse_err = unwrap_error(result)
                 if res_num_consumed(error) < res_num_consumed(parse_err)
-                    error = parse_err
+                    error = InnerParseFailure{E}(parse_err.consumed, parse_err.error)
                 end
             else
                 parse_ok = unwrap(result)
@@ -58,28 +61,38 @@ function _object_parse_impl(@nospecialize(parsers::NamedTuple), @nospecialize(ct
     end
 
     if iter == maxiter
-        error = InnerParseFailure(0, parse_error(ConstrObjectError(OBJECT_MaxIter, "")))
+        error = InnerParseFailure{E}(0, ConstrObjectError(OBJECT_MaxIter, ""))
     end
 
     return current_ctx, error, allconsumed, anysuccess
 end
 
+function _object_can_complete(@nospecialize(parsers::NamedTuple), @nospecialize(state::NamedTuple))
+    for field in keys(parsers)
+        child_state = getproperty(state, field)
+        child_parser = parsers[field]
+        result = complete(child_parser, child_state)
+        is_error(result) && return false
+    end
+    return true
+end
+
 function _object_complete_impl(@nospecialize(parsers::NamedTuple), @nospecialize(state::NamedTuple))
     T = NamedTuple{keys(parsers), Tuple{map(p -> tval(typeof(p)), values(parsers))...}}
-    output = ()
-    for field in keys(parsers)
+    E = Union{ConstrObjectError, map(p -> terr(typeof(p)), values(parsers))...}
+    results = Vector{Any}(undef, length(parsers))
+    for (i, field) in enumerate(keys(parsers))
         child_state = getproperty(state, field)
         child_parser = parsers[field]
 
         result = complete(child_parser, child_state)
         if is_error(result)
-            return false, ParseResult{T}(typedErr(unwrap_error(result)))
-        else
-            output = (output..., unwrap(result))
+            return ParseResult{T, E}(typedErr(E, unwrap_error(result)))
         end
+        results[i] = unwrap(result)
     end
 
-    return true, T(output)
+    return ParseResult{T, E}(typedOk(T, T(Tuple(results))))
 end
 
 function _object_helpentries_impl(@nospecialize(parsers::NamedTuple), rt::OverlayContext)

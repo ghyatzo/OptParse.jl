@@ -6,9 +6,12 @@ abstract type AbstractParseError end
     union::E
 end
 
-parse_error(err::E) where {E <: AbstractParseError} = ParseError(err)
-parse_error(newerr::E, ::Type{ParseError{U}}) where {E <: AbstractParseError, U <: Union{<:AbstractParseError}} = ParseError{Union{U, E}}(newerr)
-widen_error(p::ParseError{U}, ::Type{E}) where {E <: AbstractParseError, U <: Union{<:AbstractParseError}} = ParseError{Union{U, E}}(unwrapunion(p))
+
+# Allow automatic widening: ParseError{A} → ParseError{Union{A, B}} when A <: E
+Base.convert(::Type{ParseError{E}}, p::ParseError{U}) where {E, U <: E} = ParseError{E}(unwrapunion(p))
+# and whenever.
+Base.convert(::Type{ParseError{E}}, p::ParseError{B}) where {E, B} = ParseError{Union{E, B}}(unwrapunion(p))
+
 
 
 @enum MainErrCode::UInt8 begin
@@ -44,6 +47,8 @@ Base.string(perr::ParseError) = let
     return String(take!(io))
 end
 
+Base.string(err::AbstractParseError) = string(ParseError(err))
+
 """
     ParseException
 
@@ -54,6 +59,12 @@ struct ParseException{P <: AbstractParser, E} <: Exception
     argv::Vector{String}
     err::ParseError{E}
 end
+
+ParseException(p::AbstractParser{<:Any, E}, argv::Vector{String}, err::AbstractParseError) where {E} =
+    ParseException{typeof(p), E}(p, argv, ParseError(err))
+
+ParseException(p::AbstractParser{<:Any, E}, argv::Vector{String}, perr::ParseError{E2}) where {E, E2<:E} =
+    ParseException{typeof(p), E}(p, argv, perr)
 
 Base.showerror(io::IO, e::ParseException{P}) where {P <: AbstractParser} = let
     render_error(io, e.err)

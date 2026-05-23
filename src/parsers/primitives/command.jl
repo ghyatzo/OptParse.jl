@@ -1,7 +1,5 @@
 const CommandState{X} = Option{Option{X}}
 
-_inner_state(::Type{CommandState{X}}) where {X} = X
-
 @enum CommandErrCode::UInt8 begin
     COMMAND_EndOfInput
     COMMAND_WrongName
@@ -34,11 +32,17 @@ struct ArgCommand{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     names::Vector{String}
 
     ArgCommand(names::Tuple{Vararg{String}}, parser::P) where {P <: AbstractParser} =
-        new{tval(P), Nothing, CommandState{tstate(P)}, P, 15}(
-        none(Option{tstate(P)}),
-        parser,
-        [names...],
-    )
+        new{
+            tval(P),
+            Union{ArgCommandError, terr(P)},
+            CommandState{tstate(P)},
+            P,
+            15
+        }(
+            none(Option{tstate(P)}),
+            parser,
+            [names...],
+        )
 end
 
 usage(p::ArgCommand) = UsageCommand(p.names, usage(p.parser)::UsageNode)
@@ -46,11 +50,11 @@ usage(p::ArgCommand) = UsageCommand(p.names, usage(p.parser)::UsageNode)
 helpentries(p::ArgCommand, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
 
 @autospecialize p ctx function focused_helpdoc(
-        p::ArgCommand{T, <:Any, S},
+        p::ArgCommand{<:Any, <:Any, S},
         ctx::Context{S},
         prefix::Vector{String},
         rt::OverlayContext
-    )::HelpDoc where {T, S <: CommandState}
+    )::HelpDoc where {S <: CommandState}
     if is_error(ctx_state(ctx))
         # the command failed to parse. This is the root node.
         return HelpDoc(
@@ -69,7 +73,9 @@ helpentries(p::ArgCommand, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(r
     return focused_helpdoc(p.parser, child_ctx, child_prefix, descend_child(rt))::HelpDoc
 end
 
-@autospecialize p ctx function parse(p::ArgCommand{T, <:Any, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: CommandState}
+@autospecialize p ctx function parse(p::ArgCommand{T, E, S}, ctx::Context{S}) where {T, E, S <: CommandState}
+    IS = tstate(typeof(p.parser))
+
     if is_error(ctx_state(ctx))
         # command not yet matched
         # check if it starts with our command name
@@ -77,22 +83,22 @@ end
             actual = ctx_hasnone(ctx) ? nothing : ctx_peek(ctx)
 
             if actual === nothing
-                return innerErr(ctx, ArgCommandError(COMMAND_EndOfInput, "", p.names[1]))
+                return InnerParseResult{S, E}(innerErr(ArgCommandError(COMMAND_EndOfInput, "", p.names[1])))
             end
 
-            return innerErr(ctx, ArgCommandError(COMMAND_WrongName, actual, p.names[1]))
+            return InnerParseResult{S, E}(innerErr(ArgCommandError(COMMAND_WrongName, actual, p.names[1])))
         end
 
         # command matched, consume it and move to the matched state
-        nextctx = ctx_with_state(consume(ctx, 1), some(none(_inner_state(S))))
-        return innerOk(ctx, 1; nextctx)
+        nextctx = ctx_with_state(ctx, some(none(IS)))
+        return InnerParseResult{S, E}(innerOk(nextctx, 1))
 
     else
         maybestate = base(unwrap(ctx_state(ctx)))
         childstate = isnothing(maybestate) ? p.parser.initialState : @something maybestate
-        childctx = widen_restate(tstate(p.parser), ctx, childstate)
+        childctx = widen_restate(IS, ctx, childstate)
 
-        result = parse(p.parser, childctx)::InnerParseResult{_inner_state(S)}
+        result = parse(p.parser, childctx)
 
         if !is_error(result)
             parse_ok = unwrap(result)
@@ -102,19 +108,19 @@ end
                 res_nextctx(parse_ok),
                 some(some(ℒ_nextstate(parse_ok)))
             )
-            return innerOk(newctx, res_consumed(parse_ok))
+            return InnerParseResult{S, E}(innerOk(newctx, res_consumed(parse_ok)))
 
         else
-            return innerErr(ctx, result)
+            return InnerParseResult{S, E}(innerErr(E, result))
         end
     end
 end
 
-@autospecialize p function complete(p::ArgCommand{T, <:Any, S}, maybemaybestate::S)::ParseResult{T} where {T, S <: CommandState}
+@autospecialize p function complete(p::ArgCommand{T, E, S}, maybemaybestate::S) where {T, E, S <: CommandState}
 
     if is_error(maybemaybestate)
         # command never matched
-        return typedErr(T, ArgCommandError(COMMAND_NotMatched, "", p.names[1]))
+        return ParseResult{T, E}(typedErr(E, ArgCommandError(COMMAND_NotMatched, "", p.names[1])))
     else
         maybestate = unwrap(maybemaybestate)
         result = if is_error(maybestate)
@@ -123,6 +129,11 @@ end
         else
             complete(p.parser, unwrap(maybestate))
         end
-        return !is_error(result) ? result : typedErr(T, unwrap_error(result))
+
+        if is_error(result)
+            return ParseResult{T, E}(typedErr(E, unwrap_error(result)))
+        else
+            return ParseResult{T, E}(typedOk(T, unwrap(result)))
+        end
     end
 end

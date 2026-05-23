@@ -177,8 +177,8 @@ end
     defaultParser = default(baseParser, 8080)
 
     err = parse_fail(defaultParser, ["-p", "10"])
-    @test err.domain == OptParse.ERR_IntegerVal
-    @test OptParse.IntegerErrCode(err.code) == OptParse.INTEGER_BelowMin
+    @test err isa OptParse.IntegerValError
+    @test err.code == OptParse.INTEGER_BelowMin
 end
 
 @testset "should handle state transitions correctly" begin
@@ -252,19 +252,19 @@ end
     optionalopt = default(option("-n", str()), "Bob")
 
     err = parse_fail(optionalopt, ["-n"])
-    @test err.domain == OptParse.ERR_ArgOption
-    @test OptParse.OptionErrCode(err.code) == OptParse.OPTION_MissingValue
+    @test err isa OptParse.ArgOptionError
+    @test err.code == OptParse.OPTION_MissingValue
 end
 
 @testset "should correctly handle -- edge cases" begin
     def = default(option("-n", "--name", str()), "bob")
 
     err = parse_fail(def, ["--", "-n", "alice"])
-    @test err.domain == OptParse.ERR_Main
+    @test err isa OptParse.MainError
 
     err = parse_fail(def, ["-n", "--"])
-    @test err.domain == OptParse.ERR_ArgOption
-    @test OptParse.OptionErrCode(err.code) == OptParse.OPTION_MissingValue
+    @test err isa OptParse.ArgOptionError
+    @test err.code == OptParse.OPTION_MissingValue
 
     @test parse_ok(def, ["--"]) == "bob"
 

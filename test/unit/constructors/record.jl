@@ -54,7 +54,7 @@ end
     )
 
     err = parse_fail(parser, ["-p", "0"])
-    @test err.domain == OptParse.ERR_IntegerVal
+    @test err isa OptParse.IntegerValError
 end
 
 @testset "should fail when no option matches" begin
@@ -73,8 +73,8 @@ end
     @test is_error(res)
     pf = unwrap_error(res)
     @test pf.consumed == 0
-    @test pf.error.domain == OptParse.ERR_ConstrObject
-    @test OptParse.ObjectErrCode(pf.error.code) == OptParse.OBJECT_UnexpectedToken
+    @test pf.error isa OptParse.ConstrObjectError
+    @test pf.error.code == OptParse.OBJECT_UnexpectedToken
 end
 
 @testset "should handle empty arguments gracefully when required options are present" begin
@@ -91,8 +91,8 @@ end
 
     @test is_error(res)
     pf = unwrap_error(res)
-    @test pf.error.domain == OptParse.ERR_ConstrObject
-    @test OptParse.ObjectErrCode(pf.error.code) == OptParse.OBJECT_EndOfInput
+    @test pf.error isa OptParse.ConstrObjectError
+    @test pf.error.code == OptParse.OBJECT_EndOfInput
 end
 
 @testset "handles complex records" begin
@@ -140,7 +140,7 @@ end
     err = parse_fail(obj, ["ARG", "--host", "host", "--", "-v"])
     # the "-v" is correctly interpreted not as an option but as an argument.
     # in this case the record will fail to match any of its inner parsers, raising a NoProgress error
-    @test err.domain == OptParse.ERR_Main
+    @test err isa OptParse.MainError
 
     @test parse_ok(obj, ["--host", "host", "ARG", "--"]) == (option = "host", flag = nothing, arg = "ARG")
 

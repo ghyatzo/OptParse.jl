@@ -5,6 +5,7 @@
 
     sorted_labels = _sort_obj_labels(labels, PTup)
     whilebody = Expr(:block)
+    E = Union{ConstrObjectError, map(p -> terr(p), fieldtypes(PTup))...}
 
     for field in sorted_labels
         push!(
@@ -20,7 +21,7 @@
                 if is_error(result)
                     parse_err = unwrap_error(result)
                     if res_num_consumed(error) < res_num_consumed(parse_err)
-                        error = parse_err
+                        error = InnerParseFailure{$E}(parse_err.consumed, parse_err.error)
                     end
                 else
                     parse_ok = unwrap(result)
@@ -51,9 +52,11 @@
 
     return quote
         #= if nothing inside the record can match our token, then it's "unexpected" =#
-        error = ctx_hasmore(ctx) > 0 ?
-            InnerParseFailure(0, parse_error(ConstrObjectError(OBJECT_UnexpectedToken, ctx_peek(ctx)))) :
-            InnerParseFailure(0, parse_error(ConstrObjectError(OBJECT_EndOfInput, "")))
+        error = InnerParseFailure{$E}(0,
+               ctx_hasmore(ctx) ?
+                   ConstrObjectError(OBJECT_UnexpectedToken, ctx_peek(ctx)) :
+                   ConstrObjectError(OBJECT_EndOfInput, "")
+           )
         #= greedy parsing trying to consume as many field as possible =#
         anysuccess = false
         allconsumed = Consumed[consumed_empty(ctx)]
@@ -72,46 +75,60 @@
         end
 
         if iter == maxiter
-            error = InnerParseFailure(0, parse_error(ConstrObjectError(OBJECT_MaxIter, "")))
+            error = InnerParseFailure(0, ConstrObjectError(OBJECT_MaxIter, ""))
         end
 
         return current_ctx, error, allconsumed, anysuccess
     end
 end
 
-@generated function _object_complete_impl(p::NamedTuple{labels, PTup}, state::NamedTuple{labels, STup}) where {labels, PTup, STup}
-    pre = :(output = (;))
-
-    ex = Expr(:block)
+@generated function _object_can_complete(p::NamedTuple{labels, PTup}, state::NamedTuple{labels, STup}) where {labels, PTup, STup}
     Ps = PTup.parameters
     Ss = STup.parameters
-    T = NamedTuple{labels, Tuple{map(tval, Ps)...}}
-    i = 1
-    for field in labels
-        Ti = tval(Ps[i])
+
+    ex = Expr(:block)
+    for (i, field) in enumerate(labels)
         S = Ss[i]
         push!(
             ex.args, quote
                 child_state = state[$(QuoteNode(field))]::$S
                 child_parser = p[$(QuoteNode(field))]
-
-                result = (complete(child_parser, child_state))::ParseResult{$Ti}
-                if is_error(result)
-                    return false, ParseResult{$T}(typedErr(unwrap_error(result)))
-                else
-                    output = (output..., unwrap(result))
-                end
+                result = complete(child_parser, child_state)
+                is_error(result) && return false
             end
         )
-        i += 1
+    end
+    push!(ex.args, :(return true))
+    return ex
+end
+
+@generated function _object_complete_impl(p::NamedTuple{labels, PTup}, state::NamedTuple{labels, STup}) where {labels, PTup, STup}
+    Ps = PTup.parameters
+    Ss = STup.parameters
+    T = NamedTuple{labels, Tuple{map(tval, Ps)...}}
+    E = Union{ConstrObjectError, map(terr, Ps)...}
+
+    ex = Expr(:block)
+
+    # Phase 1: complete each child into a typed local, early-return on error
+    for (i, field) in enumerate(labels)
+        S = Ss[i]
+        result_sym = Symbol("result_", i)
+        push!(
+            ex.args, quote
+                child_state = state[$(QuoteNode(field))]::$S
+                child_parser = p[$(QuoteNode(field))]
+                $result_sym = complete(child_parser, child_state)
+                is_error($result_sym) && return ParseResult{$T, $E}(typedErr($E, unwrap_error($result_sym)))
+            end
+        )
     end
 
-    post = :(return true, $T(output))
-    return quote
-        $pre
-        $ex
-        $post
-    end
+    # Phase 2: construct the NamedTuple from all successful results
+    unwraps = [:(unwrap($(Symbol("result_", i)))::$(tval(Ps[i]))) for i in eachindex(Ps)]
+    push!(ex.args, :(return ParseResult{$T, $E}(typedOk($T, $T(($(unwraps...),))))))
+
+    return ex
 end
 
 @generated function _object_helpentries_impl(parsers::PObj, rt::OverlayContext) where {PObj <: NamedTuple}

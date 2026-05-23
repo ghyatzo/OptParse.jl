@@ -33,6 +33,7 @@ ctx_pos(ctx::Context) = ℒ_pos(ctx)
 ctx_state(ctx::Context) = ℒ_state(ctx)
 ctx_usage(ctx::Context) = ℒ_usage(ctx)
 ctx_optterm(ctx::Context) = ℒ_optterm(ctx)
+ctx_tstate(ctx::Context{S}) where {S} = S
 
 @inline ctx_with_options_terminated(ctx::Context, flag::Bool) = set(ctx, ℒ_optterm, flag)
 @inline ctx_with_buffer(ctx::Context, buf::Vector{String}) = set(ctx, ℒ_buffer, buf)
@@ -93,12 +94,11 @@ end
 
 Utility function that combines a new state while also widening it
 """
-@inline function widen_restate(::Type{B}, ctx::Context, s::S) where {B, S <: B}
-    U = promote_type(S, B)
-    return Context{U}(
+@inline function widen_restate(::Type{B}, ctx::Context, s) where {B}
+    return Context{B}(
         ℒ_buffer(ctx),
         ℒ_pos(ctx),
-        convert(U, s),
+        convert(B, s),
         ℒ_usage(ctx),
         ℒ_optterm(ctx)
     )
@@ -120,6 +120,6 @@ end
 @inline ctx_remaining(ctx::Context) = ℒ_buffer(ctx)[ℒ_pos(ctx):end]
 @inline ctx_length(ctx::Context) = length(ℒ_buffer(ctx)) - (ℒ_pos(ctx) - 1)
 
-@inline consume(ctx::Context, n::Int) =
+@inline ctx_consume(ctx::Context, n::Int) =
     set(ctx, ℒ_pos, ℒ_pos(ctx)+n)
 

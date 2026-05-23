@@ -3,6 +3,7 @@
 
 function _or_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Context), allconsumed, error)
     U = _or_inner_branch_union(typeof(parsers))
+    E = Union{ConstrOrError, map(terr, parsers)...}
 
     currctx = ctx
     for (i, parser) in enumerate(parsers)
@@ -19,68 +20,25 @@ function _or_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Contex
             else
                 child_tstate = typeof(child_state)
                 new_innerstate = some(InnerOrState{U}(OrBranchState{i, child_tstate}(parse_ok)))
-                OrS = OrState{U}
-                newctx = widen_restate(OrS, res_nextctx(parse_ok), new_innerstate)
+                newctx = widen_restate(OrState{U}, res_nextctx(parse_ok), new_innerstate)
                 push!(allconsumed, res_consumed(parse_ok))
-                return innerOk(newctx, merge(allconsumed))
+
+                return _OrParseOutcome{OrState{U}, E}(
+                    OR_OUTCOME_BranchMatch, newctx, merge(allconsumed), error
+                )
             end
         elseif is_error(result)
             if res_num_consumed(error) < res_num_consumed(result)
-                error = unwrap_error(result)
+                parse_err = unwrap_error(result)
+                error = InnerParseFailure{E}(parse_err.consumed, parse_err.error)
             end
         end
     end
 
     if currctx != ctx
-        return innerOk(currctx, merge(allconsumed), false)
+        return _OrParseOutcome{OrState{U}, E}(OR_OUTCOME_Propagate, currctx, merge(allconsumed), error)
     end
-    return innerErr(currctx, error)
-end
-
-function parse(@nospecialize(p::ConstrOr), @nospecialize(ctx::Context))
-    PTup = ptypes(typeof(p))
-
-    error = ctx_haslessthan(1, ctx) ?
-        InnerParseFailure(0, parse_error(ConstrOrError(OR_EndOfInput, "", ""))) :
-        InnerParseFailure(0, parse_error(ConstrOrError(OR_UnexpectedToken, ctx_peek(ctx), "")))
-    current_ctx = ctx
-    allconsumed = Consumed[consumed_empty(ctx)]
-
-    innerstate = ctx_state(ctx)
-    has_selection = !is_error(innerstate)
-
-    if has_selection
-        selected = unwrap(innerstate)
-        res = _parse_branch(p, unwrapunion(selected), current_ctx, allconsumed, error)
-    else
-        res = _or_parse_impl(p.parsers, ctx, allconsumed, error)
-    end
-
-    innerstate_U = _or_inner_branch_union(PTup)
-    return convert(InnerParseResult{OrState{innerstate_U}}, res)
-end
-
-function complete(@nospecialize(p::ConstrOr), @nospecialize(orstate))
-    T = tval(typeof(p))
-    is_error(orstate) &&
-        return typedErr(T, ConstrOrError(OR_NoMatch, "", ""))
-
-    selected = unwrap(orstate)
-    return _complete(p, unwrapunion(selected))
-end
-
-function _complete(
-        @nospecialize(p::ConstrOr),
-        selected::OrBranchState{I, S}
-    ) where {I, S}
-    T = tval(typeof(p))
-
-    child_result = complete(p.parsers[I], ℒ_nextstate(selected.success))
-    if is_error(child_result)
-        return typedErr(T, unwrap_error(child_result))
-    end
-
-    return typedOk(T, unwrap(child_result))
+    return _OrParseOutcome{OrState{U}, E}(OR_OUTCOME_NoMatch, currctx, merge(allconsumed), error)
 end
 
 function _or_helpentries_impl(@nospecialize(parsers::Tuple), rt::OverlayContext)
@@ -89,26 +47,4 @@ function _or_helpentries_impl(@nospecialize(parsers::Tuple), rt::OverlayContext)
         append!(entries, helpentries(child, descend_child(rt))::Vector{HelpEntry})
     end
     return entries
-end
-
-function focused_helpdoc(
-        @nospecialize(p::ConstrOr), @nospecialize(ctx::Context),
-        prefix::Vector{String}, rt::OverlayContext
-    )
-    is_error(ctx_state(ctx)) && return HelpDoc(
-        prefix,
-        usage(p),
-        helpinfo(rt),
-        helpentries(p, descend_child(rt))::Vector{HelpEntry}
-    )
-
-    selected = unwrap(ctx_state(ctx))
-    return _focused_helpdoc_or(p, unwrapunion(selected), prefix, rt)
-end
-
-function _focused_helpdoc_or(
-        @nospecialize(p::ConstrOr),
-        selected::OrBranchState{I, S}, prefix::Vector{String}, rt::OverlayContext
-    ) where {I, S}
-    return focused_helpdoc(p.parsers[I], res_nextctx(selected.success), prefix, descend_child(rt))
 end

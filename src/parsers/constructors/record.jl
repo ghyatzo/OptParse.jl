@@ -44,13 +44,14 @@ function ConstrObject(parsers_obj::NT; label = "") where {NT <: NamedTuple}
     parsers = values(parsers_obj)
     parsers_tvals = map(tval, parsers_t)
     parsers_tstates = map(tstate, parsers_t)
+    parsers_errors = map(terr, parsers_t)
 
     parsers_obj_tval = NamedTuple{labels, Tuple{parsers_tvals...}}
     init_state = NamedTuple{labels, Tuple{parsers_tstates...}}(map(p -> p.initialState, parsers))
 
     return ConstrObject{
         parsers_obj_tval,
-        Nothing,
+        Union{ConstrObjectError, parsers_errors...},
         typeof(init_state),
         typeof(parsers_obj),
         mapreduce(p -> priority(p), max, parsers_obj),
@@ -103,36 +104,27 @@ end
 # _object_parse_impl is provided by static/record.jl or dynamic/record.jl
 # _object_complete_impl is provided by static/record.jl or dynamic/record.jl
 
-@autospecialize p ctx function parse(p::ConstrObject{T, <:Any, S}, ctx::Context{S})::InnerParseResult{S} where {T, S <: ObjectState}
+@autospecialize p ctx function parse(p::ConstrObject{T, E, S}, ctx::Context{S}) where {T, E, S <: ObjectState}
 
     outctx, error, allconsumed, anysuccess = _object_parse_impl(p.parsers, ctx)
 
     mergedcons = merge(allconsumed)
 
     if anysuccess
-        return innerOk(outctx, mergedcons)
+        return InnerParseResult{S, E}(innerOk(outctx, mergedcons))
     end
 
     if ctx_hasnone(ctx) == 0
-        all_can_complete, _ = _object_complete_impl(p.parsers, ctx_state(ctx))
-
-        if all_can_complete
-            return innerOk(ctx, consumed_empty(ctx))
+        if _object_can_complete(p.parsers, ctx_state(ctx))
+            return InnerParseResult{S, E}(innerOk(ctx, consumed_empty(ctx)))
         end
     end
 
-    return innerErr(ctx, error)
+    return InnerParseResult{S, E}(typedErr(InnerParseFailure{E}, error))
 end
 
-@autospecialize p function complete(p::ConstrObject{T}, st::ObjectState)::ParseResult{T} where {T}
-
-    cancomplete, _result = _object_complete_impl(p.parsers, st)
-
-    if !cancomplete
-        return typedErr(T, unwrap_error(_result))
-    end
-
-    return typedOk(T, _result)
+@autospecialize p function complete(p::ConstrObject{T, E}, st::ObjectState) where {T, E}
+    return _object_complete_impl(p.parsers, st)::ParseResult{T, E}
 end
 
 

@@ -209,11 +209,7 @@ macro autospecialize(args...)
         d[:whereparams] = remaining_where
     end
 
-    # Strip owned params from return type (delete entirely if fully stripped)
-    if haskey(d, :rtype) && d[:rtype] !== nothing
-        d[:rtype] = _strip_type_params(d[:rtype], owned)
-        d[:rtype] === nothing && delete!(d, :rtype)
-    end
+    delete!(d, :rtype)
 
     # Prepend runtime extraction to body
     d[:body] = Expr(:block, preamble..., d[:body])

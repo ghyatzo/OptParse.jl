@@ -10,6 +10,7 @@ end
 function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Context))
     N = length(parsers)
     perm = _sort_tup_by_priority(parsers)
+    E = Union{ConstrTupleError, map(p -> terr(typeof(p)), values(parsers))...}
 
     current_ctx = ctx
     allconsumed = Consumed[consumed_empty(ctx)]
@@ -18,12 +19,12 @@ function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Conte
     while length(matched_parsers) < N
         found_match = false
 
-        error = InnerParseFailure(
+        error = InnerParseFailure{E}(
             0,
-            parse_error(ConstrTupleError(
+            ConstrTupleError(
                 TUPLE_NoRemainingParser,
                 ctx_hasmore(current_ctx) ? ctx_peek(current_ctx) : "",
-            ))
+            )
         )
 
         # Pass 1: try consuming parsers in priority order
@@ -53,7 +54,8 @@ function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Conte
                     push!(allconsumed, res_consumed(parse_ok))
                 end
             elseif is_error(result) && res_num_consumed(error) < res_num_consumed(result)
-                error = unwrap_error(result)
+                parse_err = unwrap_error(result)
+                error = InnerParseFailure{E}(parse_err.consumed, parse_err.error)
             end
         end
 
@@ -86,30 +88,29 @@ function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Conte
         end
 
         if !found_match
-            return innerErr(current_ctx, error)
+            return current_ctx, error, merge(allconsumed), found_match
         end
     end
 
-    mergedcons = merge(allconsumed)
-    return innerOk(current_ctx, mergedcons)
+    return current_ctx, error, merge(allconsumed), true
 end
 
 function _tuple_complete_impl(@nospecialize(parsers::Tuple), @nospecialize(state::Tuple))
     T = Tuple{map(p -> tval(typeof(p)), parsers)...}
-    output = ()
+    E = Union{ConstrTupleError, map(p -> terr(typeof(p)), parsers)...}
+    results = Vector{Any}(undef, length(parsers))
     for i in eachindex(parsers)
         child_state = state[i]
         child_parser = parsers[i]
 
         result = complete(child_parser, child_state)
         if is_error(result)
-            return false, ParseResult{T}(typedErr(unwrap_error(result)))
+            return ParseResult{T, E}(typedErr(E, unwrap_error(result)))
         end
-
-        output = (output..., unwrap(result))
+        results[i] = unwrap(result)
     end
 
-    return true, output::T
+    return Result{T, E}(typedOk(T, T(Tuple(results))))
 end
 
 function _tuple_helpentries_impl(@nospecialize(parsers::Tuple), rt::OverlayContext)

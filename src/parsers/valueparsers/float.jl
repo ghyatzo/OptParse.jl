@@ -1,14 +1,3 @@
-@kwdef struct FloatVal{T} <: AbstractValueParser{T}
-    metavar::String = ""
-    #
-    min::Union{T, Nothing} = nothing
-    max::Union{T, Nothing} = nothing
-    allow_infinity::Bool = false
-    allow_nan::Bool = false
-end
-
-default_metavar(::FloatVal) = "FLOAT"
-
 @enum FloatErrCode::UInt8 begin
     FLOAT_Invalid
     FLOAT_BelowMin
@@ -39,24 +28,34 @@ function render_error(io::IO, err::FloatValError)
     end
 end
 
+@kwdef struct FloatVal{T} <: AbstractValueParser{T, FloatValError}
+    metavar::String = ""
+    #
+    min::Union{T, Nothing} = nothing
+    max::Union{T, Nothing} = nothing
+    allow_infinity::Bool = false
+    allow_nan::Bool = false
+end
 
-((f::FloatVal{T})(input::String)::ParseResult{T}) where {T} = let
+default_metavar(::FloatVal) = "FLOAT"
+
+(f::FloatVal{T})(input::String) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
-        return typedErr(FloatValError(FLOAT_Invalid, input, ""))
+        return ParseResult{T, FloatValError}(Err(FloatValError(FLOAT_Invalid, input, "")))
     end
 
     if isinf(val) && !f.allow_infinity
-        return typedErr(FloatValError(FLOAT_NoInf, input, ""))
+        return ParseResult{T, FloatValError}(Err(FloatValError(FLOAT_NoInf, input, "")))
     end
 
     if isnan(val) && !f.allow_nan
-        return typedErr(FloatValError(FLOAT_NoNaN, input, ""))
+        return ParseResult{T, FloatValError}(Err(FloatValError(FLOAT_NoNaN, input, "")))
     end
 
-    (!isnothing(f.min) && val < f.min) && return typedErr(FloatValError(FLOAT_BelowMin, input, string(f.min)))
-    (!isnothing(f.max) && val > f.max) && return typedErr(FloatValError(FLOAT_AboveMax, input, string(f.max)))
+    (!isnothing(f.min) && val < f.min) && return ParseResult{T, FloatValError}(Err(FloatValError(FLOAT_BelowMin, input, string(f.min))))
+    (!isnothing(f.max) && val > f.max) && return ParseResult{T, FloatValError}(Err(FloatValError(FLOAT_AboveMax, input, string(f.max))))
 
 
-    return typedOk(val)
+    return ParseResult{T, FloatValError}(Ok(val))
 end

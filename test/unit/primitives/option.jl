@@ -47,9 +47,9 @@ end
 @testset "should handle option terminator edge cases correctly" begin
     parser = option("--name", str())
 
-    @test_parse_error parser ["--", "--name", "lol"] OptParse.ERR_ArgOption OptParse.OPTION_NoMoreOptions
-    @test_parse_error parser ["--"] OptParse.ERR_ArgOption OptParse.OPTION_Missing
-    @test_parse_error parser ["--name", "--"] OptParse.ERR_ArgOption OptParse.OPTION_MissingValue
+    @test_parse_error parser ["--", "--name", "lol"] OptParse.ArgOptionError OptParse.OPTION_NoMoreOptions
+    @test_parse_error parser ["--"] OptParse.ArgOptionError OptParse.OPTION_Missing
+    @test_parse_error parser ["--name", "--"] OptParse.ArgOptionError OptParse.OPTION_MissingValue
     @test parse_ok(parser, ["--name", "bob", "--"]) == "bob"
 end
 
@@ -77,8 +77,8 @@ end
     pf = unwrap_error(res)
 
     @test res_num_consumed(pf) == 1
-    @test pf.error.domain == OptParse.ERR_ArgOption
-    @test OptParse.OptionErrCode(pf.error.code) == OptParse.OPTION_MissingValue
+    @test pf.error isa OptParse.ArgOptionError
+    @test pf.error.code == OptParse.OPTION_MissingValue
     @test pf.error.token == "--port"
 end
 
@@ -108,8 +108,8 @@ end
     # ...but the inner value parser failed (carry failure in state)
     @test is_error(res_nextstate(ps))
     err = unwrap_error(res_nextstate(ps))
-    @test err.domain == OptParse.ERR_IntegerVal
-    @test OptParse.IntegerErrCode(err.code) == OptParse.INTEGER_Invalid
+    @test err isa OptParse.IntegerValError
+    @test err.code == OptParse.INTEGER_Invalid
     @test err.token == "invalid"
 end
 
@@ -123,8 +123,8 @@ end
     pf = unwrap_error(res)
 
     @test res_num_consumed(pf) == 0
-    @test pf.error.domain == OptParse.ERR_ArgOption
-    @test OptParse.OptionErrCode(pf.error.code) == OptParse.OPTION_NoMatch
+    @test pf.error isa OptParse.ArgOptionError
+    @test pf.error.code == OptParse.OPTION_NoMatch
     @test pf.error.token == "--help"
 end
 

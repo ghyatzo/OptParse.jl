@@ -119,8 +119,8 @@ end
     # still parse the later positional argument. Completion should then fail
     # because the required flag was never matched semantically.
     err = parse_fail(parser, ["--", "hello"])
-    @test err.domain == OptParse.ERR_ArgGate
-    @test OptParse.GateErrCode(err.code) == OptParse.GATE_Missing
+    @test err isa OptParse.ArgGateError
+    @test err.code == OptParse.GATE_Missing
 end
 
 @testset "should propagate control-only consumption to later tuple elements" begin

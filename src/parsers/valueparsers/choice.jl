@@ -1,4 +1,23 @@
-struct ChoiceVal{T} <: AbstractValueParser{T}
+@enum ChoiceValErrCode::UInt8 begin
+    CHOICE_Invalid
+end
+
+struct ChoiceValError <: AbstractParseError
+    code::ChoiceValErrCode
+    values::Vector{String}
+    got::String
+end
+
+function render_error(io::IO, err::ChoiceValError)
+    return if err.code == CHOICE_Invalid
+        print(io, "Expected one of [$(join(err.values, ','))], got $(err.got)")
+    else
+        print(io, "unreachable")
+    end
+end
+
+
+struct ChoiceVal{T} <: AbstractValueParser{T, ChoiceValError}
     metavar::String
     case_insensitive::Bool
     values::Vector{String}
@@ -20,33 +39,14 @@ end
 
 default_metavar(::ChoiceVal) = "CHOICE"
 
-
-@enum ChoiceValErrCode::UInt8 begin
-    CHOICE_Invalid
-end
-
-struct ChoiceValError <: AbstractParseError
-    code::ChoiceValErrCode
-    values::Vector{String}
-    got::String
-end
-
-function render_error(io::IO, err::ChoiceValError)
-    return if err.code == CHOICE_Invalid
-        print(io, "Expected one of [$(join(err.values, ','))], got $(err.got)")
-    else
-        print(io, "unreachable")
-    end
-end
-
-error_union(::Type{ChoiceVal}) = ChoiceValError
-
-((c::ChoiceVal{T})(input::String)::ParseResult{T}) where {T} = let
+(c::ChoiceVal{T})(input::String) where {T} = let
     norminput = c.case_insensitive ? uppercase(input) : input
     index = findfirst(==(norminput), c.values)
 
-    isnothing(index) && return typedErr(ChoiceValError(CHOICE_Invalid, c.values, token))
+    isnothing(index) && return ParseResult{T, ChoiceValError}(
+        Err(ChoiceValError(CHOICE_Invalid, c.values, input))
+    )
 
-    return typedOk(c.outputs[index])
+    return ParseResult{T, ChoiceValError}(Ok(c.outputs[index]))
 
 end

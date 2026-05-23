@@ -44,15 +44,15 @@ end
 
 @testset "should fail when switch is already set" begin
     parser = switch("-v")
-    context = mkctx(["-v"], OptParse.ParseResult{Bool}(Ok(true)))
+    context = mkctx(["-v"], OptParse.ParseResult{Bool, OptParse.ArgGateError}(Ok(true)))
 
     result = splitparse(parser, context)
 
     @test is_error(result)
     fail = unwrap_error(result)
     @test res_num_consumed(fail) == 1
-    @test fail.error.domain == OptParse.ERR_ArgGate
-    @test OptParse.GateErrCode(fail.error.code) == OptParse.GATE_Duplicate
+    @test fail.error isa OptParse.ArgGateError
+    @test fail.error.code == OptParse.GATE_Duplicate
     @test fail.error.token == "-v"
 end
 
@@ -82,8 +82,8 @@ end
     @test is_error(result)
     fail = unwrap_error(result)
     @test res_num_consumed(fail) == 0
-    @test fail.error.domain == OptParse.ERR_ArgGate
-    @test OptParse.GateErrCode(fail.error.code) == OptParse.GATE_NoMoreOptions
+    @test fail.error isa OptParse.ArgGateError
+    @test fail.error.code == OptParse.GATE_NoMoreOptions
 end
 
 @testset "should handle flags terminator --" begin
@@ -100,8 +100,8 @@ end
 end
 
 @testset "should handle option terminator edge cases correctly" begin
-    @test_parse_error switch("-v") ["--", "-v"] OptParse.ERR_ArgGate OptParse.GATE_NoMoreOptions
-    @test_parse_error switch("-v") ["--"] OptParse.ERR_ArgGate OptParse.GATE_Missing
+    @test_parse_error switch("-v") ["--", "-v"] OptParse.ArgGateError OptParse.GATE_NoMoreOptions
+    @test_parse_error switch("-v") ["--"] OptParse.ArgGateError OptParse.GATE_Missing
     @test parse_ok(switch("-v"), ["-v", "--"]) == true
 end
 
@@ -114,8 +114,8 @@ end
     @test is_error(result)
     fail = unwrap_error(result)
     @test res_num_consumed(fail) == 0
-    @test fail.error.domain == OptParse.ERR_ArgGate
-    @test OptParse.GateErrCode(fail.error.code) == OptParse.GATE_EndOfInput
+    @test fail.error isa OptParse.ArgGateError
+    @test fail.error.code == OptParse.GATE_EndOfInput
 end
 
 @testset "should be type stable" begin

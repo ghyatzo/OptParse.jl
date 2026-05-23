@@ -30,8 +30,8 @@ end
     orParser = or(parser1, parser2)
 
     err = parse_fail(orParser, ["-c"])
-    @test err.domain == OptParse.ERR_ConstrOr
-    @test OptParse.OrErrCode(err.code) == OptParse.OR_UnexpectedToken
+    @test err isa OptParse.ConstrOrError
+    @test err.code == OptParse.OR_UnexpectedToken
 end
 
 @testset "should detect mutually exclusive options" begin
@@ -40,8 +40,8 @@ end
     orParser = or(parser1, parser2)
 
     err = parse_fail(orParser, ["-a", "-b"])
-    @test err.domain == OptParse.ERR_ArgGate
-    @test OptParse.GateErrCode(err.code) == OptParse.GATE_NoMatch
+    @test err isa OptParse.ArgGateError
+    @test err.code == OptParse.GATE_NoMatch
 end
 
 @testset "should work with more than two parsers" begin
@@ -98,8 +98,8 @@ end
     # Bare `--` should not select a branch or create a conflict. Once option
     # parsing is terminated, the `or` should simply complete with no match.
     err = parse_fail(ctrlonly, ["--"])
-    @test err.domain == OptParse.ERR_ConstrOr
-    @test OptParse.OrErrCode(err.code) == OptParse.OR_NoMatch
+    @test err isa OptParse.ConstrOrError
+    @test err.code == OptParse.OR_NoMatch
 end
 
 @testset "should treat everything after -- as positional input rather than command syntax" begin
@@ -124,7 +124,7 @@ end
     # Once `bye` has selected the command branch, later tokens must stay inside
     # that branch. They must not reactivate the positional fallback branch.
     err = parse_fail(parser, ["bye", "--", "-n"])
-    @test err.domain == OptParse.ERR_ConstrObject
+    @test err isa OptParse.ConstrObjectError
 end
 
 @testset "should keep parsing selected alternative state after branch selection" begin

@@ -1,12 +1,3 @@
-@kwdef struct IntegerVal{T} <: AbstractValueParser{T}
-    metavar::String = ""
-    #
-    min::Union{T, Nothing} = nothing
-    max::Union{T, Nothing} = nothing
-end
-
-default_metavar(::IntegerVal) = "INTEGER"
-
 @enum IntegerErrCode::UInt8 begin
     INTEGER_Invalid
     INTEGER_BelowMin
@@ -31,15 +22,23 @@ function render_error(io::IO, err::IntegerValError)
     end
 end
 
+@kwdef struct IntegerVal{T} <: AbstractValueParser{T, IntegerValError}
+    metavar::String = ""
+    #
+    min::Union{T, Nothing} = nothing
+    max::Union{T, Nothing} = nothing
+end
 
-((iv::IntegerVal{T})(input::String)::ParseResult{T}) where {T} = let
+default_metavar(::IntegerVal) = "INTEGER"
+
+(iv::IntegerVal{T})(input::String) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
-        return typedErr(IntegerValError(INTEGER_Invalid, input, ""))
+        return ParseResult{T, IntegerValError}(Err(IntegerValError(INTEGER_Invalid, input, "")))
     end
 
-    (!isnothing(iv.min) && val < iv.min) && return typedErr(IntegerValError(INTEGER_BelowMin, input, string(iv.min)))
-    (!isnothing(iv.max) && val > iv.max) && return typedErr(IntegerValError(INTEGER_AboveMax, input, string(iv.max)))
+    (!isnothing(iv.min) && val < iv.min) && return ParseResult{T, IntegerValError}(Err(IntegerValError(INTEGER_BelowMin, input, string(iv.min))))
+    (!isnothing(iv.max) && val > iv.max) && return ParseResult{T, IntegerValError}(Err(IntegerValError(INTEGER_AboveMax, input, string(iv.max))))
 
-    return typedOk(val)
+    return ParseResult{T, IntegerValError}(Ok(val))
 end
