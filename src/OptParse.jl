@@ -64,6 +64,8 @@ export
     uuid,
     valuetype
 
+public validate
+
 
 abstract type AbstractParser{T, E, S, P, R} end
 
@@ -79,12 +81,8 @@ tstate(::AbstractParser{T, E, S}) where {T, E, S} = S
 ptypes(::Type{<:AbstractParser{T, E, S, P}}) where {T, E, S, P} = P
 ptypes(::AbstractParser{T, E, S, P}) where {T, E, S, P} = P
 
-function priority(::Type{<:AbstractParser{T, E, S, P, R}})::Int where {T, E, S, P, R}
-    return R
-end
-function priority(::AbstractParser{T, E, S, P, R})::Int where {T, E, S, P, R}
-    return R
-end
+priority(::Type{<:AbstractParser{T, E, S, P, R}}) where {T, E, S, P, R} = R
+priority(::AbstractParser{T, E, S, P, R}) where {T, E, S, P, R} = R
 
 """
     valuetype(parser_or_type)

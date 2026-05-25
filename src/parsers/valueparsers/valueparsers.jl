@@ -18,7 +18,33 @@ terr(::X) where {T, E, X <: AbstractValueParser{T, E}} = E
 metavar(v::AbstractValueParser) = v.metavar
 trymetavar(v::AbstractValueParser) = isempty(metavar(v)) ? default_metavar(v) : metavar(v)
 
-((v::AbstractValueParser{T, E})(input::String)::ParseResult{T, E}) where {T, E} = tryparse(v, input)
+"""
+    validate(v::AbstractValueParser)
+
+Check that a value parser correctly implements the `AbstractValueParser` interface.
+
+Verifies that the concrete type is callable with a `String` argument and implements
+`default_metavar`.
+
+Throws an error listing any missing methods.
+"""
+function validate(v::AbstractValueParser)
+    V = typeof(v)
+    missing_methods = String[]
+
+    hasmethod(v, Tuple{String}) ||
+        push!(missing_methods, "(::$V)(::String)")
+    hasmethod(default_metavar, Tuple{V}) ||
+        push!(missing_methods, "default_metavar(::$V)")
+
+    if !isempty(missing_methods)
+        error(
+            "$V is missing the following interface methods:\n" *
+            join(("  • " * m for m in missing_methods), "\n")
+        )
+    end
+    return nothing
+end
 
 
 include("string.jl")

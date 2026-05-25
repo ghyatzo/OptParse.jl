@@ -16,6 +16,73 @@ descend_child(ctx::OverlayContext) =
     OverlayContext(HelpInfo())
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# Interface validation
+#
+# AbstractParser subtypes must implement:
+#   parse(p, ctx::Context{S}) → InnerParseResult{S}
+#   complete(p, state::S) → ParseResult{T, E}
+#   usage(p) → UsageNode
+#   helpentries(p, rt::OverlayContext) → Vector{HelpEntry}
+#   focused_helpdoc(p, ctx::Context, prefix::Vector{String}, rt::OverlayContext) → HelpDoc
+#
+# AbstractValueParser subtypes must implement:
+#   (v)(input::String) → ParseResult{T, E}
+#   default_metavar(v) → String
+#
+# AbstractParseError subtypes must implement:
+#   render_error(io::IO, err) → Nothing
+# ═══════════════════════════════════════════════════════════════════════════════
+
+"""
+    validate(p::AbstractParser)
+
+Check that a parser correctly implements the `AbstractParser` interface.
+
+Verifies that the concrete type has methods for `parse`, `complete`, `usage`,
+`helpentries`, and `focused_helpdoc` with the expected signatures.
+
+Throws an error listing any missing methods.
+"""
+function validate(p::AbstractParser)
+    T, E, S = tval(p), terr(p), tstate(p)
+    P = typeof(p)
+    missing_methods = String[]
+
+    hasmethod(parse, Tuple{P, Context{S}}) ||
+        push!(missing_methods, "parse(::$P, ::Context{$S})")
+    hasmethod(complete, Tuple{P, S}) ||
+        push!(missing_methods, "complete(::$P, ::$S)")
+    hasmethod(usage, Tuple{P}) ||
+        push!(missing_methods, "usage(::$P)")
+    hasmethod(helpentries, Tuple{P, OverlayContext}) ||
+        push!(missing_methods, "helpentries(::$P, ::OverlayContext)")
+    hasmethod(focused_helpdoc, Tuple{P, Context{S}, Vector{String}, OverlayContext}) ||
+        push!(missing_methods, "focused_helpdoc(::$P, ::Context{$S}, ::Vector{String}, ::OverlayContext)")
+
+    if !isempty(missing_methods)
+        error(
+            "$P is missing the following interface methods:\n" *
+            join(("  • " * m for m in missing_methods), "\n")
+        )
+    end
+    return nothing
+end
+
+"""
+    validate(::Type{E}) where {E <: AbstractParseError}
+
+Check that an error type correctly implements the `AbstractParseError` interface.
+
+Verifies that `render_error(::IO, ::E)` is defined.
+"""
+function validate(::Type{E}) where {E <: AbstractParseError}
+    hasmethod(render_error, Tuple{IO, E}) ||
+        error("$E must implement `render_error(io::IO, err::$E)`")
+    return nothing
+end
+
+
 include("valueparsers/valueparsers.jl")
 include("primitives/primitives.jl")
 include("constructors/constructors.jl")
