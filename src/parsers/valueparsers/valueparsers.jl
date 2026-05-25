@@ -366,3 +366,10 @@ true
 """
 path(; kw...) = PathVal{String}(; kw...)
 path(metavar::AbstractString; kw...) = PathVal{String}(; metavar = String(metavar), kw...)
+
+
+#### Extention stubs
+
+function identifier end
+
+

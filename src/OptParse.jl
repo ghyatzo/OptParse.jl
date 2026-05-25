@@ -44,6 +44,7 @@ export
     i64,
     i8,
     integer,
+    identifier,
     many,
     many1,
     record,
@@ -64,7 +65,7 @@ export
     uuid,
     valuetype
 
-public validate
+public validate, AbstractParser, AbstractValueParser, AbstractParseError
 
 
 abstract type AbstractParser{T, E, S, P, R} end
