@@ -19,7 +19,7 @@ end
 usage(p::ArgConstant) = UsageHidden(UsageEmpty())
 helpentries(p::ArgConstant, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
 focused_helpdoc(
-    p::ArgConstant{Val{val}, Nothing, ConstantState{val}},
+    p::ArgConstant{Val{val}, Union{}, ConstantState{val}},
     ::Context{ConstantState{val}},
     prefix::Vector{String},
     rt::OverlayContext

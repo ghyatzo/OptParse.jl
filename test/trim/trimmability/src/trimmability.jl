@@ -2,8 +2,6 @@ module trimmability
 
 using OptParse
 
-export @main
-
 const greet = command(
 	"greet",
 	record((;
@@ -31,6 +29,8 @@ const opt = option("-d", "--depth", integer())
 function @main(args::Vector{String})::Cint
 
 	parser = or(simple, greet, repeatedarg, goodbye, opt)
+
+	show(Core.stdout, parser)
 
 	obj = optparse(parser, args)
 	isnothing(obj) && return 1
@@ -60,5 +60,4 @@ function doaction(verbose::OptParse.tval(simple))
 	println(Core.stdout, "Yes, yes, you want to talk huh...")
 end
 
-
-end # module trimmability
+end

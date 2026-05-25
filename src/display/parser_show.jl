@@ -1,20 +1,88 @@
-Base.show(io::IO, v::AbstractValueParser) = show_compact(io, v)
-Base.show(io::IO, ::MIME"text/plain", v::AbstractValueParser) = show_pretty(io, v, 0)
-Base.show(io::IO, p::AbstractParser) = show_compact(io, p)
-Base.show(io::IO, ::MIME"text/plain", p::AbstractParser) = show_pretty(io, p, 0)
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║ Display Interface                                                          ║
+# ║                                                                            ║
+# ║ Extension points (implement for custom parsers):                           ║
+# ║   Base.show(io::IO, p::MyParser)  — compact inline representation         ║
+# ║   show_children(p::MyParser)      — children for tree display (optional)   ║
+# ║   printnode(io::IO, p::MyParser)  — tree header (optional, defaults show)  ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 
-function _print_indent(io::IO, indent::Int)
-    for _ in 1:indent
-        print(io, "  ")
+"""
+    show_children(p::AbstractParser)
+    show_children(v::AbstractValueParser)
+
+Return the children of a parser for tree display, or `nothing` for leaf parsers.
+
+Each child is a `Pair{String, <:AbstractParser}` where the string is a label
+(field name, index, or empty for unnamed single children).
+
+Override this to get automatic tree display in the REPL.
+"""
+show_children(::AbstractParser) = nothing
+show_children(::AbstractValueParser) = nothing
+
+"""
+    printnode(io::IO, p)
+
+Print the tree-header label for a parser node.
+Defaults to `show(io, p)`.
+
+Override when the tree header should be shorter than the compact form
+(e.g., constructors that summarize children inline in compact mode).
+"""
+printnode(io::IO, p::AbstractParser) = show(io, p)
+printnode(io::IO, v::AbstractValueParser) = show(io, v)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Tree Printer
+# ═══════════════════════════════════════════════════════════════════════════════
+
+function _print_tree(io::IO, p; prefix::String = "", is_last::Bool = true, is_root::Bool = true)
+    printnode(io, p)
+    cs = show_children(p)
+    cs === nothing && return
+    n = _children_length(cs)
+    for (idx, (label, child)) in enumerate(cs)
+        is_child_last = idx == n
+        print(io, "\n")
+        connector = is_child_last ? "└─ " : "├─ "
+        extension = is_child_last ? "   " : "│  "
+        print(io, prefix, connector)
+        if !isempty(label)
+            print(io, label, ": ")
+        end
+        _print_tree(io, child; prefix = prefix * extension, is_last = is_child_last, is_root = false)
     end
-    return
 end
 
-show_compact(io::IO, v::AbstractValueParser) = let
-    print(io, typeof(v), "()")
+_children_length(cs::AbstractVector) = length(cs)
+_children_length(cs) = length(cs)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Generic Fallbacks
+# ═══════════════════════════════════════════════════════════════════════════════
+
+function Base.show(io::IO, p::AbstractParser)
+    print(io, nameof(typeof(p)), "(...)")
 end
 
-show_compact(io::IO, p::ChoiceVal) = let
+function Base.show(io::IO, v::AbstractValueParser)
+    print(io, nameof(typeof(v)), "()")
+end
+
+# Tree display — interactive/REPL only.
+# Not intended for trimmed binaries; the trimmer drops it when unreachable.
+Base.show(io::IO, ::MIME"text/plain", p::AbstractParser) = _print_tree(io, p)
+Base.show(io::IO, ::MIME"text/plain", v::AbstractValueParser) = show(io, v)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Value Parsers
+# ═══════════════════════════════════════════════════════════════════════════════
+
+Base.show(io::IO, p::ChoiceVal) = let
     print(io, "choice(")
     print(io, join(string.(p.values), '|'))
     if !isempty(p.metavar)
@@ -22,20 +90,18 @@ show_compact(io::IO, p::ChoiceVal) = let
     end
     print(io, ")")
 end
-show_compact(io::IO, p::StringVal) = let
+Base.show(io::IO, p::StringVal) = let
     print(io, "str(")
     if !isempty(p.metavar)
         print(io, p.metavar)
     end
     print(io, ")")
 end
-show_compact(io::IO, p::IntegerVal) = let
+Base.show(io::IO, p::IntegerVal) = let
     print(io, "integer(")
     if !isnothing(p.min) || !isnothing(p.max)
-
         lb = isnothing(p.min) ? "" : "$(p.min)"
         ub = isnothing(p.max) ? "" : "$(p.max)"
-
         print(io, "$lb..$ub")
     end
     if !isempty(p.metavar)
@@ -46,13 +112,11 @@ show_compact(io::IO, p::IntegerVal) = let
     end
     print(io, ")")
 end
-show_compact(io::IO, p::FloatVal) = let
+Base.show(io::IO, p::FloatVal) = let
     print(io, "flt(")
     if !isnothing(p.min) || !isnothing(p.max)
-
         lb = isnothing(p.min) ? "" : "$(p.min)"
         ub = isnothing(p.max) ? "" : "$(p.max)"
-
         print(io, "$lb..$ub")
     end
     if !isempty(p.metavar)
@@ -63,7 +127,7 @@ show_compact(io::IO, p::FloatVal) = let
     end
     print(io, ")")
 end
-show_compact(io::IO, p::UUIDVal) = let
+Base.show(io::IO, p::UUIDVal) = let
     print(io, "uuid(")
     if !isempty(p.allowed_versions)
         print(io, join(p.allowed_versions, '|'))
@@ -76,55 +140,87 @@ show_compact(io::IO, p::UUIDVal) = let
     end
     print(io, ")")
 end
+Base.show(io::IO, p::PathVal) = let
+    print(io, "path(")
+    if !isempty(p.metavar)
+        print(io, p.metavar)
+    end
+    print(io, ")")
+end
 
-show_compact(io::IO, p::ArgGate) = let
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Primitives
+# ═══════════════════════════════════════════════════════════════════════════════
+
+Base.show(io::IO, p::ArgGate) = let
     print(io, "switch(")
     print(io, join(p.names, ", "))
     print(io, ")")
 end
-show_compact(io::IO, p::ArgOption) = let
+Base.show(io::IO, p::ArgOption) = let
     print(io, "option(")
     print(io, join(p.names, ", "))
     print(io, ", ")
-    show_compact(io, p.valparser)
+    show(io, p.valparser)
     print(io, ")")
 end
 val(::Val{x}) where {x} = x
-show_compact(io::IO, p::ArgConstant) = let
+Base.show(io::IO, p::ArgConstant) = let
     print(io, "@constant(")
     print(io, val(p.initialState))
     print(io, ")")
 end
-show_compact(io::IO, p::ArgArgument) = let
+Base.show(io::IO, p::ArgArgument) = let
     print(io, "arg(")
     if !isempty(metavar(p.valparser))
         print(io, metavar(p.valparser))
     else
-        show_compact(io, p.valparser)
+        show(io, p.valparser)
     end
     print(io, ")")
 end
-show_compact(io::IO, p::ArgCommand) = let
+Base.show(io::IO, p::ArgCommand) = let
     print(io, "command(")
     print(io, p.names[1])
     print(io, ")")
 end
 
-show_compact(io::IO, p::ConstrObject) = let
+show_children(p::ArgCommand) = Pair{String, Any}["" => p.parser]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Constructors
+# ═══════════════════════════════════════════════════════════════════════════════
+
+Base.show(io::IO, p::ConstrObject) = let
     print(io, "record(")
     print(io, join(string.(keys(p.parsers)), ", "))
     print(io, ")")
 end
-show_compact(io::IO, p::ConstrOr) = let
+Base.show(io::IO, p::ConstrOr) = let
     print(io, "or(")
     print(io, length(p.parsers))
     print(io, " branches)")
 end
-show_compact(io::IO, p::ConstrTuple) = let
+Base.show(io::IO, p::ConstrTuple) = let
     print(io, "sequence(")
     print(io, length(p.parsers))
     print(io, " items)")
 end
+
+printnode(io::IO, ::ConstrObject) = print(io, "record")
+printnode(io::IO, ::ConstrOr) = print(io, "or")
+printnode(io::IO, ::ConstrTuple) = print(io, "sequence")
+
+show_children(p::ConstrObject) = Pair{String, Any}[String(k) => v for (k, v) in pairs(p.parsers)]
+show_children(p::ConstrOr) = Pair{String, Any}[string(i) => v for (i, v) in enumerate(p.parsers)]
+show_children(p::ConstrTuple) = Pair{String, Any}[string(i) => v for (i, v) in enumerate(p.parsers)]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Modifiers
+# ═══════════════════════════════════════════════════════════════════════════════
 
 function _show_optional_flag(io::IO, p::ModWithDefault)
     inner = p.parser
@@ -137,169 +233,73 @@ function _show_optional_flag(io::IO, p::ModWithDefault)
     return false
 end
 
-show_compact(io::IO, p::ModWithDefault) = let
+Base.show(io::IO, p::ModWithDefault) = let
     if _show_optional_flag(io, p)
         return
     end
     print(io, "default(")
-    show_compact(io, p.parser)
+    show(io, p.parser)
     print(io, ", ")
     show(io, p.default)
     print(io, ")")
 end
-show_compact(io::IO, p::ModMultiple) = let
+Base.show(io::IO, p::ModMultiple) = let
     if p.min == 0 && p.max == typemax(Int)
         print(io, "many(")
-        show_compact(io, p.parser)
+        show(io, p.parser)
         print(io, ")")
         return
     elseif p.min == 1 && p.max == typemax(Int)
         print(io, "many1(")
-        show_compact(io, p.parser)
+        show(io, p.parser)
         print(io, ")")
         return
     end
 
     print(io, "repeated(")
-    show_compact(io, p.parser)
+    show(io, p.parser)
     print(io, "; min = ", p.min)
     p.max != typemax(Int) && print(io, ", max = ", p.max)
     print(io, ")")
 end
-show_compact(io::IO, p::ModHelp) = let
+Base.show(io::IO, p::ModHelp) = let
     if p.info.hidden && isempty(p.info.brief) && isempty(p.info.description) && isempty(p.info.footer)
         print(io, "hidden(")
     else
         print(io, "help(")
     end
-    show_compact(io, p.parser)
+    show(io, p.parser)
     print(io, ")")
 end
-show_compact(io::IO, p::ModConstruct{T}) where {T} = let
+Base.show(io::IO, p::ModConstruct{T}) where {T} = let
     print(io, "construct(")
     print(io, construct_type_name(T))
     print(io, ", ")
-    show_compact(io, p.parser)
+    show(io, p.parser)
     print(io, ")")
 end
-show_compact(io::IO, p::ModConstructExact{T}) where {T} = let
+Base.show(io::IO, p::ModConstructExact{T}) where {T} = let
     print(io, "construct_exact(")
     print(io, construct_type_name(T))
     print(io, ", ")
-    show_compact(io, p.parser)
+    show(io, p.parser)
     print(io, ")")
 end
 
+# Construct/ConstructExact: tree display "sees through" the inner constructor
+printnode(io::IO, p::ModConstruct{T}) where {T} = print(io, construct_type_name(T))
+printnode(io::IO, p::ModConstructExact{T}) where {T} = print(io, construct_type_name(T))
 
-show_pretty(io::IO, v::AbstractValueParser, _indent::Int = 0) = show_compact(io, v)
-show_pretty(io::IO, p::ChoiceVal, _indent::Int = 0) = show_compact(io, p)
-show_pretty(io::IO, p::StringVal, _indent::Int = 0) = show_compact(io, p)
-show_pretty(io::IO, p::IntegerVal, _indent::Int = 0) = show_compact(io, p)
-show_pretty(io::IO, p::FloatVal, _indent::Int = 0) = show_compact(io, p)
-show_pretty(io::IO, p::UUIDVal, _indent::Int = 0) = show_compact(io, p)
-
-show_pretty(io::IO, p::ArgGate, _indent::Int = 0) = show_compact(io, p)
-show_pretty(io::IO, p::ArgOption, _indent::Int = 0) = show_compact(io, p)
-show_pretty(io::IO, p::ArgConstant, _indent::Int = 0) = show_compact(io, p)
-show_pretty(io::IO, p::ArgArgument, _indent::Int = 0) = show_compact(io, p)
-
-
-show_pretty_after_prefix(io::IO, p, indent::Int) = show_pretty(io, p, indent)
-
-function show_pretty_after_prefix(io::IO, p::ArgCommand, indent::Int)
-    show_compact(io, p)
-    print(io, "\n")
-    _print_indent(io, indent + 1)
-    return show_pretty(io, p.parser, indent + 1)
-end
-
-show_pretty(io::IO, p::ArgCommand, indent::Int = 0) = show_pretty_after_prefix(io, p, indent)
-show_pretty(io::IO, p::ModHelp, indent::Int = 0) = show_compact(io, p)
-
-function show_pretty(io::IO, p::ConstrObject, indent::Int = 0)
-    print(io, "record")
-    for (field, child) in pairs(p.parsers)
-        print(io, "\n")
-        _print_indent(io, indent + 1)
-        print(io, field, ": ")
-        show_pretty_after_prefix(io, child, indent + 1)
+function _construct_show_children(p)
+    inner = p.parser
+    if inner isa ConstrObject
+        return Pair{String, Any}[String(k) => v for (k, v) in pairs(inner.parsers)]
+    elseif inner isa ConstrTuple
+        return Pair{String, Any}[string(i) => v for (i, v) in enumerate(inner.parsers)]
+    else
+        return Pair{String, Any}["" => inner]
     end
-    return
 end
 
-function show_pretty(io::IO, p::ConstrOr, indent::Int = 0)
-    print(io, "or")
-    for (i, child) in enumerate(p.parsers)
-        print(io, "\n")
-        _print_indent(io, indent + 1)
-        print(io, i, ": ")
-        show_pretty_after_prefix(io, child, indent + 1)
-    end
-    return
-end
-
-function show_pretty(io::IO, p::ConstrTuple, indent::Int = 0)
-    print(io, "sequence")
-    for (i, child) in enumerate(p.parsers)
-        print(io, "\n")
-        _print_indent(io, indent + 1)
-        print(io, i, ": ")
-        show_pretty_after_prefix(io, child, indent + 1)
-    end
-    return
-end
-
-show_pretty(io::IO, p::ModWithDefault, _indent::Int = 0) = show_compact(io, p)
-show_pretty(io::IO, p::ModMultiple, _indent::Int = 0) = show_compact(io, p)
-
-function show_pretty(io::IO, p::ModConstruct{T}, indent::Int = 0) where {T}
-    print(io, construct_type_name(T))
-
-    if p.parser isa ConstrObject
-        for (field, child) in pairs(p.parser.parsers)
-            print(io, "\n")
-            _print_indent(io, indent + 1)
-            print(io, field, ": ")
-            show_pretty_after_prefix(io, child, indent + 1)
-        end
-        return
-    elseif p.parser isa ConstrTuple
-        for (i, child) in enumerate(p.parser.parsers)
-            print(io, "\n")
-            _print_indent(io, indent + 1)
-            print(io, i, ": ")
-            show_pretty_after_prefix(io, child, indent + 1)
-        end
-        return
-    end
-
-    print(io, "\n")
-    _print_indent(io, indent + 1)
-    return show_pretty(io, p.parser, indent + 1)
-end
-
-function show_pretty(io::IO, p::ModConstructExact{T}, indent::Int = 0) where {T}
-    print(io, construct_type_name(T))
-
-    if p.parser isa ConstrObject
-        for (field, child) in pairs(p.parser.parsers)
-            print(io, "\n")
-            _print_indent(io, indent + 1)
-            print(io, field, ": ")
-            show_pretty_after_prefix(io, child, indent + 1)
-        end
-        return
-    elseif p.parser isa ConstrTuple
-        for (i, child) in enumerate(p.parser.parsers)
-            print(io, "\n")
-            _print_indent(io, indent + 1)
-            print(io, i, ": ")
-            show_pretty_after_prefix(io, child, indent + 1)
-        end
-        return
-    end
-
-    print(io, "\n")
-    _print_indent(io, indent + 1)
-    return show_pretty(io, p.parser, indent + 1)
-end
+show_children(p::ModConstruct) = _construct_show_children(p)
+show_children(p::ModConstructExact) = _construct_show_children(p)
