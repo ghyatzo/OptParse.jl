@@ -23,13 +23,11 @@ function render_error(io::IO, err::IntegerValError)
 end
 
 @kwdef struct IntegerVal{T} <: AbstractValueParser{T, IntegerValError}
-    metavar::String = ""
+    metavar::String = "INTEGER"
     #
     min::Union{T, Nothing} = nothing
     max::Union{T, Nothing} = nothing
 end
-
-default_metavar(::IntegerVal) = "INTEGER"
 
 (iv::IntegerVal{T})(input::String) where {T} = let
     val = tryparse(T, input)

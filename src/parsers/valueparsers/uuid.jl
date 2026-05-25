@@ -20,12 +20,10 @@ function render_error(io::IO, err::UUIDValError)
 end
 
 @kwdef struct UUIDVal{T} <: AbstractValueParser{T, UUIDValError}
-    metavar::String = ""
+    metavar::String = "UUID"
     #
     allowed_versions::Vector{Int} = Int[]
 end
-
-default_metavar(::UUIDVal) = "UUID"
 
 (u::UUIDVal)(input::String)= let
 

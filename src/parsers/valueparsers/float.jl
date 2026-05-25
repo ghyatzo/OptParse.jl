@@ -29,15 +29,13 @@ function render_error(io::IO, err::FloatValError)
 end
 
 @kwdef struct FloatVal{T} <: AbstractValueParser{T, FloatValError}
-    metavar::String = ""
+    metavar::String = "FLOAT"
     #
     min::Union{T, Nothing} = nothing
     max::Union{T, Nothing} = nothing
     allow_infinity::Bool = false
     allow_nan::Bool = false
 end
-
-default_metavar(::FloatVal) = "FLOAT"
 
 (f::FloatVal{T})(input::String) where {T} = let
     val = tryparse(T, input)

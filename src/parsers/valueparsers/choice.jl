@@ -23,12 +23,12 @@ struct ChoiceVal{T} <: AbstractValueParser{T, ChoiceValError}
     values::Vector{String}
     outputs::Vector{T}
 
-    ChoiceVal(values::Vector{String}; metavar = "", case_insensitive = true) = let
+    ChoiceVal(values::Vector{String}; metavar = "CHOICE", case_insensitive = true) = let
         normvals = case_insensitive ? map(uppercase, values) : values
         new{String}(metavar, case_insensitive, normvals, normvals)
     end
 
-    ChoiceVal(enumtype::Type{<:Enum}; metavar = "", case_insensitive = true) = let
+    ChoiceVal(enumtype::Type{<:Enum}; metavar = "CHOICE", case_insensitive = true) = let
         enumtypes = instances(enumtype)
         values = collect(string.(enumtypes))
         outputs = collect(enumtypes)
@@ -36,8 +36,6 @@ struct ChoiceVal{T} <: AbstractValueParser{T, ChoiceValError}
         new{enumtype}(metavar, case_insensitive, normvals, outputs)
     end
 end
-
-default_metavar(::ChoiceVal) = "CHOICE"
 
 (c::ChoiceVal{T})(input::String) where {T} = let
     norminput = c.case_insensitive ? uppercase(input) : input

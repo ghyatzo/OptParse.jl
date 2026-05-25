@@ -16,7 +16,6 @@ terr(::Type{<:AbstractValueParser{T, E}}) where {T, E} = E
 terr(::X) where {T, E, X <: AbstractValueParser{T, E}} = E
 
 metavar(v::AbstractValueParser) = v.metavar
-trymetavar(v::AbstractValueParser) = isempty(metavar(v)) ? default_metavar(v) : metavar(v)
 
 """
     validate(v::AbstractValueParser)
@@ -34,8 +33,6 @@ function validate(v::AbstractValueParser)
 
     hasmethod(v, Tuple{String}) ||
         push!(missing_methods, "(::$V)(::String)")
-    hasmethod(default_metavar, Tuple{V}) ||
-        push!(missing_methods, "default_metavar(::$V)")
 
     if !isempty(missing_methods)
         error(

@@ -42,7 +42,7 @@ struct ArgArgument{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     end
 end
 
-usage(p::ArgArgument) = UsageArgument(trymetavar(p.valparser))
+usage(p::ArgArgument) = UsageArgument(metavar(p.valparser))
 helpentries(p::ArgArgument, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
 focused_helpdoc(
     p::ArgArgument{<:Any, <:Any, ArgumentState{S, E}},
@@ -56,7 +56,7 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
 
     if ctx_hasnone(ctx)
         return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
-            ArgArgumentError(ARGUMENT_EndOfInput, "", trymetavar(p.valparser)),
+            ArgArgumentError(ARGUMENT_EndOfInput, "", metavar(p.valparser)),
             consumed = 0
         ))
     end
@@ -75,7 +75,7 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
         elseif !isnothing(match(optpattern, ctx_peek(ctx, 1 + i)))
             #=Otherwise, check that we are not matching an option.=#
             return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
-                ArgArgumentError(ARGUMENT_GotOption, ctx_peek(ctx, 1 + i), trymetavar(p.valparser));
+                ArgArgumentError(ARGUMENT_GotOption, ctx_peek(ctx, 1 + i), metavar(p.valparser));
                 consumed = i
             ))
         end
@@ -84,7 +84,7 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
     if ctx_haslessthan(1 + i, ctx)
         #=Check again, in case we only had a "--" in the buffer.=#
         return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
-            ArgArgumentError(ARGUMENT_EndOfInput, "", trymetavar(p.valparser));
+            ArgArgumentError(ARGUMENT_EndOfInput, "", metavar(p.valparser));
             consumed = i
         ))
     end
@@ -93,7 +93,7 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
         #=The state is a some, so this parser matched already with something.
         Add one to the consumed since we're technically consuming this duplicate=#
         return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
-            ArgArgumentError(ARGUMENT_Duplicate, "", trymetavar(p.valparser));
+            ArgArgumentError(ARGUMENT_Duplicate, "", metavar(p.valparser));
             consumed = 1 + i
         ))
     end
@@ -113,7 +113,7 @@ function complete(p::ArgArgument{T, E, S}, maybest::S) where {T, E, IE <: E, S <
 
     #=The parser never matched anything.=#
     is_error(maybest) && return ParseResult{T, E}(
-        typedErr(E, ArgArgumentError(ARGUMENT_TooFew, "", trymetavar(p.valparser)))
+        typedErr(E, ArgArgumentError(ARGUMENT_TooFew, "", metavar(p.valparser)))
     )
 
     st = unwrap(maybest)

@@ -20,12 +20,10 @@ function render_error(io::IO, err::StringValError)
 end
 
 @kwdef struct StringVal{T} <: AbstractValueParser{T, StringValError}
-    metavar::String = ""
+    metavar::String = "STRING"
     pattern::Regex = r".*"
     allow_empty::Bool = false
 end
-
-default_metavar(::StringVal) = "STRING"
 
 (s::StringVal)(input::String) = let
     m = match(s.pattern, input)

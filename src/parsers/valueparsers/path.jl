@@ -19,11 +19,10 @@ function render_error(io::IO, err::PathValError)
 end
 
 @kwdef struct PathVal{T} <: AbstractValueParser{T, PathValError}
-    metavar::String = ""
+    metavar::String = "PATH"
     absolute::Bool = false
 end
 
-default_metavar(::PathVal) = "PATH"
 
 (p::PathVal)(input::String) = let
     # TODO, finish this up properly.

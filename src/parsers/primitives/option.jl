@@ -60,7 +60,7 @@ struct ArgOption{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     end
 end
 
-usage(p::ArgOption) = UsageOption(p.names, trymetavar(p.valparser))
+usage(p::ArgOption) = UsageOption(p.names, metavar(p.valparser))
 
 helpentries(p::ArgOption, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
 

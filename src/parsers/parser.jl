@@ -28,7 +28,6 @@ descend_child(ctx::OverlayContext) =
 #
 # AbstractValueParser subtypes must implement:
 #   (v)(input::String) → ParseResult{T, E}
-#   default_metavar(v) → String
 #
 # AbstractParseError subtypes must implement:
 #   render_error(io::IO, err) → Nothing
