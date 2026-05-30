@@ -1266,6 +1266,8 @@ function record end
 record(obj::NamedTuple) = ConstrObject(obj)
 record(objlabel, obj::NamedTuple) = ConstrObject(obj; label = objlabel)
 
+record(;parsers...) = ConstrObject(values(parsers))
+
 ## Combine
 
 """
