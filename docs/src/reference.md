@@ -11,6 +11,7 @@
 optparse
 tryoptparse
 runparse
+partial
 valuetype
 OptParse.ParseException
 generate_help
@@ -64,7 +65,7 @@ construct_exact
 help
 hidden
 ```
-()
+
 ### Constructors
 
 ```@docs
@@ -74,4 +75,10 @@ combine
 or
 sequence
 concat
+```
+
+### Development Utilities
+
+```@docs
+OptParse.validate
 ```

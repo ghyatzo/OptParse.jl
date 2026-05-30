@@ -43,9 +43,10 @@ Modifiers wrap another parser and adjust matching or completion behavior.
 
 Current modifiers:
 
-- `default`
-- `optional`
-- `repeated`
+- `default` / `optional`
+- `repeated` / `many` / `many1`
+- `help` / `hidden`
+- `construct` / `construct_exact`
 
 ## Priority
 

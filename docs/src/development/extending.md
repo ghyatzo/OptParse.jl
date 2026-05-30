@@ -8,14 +8,15 @@ add a new value parser or parser family.
 The shortest path is:
 
 1. add a new file under `src/parsers/valueparsers/`
-2. define the concrete value parser struct
-3. define its call overload `(::YourValueParser)(input::String)::ParseResult{T}`
-4. define `default_metavar(::YourValueParser)` if applicable
-5. include it from `src/parsers/valueparsers/valueparsers.jl`
-6. add exported constructor functions and docstrings in `valueparsers.jl`
-7. add compact display support in `src/display/parser_show.jl` if needed
-8. add unit tests
-9. add it to `docs/src/reference.md` if it is public
+2. define a concrete error struct `<: AbstractParseError` with an `@enum` code field
+3. define `render_error(io::IO, err::YourError)` for the error type
+4. define the concrete value parser struct `<: AbstractValueParser{T, E}`
+5. define its call overload `(::YourValueParser)(input::String)::ParseResult{T, E}`
+6. include it from `src/parsers/valueparsers/valueparsers.jl`
+7. add exported constructor functions and docstrings in `src/parsers/parser.jl`
+8. add display support in `src/display/parser_show.jl` if needed
+9. add unit tests
+10. add it to `docs/src/reference.md` if it is public
 
 ### Expected shape
 
@@ -28,21 +29,32 @@ Use existing value parser files as templates, especially:
 Typical pieces:
 
 ```julia
-struct MyVal{T}
+@enum MyValErrCode::UInt8 begin
+    MYVAL_SomeError
+end
+
+struct MyValError <: AbstractParseError
+    code::MyValErrCode
+    token::String
+end
+
+function render_error(io::IO, err::MyValError)
+    ...
+end
+
+struct MyVal{T} <: AbstractValueParser{T, MyValError}
     metavar::String
     ...
 end
 
-default_metavar(::MyVal{T}) where {T} = "..."
-
-function (p::MyVal{T})(input::String)::ParseResult{T} where {T}
+function (p::MyVal{T})(input::String)::ParseResult{T, MyValError} where {T}
     ...
 end
 ```
 
 ### Constructor placement
 
-Public constructor functions belong in `src/parsers/valueparsers/valueparsers.jl`,
+Public constructor functions belong in `src/parsers/parser.jl`,
 not in the leaf file.
 
 That file is the public API layer for value parsers and should contain:
@@ -70,8 +82,9 @@ examples should prefer the positional form.
 
 Before considering a value parser done, verify:
 
-- parse returns `ParseResult{T}`
-- errors are family-specific and rendered through `render_error`
+- parse returns `ParseResult{T, E}`
+- a concrete error struct `<: AbstractParseError` exists for the family
+- `render_error(io, err)` renders it correctly
 - the public constructor is exported if intended to be public
 - `show` output is readable
 - docstrings exist
@@ -85,14 +98,14 @@ The shortest path is:
 1. decide whether it is a primitive, constructor, or modifier
 2. add the concrete family file under the appropriate `src/parsers/...` subdirectory
 3. define a family-specific state alias
-4. define error codes and a renderer
-5. define the concrete parser struct
+4. define an error struct `<: AbstractParseError` with `@enum` codes and a `render_error` method
+5. define the concrete parser struct `<: AbstractParser{T, E, S, P, R}`
 6. implement `parse`
 7. implement `complete`
 8. include it from the family include file
 9. make sure child parser fields stay concrete and parametric
 10. add the public constructor function and docstring in `src/parsers/parser.jl`
-11. add `show_compact` / `show_pretty` support if needed
+11. add `show_children` / `printnode` support if needed
 12. add tests
 13. add docs, reference entries, and examples if public
 
@@ -103,8 +116,8 @@ Always define a parser-family-specific state alias first.
 Examples:
 
 ```julia
-const GateState = ParseResult{Bool}
-const OptionState{T} = ParseResult{T}
+const GateState = ParseResult{Bool, ArgGateError}
+const OptionState{T, E} = ParseResult{T, E}
 const CommandState{S} = Option{Option{S}}
 const MultipleState{S} = Vector{S}
 ```
@@ -116,7 +129,7 @@ This usually clarifies the rest of the implementation immediately.
 Use the family alias in method signatures:
 
 ```julia
-function parse(p::ArgGate{Bool, GateState}, ctx::Context{GateState})::InnerParseResult{GateState}
+function parse(p::ArgGate{Bool, ArgGateError, GateState}, ctx::Context{GateState})::InnerParseResult{GateState, ArgGateError}
 ```
 
 Do not leave parser family methods broadly typed unless there is a very strong reason.
@@ -145,6 +158,14 @@ Before considering a parser family done, verify:
 - tests cover both behavior and inference
 
 ## Display And Docstring Conventions
+
+### Display extension points
+
+The display interface has three extension points:
+
+- `Base.show(io, p)` — compact inline representation (required)
+- `show_children(p)` — returns children for tree display, or `nothing` for leaves (optional)
+- `printnode(io, p)` — tree header label, defaults to `show` (optional)
 
 ### Public names should match displayed names
 

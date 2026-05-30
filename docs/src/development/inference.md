@@ -35,6 +35,7 @@ When that happens, check:
 - whether the parser family method is too broadly typed
 - whether constructor invariants are being expressed in dispatch
 - whether a helper erased the state parameter from `Context{S}`
+- whether the error type `E` is properly constrained
 
 Do not paper over this with assertions first. Tighten the family invariants first.
 
@@ -47,7 +48,7 @@ out early.
 This is why a family-specific method like:
 
 ```julia
-function parse(p::ArgOption{T, OptionState{T}}, ctx::Context{OptionState{T}})::InnerParseResult{OptionState{T}} where {T}
+function parse(p::ArgOption{T, E, OptionState{T, E}}, ctx::Context{OptionState{T, E}})::InnerParseResult{OptionState{T, E}, E} where {T, E}
 ```
 
 is much better than:
@@ -71,7 +72,7 @@ The common trap is writing a wrapper method that constrains the wrapper state bu
 leaves the child parser type unconstrained:
 
 ```julia
-function parse(p::ModHelp{T,S,_p,P}, ctx::Context{S}) where {T,S,_p,P}
+function parse(p::ModHelp{T, E, S, P, _R}, ctx::Context{S}) where {T, E, S, P, _R}
 ```
 
 Runtime construction may guarantee that `P` is a parser whose state is `S`, but
@@ -83,18 +84,18 @@ Prefer:
 
 ```julia
 function parse(
-    p::ModHelp{T,S,_p,P},
+    p::ModHelp{T, E, S, P, _R},
     ctx::Context{S},
-)::InnerParseResult{S} where {T,S,_p,P <: AbstractParser{<:Any,S}}
+)::InnerParseResult{S, E} where {T, E, S, _R, P <: AbstractParser{<:Any, <:Any, S}}
 ```
 
 For wrappers with nested child state, bind `P` to the inner state:
 
 ```julia
 function complete(
-    p::ModWithDefault{T,WithDefaultState{S},_p,P},
+    p::ModWithDefault{T, E, WithDefaultState{S}, P, _R},
     state::WithDefaultState{S},
-)::ParseResult{T} where {T,S,_p,P <: AbstractParser{<:Any,S}}
+)::ParseResult{T, E} where {T, E, S, _R, P <: AbstractParser{<:Any, <:Any, S}}
 ```
 
 This invariant was exposed by the help information modifier wrapping `default`.

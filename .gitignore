@@ -29,6 +29,7 @@ JuliaLocalPreferences.toml
 .sublime
 manifest*
 TRIM*.md
+RELEASE_NOTES.md
 scripts/
 
 test/trim/trimmability/build

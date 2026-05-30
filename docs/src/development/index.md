@@ -18,11 +18,11 @@ For the user-facing API, see:
 ## Guide Structure
 
 - [Runtime Model](runtime.md)
-  - `AbstractParser{T,S,p,P}`
+  - `AbstractParser{T,E,S,P,R}`
   - parse vs complete
   - parser state
   - `Context`, `Consumed`, and parse results
-  - structured errors
+  - structured errors (`AbstractParseError`, `ParseError{E}`)
 - [Parser Semantics](parsers.md)
   - primitive / constructor / modifier categories
   - parser priority

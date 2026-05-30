@@ -10,31 +10,33 @@ OptParse.jl is a type-stable, composable CLI argument parser for Julia, designed
 
 ### Type Hierarchy
 
-**`AbstractParser{T, S, p, P}`** — four type parameters:
-- `T`: output value type, `S`: internal state type, `p`: priority (Int, controls ordering in constructors), `P`: child parser types (for trimming reachability).
+**`AbstractParser{T, E, S, P, R}`** — five type parameters:
+- `T`: output value type, `E`: error type (union of per-parser errors), `S`: internal state type, `P`: child parser types (for trimming reachability), `R`: priority/rank (Int, controls ordering in constructors).
 
-**`AbstractValueParser{T}`** — callable parsers that convert a single string token into `ParseResult{T}`.
+**`AbstractValueParser{T, E}`** — callable parsers that convert a single string token into `ParseResult{T, E}`.
 
 ### Parser Categories
 
-- **Value parsers** (`src/parsers/valueparsers/`): `StringVal`, `IntegerVal`, `FloatVal`, `Choice`, `UUIDVal`, `PathVal`.
+- **Value parsers** (`src/parsers/valueparsers/`): `StringVal`, `IntegerVal`, `FloatVal`, `Choice`, `UUIDVal`, `PathVal`. Extension: `IdentifierVal` (via `FastIdentifiersExt`).
 - **Primitives** (`src/parsers/primitives/`): `ArgOption`, `ArgGate` (flags/switches), `ArgArgument`, `ArgCommand`, `ArgConstant`.
 - **Constructors** (`src/parsers/constructors/`): `ConstrObject` (record/named fields), `ConstrTuple` (sequence/positional), `ConstrOr` (alternatives). Also `combine` (`_merge`) and `concat` (`_concat`).
-- **Modifiers** (`src/parsers/modifiers/`): `ModWithDefault`, `ModMultiple` (repeated), `ModConstruct`, `ModConstructExact`, `ModHelp`.
+- **Modifiers** (`src/parsers/modifiers/`): `ModWithDefault`, `ModMultiple` (repeated/many/many1), `ModConstruct`, `ModConstructExact`, `ModHelp`.
+- **Pseudo-parsers** (`src/entrypoints.jl`): `Partial{T, E, S, P}` — wraps a parser for partial consumption (passthrough).
 
 ### Entrypoints (`src/entrypoints.jl` + `src/OptParse.jl`)
 
-- `tryoptparse(parser, argv)` → `ParseResult{T}` (non-throwing)
+- `tryoptparse(parser, argv)` → `ParseResult{T, Union{E, MainError}}` (non-throwing)
 - `optparse(parser, argv)` → `T | nothing` (prints error to stderr)
 - `runparse(parser, argv; ...)` → application-level with built-in `--help` and help subcommands
+- `partial(parser)` → wraps parser for partial consumption; `tryoptparse(partial(p), argv)` returns `(value, remaining)`
 - `build_help_doc(parser, argv)` → `HelpDoc` (focused help document for a given argv context)
 - `generate_help(parser, argv)` / `print_help(io, parser, argv)` — render help text
 
 ### Core Subsystems (`src/core/`)
 
 - **Context** (`context.jl`): `Context{S}` carries buffer, position, state accumulator, usage node, and optionsTerminated flag. Immutable — state transitions create new contexts via `ctx_with_state`, `ctx_restate`, `widen_state`.
-- **Parse results** (`parseresult.jl`): `ParseResult{T} = Result{T, ParseError}`. Inner parsing uses `InnerParseResult{S} = Result{InnerParseSuccess{S}, InnerParseFailure}` which carries consumed tokens and next context. Also defines `Consumed` (lazy view of consumed tokens).
-- **Errors** (`errors.jl`): `ParseError` struct with `ErrorDomain` enum (one variant per parser type), `UInt8` error code, token, detail, and trace (`Vector{ErrorSite}`). Rendering via `render_error_payload` dispatches on domain enum. Each parser file defines its own `@enum` of error codes and `*_render_error` function.
+- **Parse results** (`parseresult.jl`): `ParseResult{T, E} = Result{T, E}`. Inner parsing uses `InnerParseResult{S, E} = Result{InnerParseSuccess{S}, InnerParseFailure{E}}` which carries consumed tokens and next context. Also defines `Consumed` (lazy view of consumed tokens).
+- **Errors** (`errors.jl`): `ParseError{E}` is a `@wrapped` union container. Each parser family defines its own `<: AbstractParseError` struct (e.g. `MainError`, `ConstrObjectError`, `ModMultipleError`, `StringValError`). Rendering dispatches via `render_error(io, err)` on concrete error types. `ParseException{P, E}` wraps a `ParseError{E}` with the parser and argv for `showerror`.
 - **Usage AST** (`usage/nodes.jl`): `UsageNode` with `UsageKind` enum (`USAGE_Flag`, `USAGE_Option`, `USAGE_Argument`, `USAGE_Command`, `USAGE_Object`, `USAGE_Tuple`, `USAGE_Alternative`, `USAGE_Optional`, `USAGE_Repeat`, `USAGE_Hidden`, `USAGE_Empty`). Constructors: `UsageFlag`, `UsageOption`, `UsageArgument`, etc.
 - **Usage rendering** (`usage/render_usage.jl`): `render_usage(node; style=:compact)` renders a `UsageNode` tree to text. Supports `:compact` and `:expanded` styles. Uses traits in `usage/traits.jl` for layout decisions (collapsing optional options, stacking alternatives).
 - **Help** (`help/helpdoc.jl`): `HelpInfo` (brief, description, footer, hidden), `HelpEntry` (usage + info), `HelpDoc` (prefix, usage, info, entries). `render_helpdoc` groups entries by kind (Commands, Arguments, Options, Other).
@@ -42,7 +44,12 @@ OptParse.jl is a type-stable, composable CLI argument parser for Julia, designed
 
 ### Display (`src/display/parser_show.jl`)
 
-`Base.show` delegates to `show_compact` (one-line) and `show_pretty` (tree with indentation). Each concrete type has specific `show_compact`/`show_pretty` methods. Generic fallbacks exist on `AbstractValueParser` and `AbstractParser`.
+Three extension points for display:
+- `Base.show(io, p)` — compact inline representation
+- `show_children(p)` — returns `Vector{Pair{String, <:AbstractParser}}` for tree display, or `nothing` for leaves
+- `printnode(io, p)` — tree header label (defaults to `show`)
+
+The REPL uses `MIME"text/plain"` to render a full tree with connectors (`├─`, `└─`, `│`).
 
 ### The `juliac` Preference
 
@@ -70,23 +77,35 @@ Usage: `@autospecialize target_arg function f(target_arg::SomeType{T}, other_arg
 
 ### Type Aliases
 
-`CommandState{X} = Option{Option{X}}` and `OrState{U} = Option{InnerOrState{U}}` are type aliases. They are transparent at runtime (Julia expands them), so `typeof(x).parameters[1]` gives the expanded form, not the alias. Accessor functions like `_inner_state(::CommandState{X})` recover the inner type parameter.
+State aliases per parser family:
+- `GateState = ParseResult{Bool, ArgGateError}`
+- `OptionState{X, E} = ParseResult{X, E}`
+- `ArgumentState{X, E} = Option{ParseResult{X, E}}`
+- `ConstantState{X} = Val{X}`
+- `CommandState{X} = Option{Option{X}}`
+- `ObjectState{L, P} = NamedTuple{L, P}`
+- `OrState{U} = Option{InnerOrState{U}}`
+- `MultipleState{X} = Vector{X}`
+- `WithDefaultState{X} = Option{X}`
+
+These are transparent at runtime (Julia expands them), so `typeof(x).parameters[1]` gives the expanded form, not the alias.
 
 ## Key Files
 
 | Path | Role |
 |------|------|
-| `src/OptParse.jl` | Module entry, loads `juliac` preference, public API wrappers (`build_help_doc`, `generate_help`, `runparse`) |
+| `src/OptParse.jl` | Module entry, loads `juliac` preference, `AbstractParser{T,E,S,P,R}`, `AbstractValueParser{T,E}`, exports, `normalize_argv` |
 | `src/utils.jl` | `@autospecialize` macro, tuple sort utilities |
-| `src/entrypoints.jl` | Core entrypoints (`optparse`, `tryoptparse`), parsing loop |
-| `src/parsers/parser.jl` | `OverlayContext`, then includes all parser subdirectories |
+| `src/entrypoints.jl` | Core entrypoints (`optparse`, `tryoptparse`, `runparse`, `partial`), parsing loop |
+| `src/parsers/parser.jl` | `OverlayContext`, `validate`, public API constructors (all exported parser functions), `@parser` macro, then includes all parser subdirectories |
 | `src/parsers/constructors/constructors.jl` | Constructor includes, static/dynamic split, `_usage_children`, `_merge`, `_concat` |
 | `src/core/context.jl` | `Context{S}` struct and helpers |
-| `src/core/parseresult.jl` | `Consumed`, `InnerParseResult`, `ParseResult`, result constructors |
-| `src/core/errors.jl` | `ParseError`, `ErrorDomain` enum, `render_error`/`render_error_payload` |
+| `src/core/parseresult.jl` | `Consumed`, `InnerParseSuccess{S}`, `InnerParseFailure{E}`, `InnerParseResult{S, E}`, result constructors |
+| `src/core/errors.jl` | `AbstractParseError`, `ParseError{E}` (@wrapped union), `MainError`, `ParseException`, `render_error` |
 | `src/core/usage/` | `UsageNode` AST (`nodes.jl`), rendering traits (`traits.jl`), text rendering (`render_usage.jl`) |
 | `src/core/help/` | `HelpInfo`, `HelpEntry`, `HelpDoc` (`helpdoc.jl`), `render_helpdoc` (`render_help.jl`) |
-| `src/display/parser_show.jl` | `show_compact`/`show_pretty` for all parser and value parser types |
+| `src/display/parser_show.jl` | `show_children`/`printnode` display interface, tree printer |
+| `ext/FastIdentifiersExt.jl` | `IdentifierVal{T}` value parser for FastIdentifiers-based types |
 
 ## Testing
 
@@ -119,19 +138,23 @@ Every concrete parser implements these methods (dispatch on concrete type):
 
 | Method | Signature | Purpose |
 |--------|-----------|---------|
-| `parse` | `(p, ctx::Context{S}) → InnerParseResult{S}` | Match tokens, update state |
-| `complete` | `(p, state::S) → ParseResult{T}` | Extract final value from state |
+| `parse` | `(p, ctx::Context{S}) → InnerParseResult{S, E}` | Match tokens, update state |
+| `complete` | `(p, state::S) → ParseResult{T, E}` | Extract final value from state |
 | `usage` | `(p) → UsageNode` | Generate usage AST node |
 | `helpentries` | `(p, rt::OverlayContext) → Vector{HelpEntry}` | Generate help listing entries |
 | `focused_helpdoc` | `(p, ctx, prefix, rt) → HelpDoc` | Build scoped help document |
 
-Each parser also defines `show_compact(io, p)` and `show_pretty(io, p, indent)` for display.
+Each parser also defines `show_children(p)` and optionally `printnode(io, p)` for display.
 
-Every concrete value parser is callable: `(v::AbstractValueParser{T})(input::String) → ParseResult{T}`.
+Every concrete value parser is callable: `(v::AbstractValueParser{T, E})(input::String) → ParseResult{T, E}`.
 
 ### Error Pattern (per parser)
 
-Each parser file defines: an `@enum` of error codes, a factory function (calls `mkerror`), and a render function. These are wired together in `render_error_payload` in `src/core/errors.jl` via an if/elseif chain on the `ErrorDomain` enum.
+Each parser file defines: a concrete struct `<: AbstractParseError` with an `@enum` error-code field, a `render_error(io, err)` method. The error struct is composed into the parser's `E` type parameter as a union. `ParseError{E}` wraps the union for uniform handling via `@unionsplit`.
+
+### Interface Validation
+
+`validate(p::AbstractParser)` checks at runtime that a concrete parser type implements the required methods. `validate(::Type{E}) where {E <: AbstractParseError}` checks that `render_error` is defined for an error type.
 
 ## Development Guidelines
 

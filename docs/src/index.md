@@ -63,6 +63,7 @@ For the public entrypoints:
 
 - `optparse(parser, argv)` is the high-level convenience entrypoint
 - `tryoptparse(parser, argv)` is the lower-level entrypoint and returns a result container instead of throwing
+- `partial(parser)` wraps a parser for partial argument consumption (pass-through)
 - `valuetype(parser)` returns the final value type produced by a parser
 
 `optparse` has two modes controlled through the `juliac` key via
@@ -137,6 +138,13 @@ Compose parsers into complex structures:
 - [`or`](@ref) - Mutually exclusive alternatives (for subcommands)
 - [`sequence`](@ref) - Ordered sequence of parsers (returns a tuple)
 - [`combine`](@ref) / [`concat`](@ref) - Merge several parser groups
+
+`record` accepts either a `NamedTuple` or keyword arguments:
+
+```julia
+record((name = option("-n", str()), port = option("-p", integer())))
+record(; name = option("-n", str()), port = option("-p", integer()))
+```
 
 `or(...)` is order-dependent: branches are tried in the order they are listed, and the first semantic match wins. Put broader positional parsers like `arg(...)` or `many(arg(...))` last.
 
@@ -268,6 +276,25 @@ This gives OptParse a clearer split:
 - parser definitions remain the single source of truth
 - help rendering remains explicit and compositional
 - automatic help behavior lives in a dedicated top-level runner
+
+## Partial Parsing (Pass-Through)
+
+For wrapper CLIs that only handle some arguments and pass the rest to a child
+program, OptParse provides [`partial`](@ref):
+
+```julia
+wrapper = partial(record((
+    verbose = flag("-v", "--verbose"),
+    config = optional(option("-c", str("FILE"))),
+)))
+
+result = tryoptparse(wrapper, ["-v", "--child-flag", "somefile"])
+# result is Ok((value = (verbose = true, config = nothing), remaining = ["--child-flag", "somefile"]))
+```
+
+`partial(parser)` wraps a parser so that unrecognized tokens are skipped instead
+of causing errors. The return type is `Tuple{T, Vector{String}}` — the parsed
+value plus any remaining unconsumed arguments.
 
 ## Typed Parsers And Construction
 
