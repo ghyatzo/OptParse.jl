@@ -31,7 +31,7 @@ Unlike [`optparse`](@ref), this function does not throw on parse failures.
         ctx = res_nextctx(result)
 
         if no_progress(previous_buffer, ctx)
-            return Result{T, UE}(typedErr(UE, MainError(MAIN_NoProgress, ctx_peek(ctx))))
+            return Result{T, UE}(typedErr(UE, MainError(MAIN_UnexpectedToken, ctx_peek(ctx))))
         end
 
         ctx_length(ctx) > 0 || break
