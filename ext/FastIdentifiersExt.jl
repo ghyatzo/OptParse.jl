@@ -73,7 +73,6 @@ end
 		parse(id.identifier, input)
 	catch e
 
-		# trimming really breaks here. Can't seem to get
 		if e isa FastIdentifiers.MalformedIdentifier{T, String}
 			return ParseResult{T, IdentifierValError}(Err(IdentifierValError(e)))
 		elseif e isa FastIdentifiers.ChecksumViolation{T, String}

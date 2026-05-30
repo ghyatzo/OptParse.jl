@@ -4,10 +4,11 @@ using OptParse
 using FastIdentifiers
 
 @defid MyId ("i",
-                skip("-"),
-                :id(digits(6, pad=6)),
-                optional(".v", :version(digits(max=255)),
-                    optional(".p", :participants(digits(max=2^16-1)))))
+	            skip("-"),
+	            :id(digits(6, pad=6)),
+	            optional(".v", :version(digits(max=255)),
+	                optional(".p", :participants(digits(max=2^16-1))))
+	        )
 
 const greet = command(
 	"greet",
@@ -38,8 +39,6 @@ const id = option("--ident", identifier(MyId))
 function @main(args::Vector{String})::Cint
 
 	parser = or(simple, greet, repeatedarg, goodbye, opt, id)
-
-	show(Core.stdout, parser)
 
 	obj = optparse(parser, args)
 	isnothing(obj) && return 1

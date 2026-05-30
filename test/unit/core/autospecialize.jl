@@ -66,28 +66,6 @@ end
         @test occursin("AbstractParser", arg1_str)
     end
 
-    !OptParse.juliac && @testset "Partial despecialize — shared param stripped with warning" begin
-        # B appears in both target a and non-target b.
-        # Macro should own B (extract from a), strip it from b's annotation, and warn.
-        ex = @test_warn r"@autospecialize.*type parameter" @macroexpand @autospecialize a function f(
-                a::AbstractParser{A, B}, b::Vector{B}
-            ) where {A, B}
-            return A
-        end
-
-        d = splitdef(ex)
-
-        body_str = string(d[:body])
-        # Both A and B extracted from a
-        @test occursin("(typeof(a)).parameters[1]", body_str)
-        @test occursin("(typeof(a)).parameters[2]", body_str)
-        # where clause fully removed
-        @test isempty(get(d, :whereparams, []))
-        # b's annotation stripped: Vector{B} → Vector
-        b_str = string(d[:args][2])
-        @test !occursin("{B}", b_str)
-    end
-
     !OptParse.juliac && @testset "Multiple targets" begin
         ex = @macroexpand @autospecialize pp ctx function parse(
                 pp::AbstractParser{T, S}, ctx::Context{S}

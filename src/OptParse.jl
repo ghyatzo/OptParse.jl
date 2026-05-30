@@ -66,7 +66,7 @@ export
     uuid,
     valuetype
 
-public validate, AbstractParser, AbstractValueParser, AbstractParseError
+public AbstractParseError, AbstractParser, AbstractValueParser, validate
 
 
 abstract type AbstractParser{T, E, S, P, R} end

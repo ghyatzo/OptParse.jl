@@ -7,11 +7,11 @@ authors = ["ghyatzo <dev@cschen.cc>"]
 FastIdentifiers = "4753c187-0528-4cab-a788-b8a80107dae0"
 OptParse = "1244ff17-1aa7-4121-9347-f4ead108e58f"
 
-[sources]
-OptParse = {path = "../../.."}
-
 [compat]
 FastIdentifiers = "1.0.0"
+
+[sources]
+OptParse = {path = "../../.."}
 
 [preferences.OptParse]
 juliac = true

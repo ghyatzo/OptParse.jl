@@ -149,7 +149,6 @@ macro autospecialize(args...)
 
     # Second pass: process target args — own all their where-params (including nested).
     target_curly_params = Set{Symbol}()
-    target_extractions = Expr[]
     for arg in d[:args]
         arg_name, arg_type = _split_arg(arg)
         if arg_name !== nothing && arg_name in targets && arg_type isa Expr && arg_type.head === :curly
@@ -165,7 +164,7 @@ macro autospecialize(args...)
     shared = intersect(target_curly_params, nontarget_params)
     fname = get(d, :name, :unknown)
     if !isempty(shared)
-        @warn "@autospecialize: in `$fname`, type parameter(s) $(join(shared, ", ")) " *
+        @debug "@autospecialize: in `$fname`, type parameter(s) $(join(shared, ", ")) " *
             "appear in both targeted and non-targeted arguments. " *
             "Non-targeted argument type annotations will be weakened."
     end

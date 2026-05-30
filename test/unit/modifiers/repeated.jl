@@ -83,7 +83,7 @@ end
 
     err = parse_fail(repeatedParser, ["file1.txt", "file2.txt", "file3.txt"])
     @test err isa OptParse.MainError
-    @test err.code == OptParse.MAIN_NoProgress
+    @test err.code == OptParse.MAIN_UnexpectedToken
 
     val = parse_ok(repeatedParser, ["file1.txt", "file2.txt"])
     @test val == ["file1.txt", "file2.txt"]
@@ -100,7 +100,7 @@ end
 
     err = parse_fail(repeatedParser, ["a", "b", "c", "d"])
     @test err isa OptParse.MainError
-    @test err.code == OptParse.MAIN_NoProgress
+    @test err.code == OptParse.MAIN_UnexpectedToken
 
     val = parse_ok(repeatedParser, ["a", "b"])
     @test val == ["a", "b"]
@@ -302,7 +302,7 @@ end
     # to the parent parser and surfaces as no further progress at top level.
     err = parse_fail(parser2, ["-t", "Title", "id1", "id2", "id3", "id4"])
     @test err isa OptParse.MainError
-    @test err.code == OptParse.MAIN_NoProgress
+    @test err.code == OptParse.MAIN_UnexpectedToken
 end
 
 @testset "should handle options terminator correctly" begin
@@ -354,7 +354,7 @@ end
 
     tooManyErr = parse_fail(repeatedParser, ["-p", "8080", "-p", "9000", "-p", "3000", "-p", "4000", "-p", "5000", "-p", "6000"])
     @test tooManyErr isa OptParse.MainError
-    @test tooManyErr.code == OptParse.MAIN_NoProgress
+    @test tooManyErr.code == OptParse.MAIN_UnexpectedToken
 end
 
 @testset "should maintain type safety with different value types" begin

@@ -170,9 +170,14 @@ partial(p::AbstractParser{T, E, S}) where {T, E, S} = Partial{T, E, S, typeof(p)
         mayberesult = parse(parser, ctx)::InnerParseResult{S, E}
 
         if is_error(mayberesult)
-            # real error — parser recognized something but couldn't handle it
-            err = unwrap_error(mayberesult)::InnerParseFailure{E}
-            return Result{RT, UE}(typedErr(UE, ℒ_error(err)))
+            if res_num_consumed(mayberesult) > 0
+                # real error — parser recognized something but couldn't handle it
+                return Result{RT, UE}(typedErr(UE, res_error(err)))
+            end
+            # parser doesn't recognize this token — skip it
+            push!(skipped, ctx_peek(ctx))
+            ctx = ctx_consume(ctx, 1)
+            continue
         end
         result = unwrap(mayberesult)
 
