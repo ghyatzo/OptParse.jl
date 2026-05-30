@@ -58,6 +58,7 @@ export
     str,
     sequence,
     tryoptparse,
+    partial,
     u16,
     u32,
     u64,

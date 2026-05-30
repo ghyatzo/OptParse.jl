@@ -126,3 +126,75 @@ See the main documentation for full keyword argument descriptions.
         return optparse(parser, newargv)
     end
 end
+
+# ─── Partial (passthrough) parser ─────────────────────────────────────────────
+
+"""
+    partial(parser)
+
+Wrap a parser for partial argument consumption.
+
+The resulting wrapper can be used with [`tryoptparse`](@ref) to parse only the
+arguments that match, returning both the parsed value and any remaining
+unconsumed tokens. Useful for wrapper CLIs that pass unrecognized arguments
+through to a child program.
+
+# Examples
+```julia
+wrapper = partial(record((; verbose = default(flag("--verbose"), false))))
+result = tryoptparse(wrapper, ["--verbose", "--child-flag", "arg"])
+# → Ok((value = (verbose = true,), remaining = ["--child-flag", "arg"]))
+```
+
+# See Also
+- [`tryoptparse`](@ref): the entrypoint to invoke the partial parser
+"""
+struct Partial{T, E, S, P <: AbstractParser{T, E, S}}
+    parser::P
+end
+partial(p::AbstractParser{T, E, S}) where {T, E, S} = Partial{T, E, S, typeof(p)}(p)
+
+@autospecialize pp function tryoptparse(
+        pp::Partial{T, E, S},
+        args::Vector{String}
+    )::ParseResult{Tuple{T, Vector{String}}, Union{E, MainError}} where {T, E, S}
+
+    UE = Union{E, MainError}
+    RT = Tuple{T, Vector{String}}
+    parser = pp.parser
+    canonical_argv, _ = normalize_argv(args)
+    ctx = Context{S}(buffer = canonical_argv, state = parser.initialState, usage = usage(parser))
+    skipped = String[]
+
+    while ctx_length(ctx) > 0
+        mayberesult = parse(parser, ctx)::InnerParseResult{S, E}
+
+        if is_error(mayberesult)
+            # real error — parser recognized something but couldn't handle it
+            err = unwrap_error(mayberesult)::InnerParseFailure{E}
+            return Result{RT, UE}(typedErr(UE, ℒ_error(err)))
+        end
+        result = unwrap(mayberesult)
+
+        previous_buffer = ctx_remaining(ctx)
+        ctx = res_nextctx(result)
+
+        if no_progress(previous_buffer, ctx)
+            # parser doesn't recognize this token — skip it
+            push!(skipped, ctx_peek(ctx))
+            ctx = ctx_consume(ctx, 1)
+            continue
+        end
+    end
+
+    state = ctx_state(ctx)
+    res = complete(parser, state)::ParseResult{T, E}
+
+    remaining = append!(skipped, ctx_remaining(ctx))
+
+    if is_error(res)
+        return Result{RT, UE}(typedErr(UE, unwrap_error(res)))
+    else
+        return Result{RT, UE}(typedOk(RT, (unwrap(res), remaining)))
+    end
+end

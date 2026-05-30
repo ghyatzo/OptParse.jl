@@ -339,6 +339,25 @@ result = tryoptparse(parser, ["-p", "3000"])
 `optparse` returns the parsed value on success and throws `OptParse.ParseException` on failure.
 `tryoptparse` returns a result container instead of throwing, which is useful if you want to inspect failures programmatically.
 
+The result container comes from [ErrorTypes.jl](https://github.com/jakobnissen/ErrorTypes.jl).
+To work with it directly, add `using ErrorTypes` to your code:
+
+```julia
+using ErrorTypes: is_error, unwrap, unwrap_error
+
+result = tryoptparse(parser, argv)
+if is_error(result)
+    err = unwrap_error(result)
+    # handle error
+else
+    value = unwrap(result)
+end
+```
+
+OptParse reexports `@?` for early-return error propagation, but the rest of the
+ErrorTypes API (`is_error`, `unwrap`, `unwrap_error`, `Ok`, `Err`) must be
+imported explicitly when needed.
+
 Rendered error messages are produced centrally from structured internal diagnostics. The exact wording may evolve, but failures are surfaced with parser-specific context, for example invalid values, missing required inputs, or unexpected arguments.
 In the high-level `optparse` path, the exception renderer also appends a focused
 usage line derived from the parser tree.

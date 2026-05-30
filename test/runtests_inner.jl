@@ -105,3 +105,7 @@ end
 @testset "@autospecialize" begin
     include("unit/core/autospecialize.jl")
 end
+
+@testset "Partial parser" failfast = true begin
+    include("unit/partial.jl")
+end
