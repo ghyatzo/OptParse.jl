@@ -3,6 +3,15 @@
 # which is only expected to be fully type-stable in juliac (static) mode.
 
 @testset "Record parse/complete infers" begin
+    @test_opt obj = record(
+        "test", (
+            cst = @constant(10),
+            option = option("--host", str(; metavar = "HOST")),
+            flag = switch("--verbose", "-v"),
+            flag2 = switch("--test"),
+            arg = arg(str(; metavar = "TEST")),
+        )
+    )
     obj = record(
         "test", (
             cst = @constant(10),

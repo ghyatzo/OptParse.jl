@@ -114,7 +114,7 @@ end
         return InnerParseResult{S, E}(innerOk(outctx, mergedcons))
     end
 
-    if ctx_hasnone(ctx) == 0
+    if ctx_hasnone(ctx)
         if _object_can_complete(p.parsers, ctx_state(ctx))
             return InnerParseResult{S, E}(innerOk(ctx, consumed_empty(ctx)))
         end
