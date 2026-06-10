@@ -166,17 +166,21 @@ end
     parser = or(modeA, modeB, modeC)
 
     val = parse_ok(parser, ["-a"])
-    val.optionA == true
+    @test val.optionA == true
 
     val = parse_ok(parser, ["-b"])
-    val.optionB == true
+    @test val.optionB == true
 
     val = parse_ok(parser, ["-c"])
-    val.optionC == true
+    @test val.optionC == true
 
-    @test parse_fail(parser, ["-a", "-b"]) isa OptParse.ConstrOrError
-    @test parse_fail(parser, ["-c", "-b"]) isa OptParse.ConstrOrError
-    @test parse_fail(parser, ["-c", "-a"]) isa OptParse.ConstrOrError
+    # The or parser matches the first token to one of the records.
+    # Once the or matches, it "becomes" the selected branch. so effectively
+    # when we're trying to parse the next token, we're passing it to the branch selected
+    # by the first token. But that record doesn't know of anything to match it with.
+    @test parse_fail(parser, ["-a", "-b"]) isa OptParse.ConstrObjectError
+    @test parse_fail(parser, ["-c", "-b"]) isa OptParse.ConstrObjectError
+    @test parse_fail(parser, ["-c", "-a"]) isa OptParse.ConstrObjectError
 
 end
 

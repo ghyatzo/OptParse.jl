@@ -14,9 +14,6 @@ const OrState{U} = Option{InnerOrState{U}}
 _inner_state(::Type{<:OrState{U}}) where {U} = U
 
 
-
-
-
 @enum OrErrCode::UInt8 begin
     OR_EndOfInput
     OR_UnexpectedToken
@@ -114,8 +111,6 @@ end
 end
 
 
-
-
 @enum _OrParseOutcomeKind begin
     OR_OUTCOME_BranchMatch
     OR_OUTCOME_Propagate
@@ -132,9 +127,10 @@ end
 
 @autospecialize p ctx function parse(p::ConstrOr{T, E, S, PTup}, ctx::Context{S}) where {T, E, S <: OrState, PTup <: Tuple}
 
-    error = InnerParseFailure{E}(0, ctx_haslessthan(1, ctx) ?
-        ConstrOrError(OR_EndOfInput, "", "") :
-        ConstrOrError(OR_UnexpectedToken, ctx_peek(ctx), "")
+    error = InnerParseFailure{E}(
+        0, ctx_hasnone(ctx) ?
+            ConstrOrError(OR_EndOfInput, "", "") :
+            ConstrOrError(OR_UnexpectedToken, ctx_peek(ctx), "")
     )
     current_ctx = ctx
     allconsumed = Consumed[consumed_empty(ctx)]
@@ -208,7 +204,7 @@ end
 
 @autospecialize p orstate function complete(p::ConstrOr{T, E}, orstate::OrState{U}) where {T, E, U}
     is_error(orstate) &&
-        return ParseResult{T,E}(typedErr(E, ConstrOrError(OR_NoMatch, "", "")))
+        return ParseResult{T, E}(typedErr(E, ConstrOrError(OR_NoMatch, "", "")))
 
     selected = unwrap(orstate)
     return @static if juliac
@@ -226,8 +222,8 @@ end
 
     child_result = complete(p.parsers[I], ℒ_nextstate(selected.success))
     if is_error(child_result)
-        return ParseResult{T,E}(typedErr(E, unwrap_error(child_result)))
+        return ParseResult{T, E}(typedErr(E, unwrap_error(child_result)))
     end
 
-    return ParseResult{T,E}(typedOk(T, unwrap(child_result)))
+    return ParseResult{T, E}(typedOk(T, unwrap(child_result)))
 end

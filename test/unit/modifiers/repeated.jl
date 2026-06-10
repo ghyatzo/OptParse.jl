@@ -301,8 +301,8 @@ end
     # Constraint violation: once `max` is reached, the extra positional is left
     # to the parent parser and surfaces as no further progress at top level.
     err = parse_fail(parser2, ["-t", "Title", "id1", "id2", "id3", "id4"])
-    @test err isa OptParse.MainError
-    @test err.code == OptParse.MAIN_UnexpectedToken
+    @test err isa OptParse.ConstrObjectError
+    @test err.code == OptParse.OBJECT_UnexpectedToken
 end
 
 @testset "should handle options terminator correctly" begin

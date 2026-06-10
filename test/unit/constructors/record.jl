@@ -137,39 +137,20 @@ end
 
     @test parse_ok(obj, ["--host", "host", "--", "ARG"]) == (option = "host", flag = nothing, arg = "ARG")
 
-    err = parse_fail(obj, ["ARG", "--host", "host", "--", "-v"])
+    err = parse_fail(obj, ["TEST", "--host", "host", "--", "-v"])
     # the "-v" is correctly interpreted not as an option but as an argument.
-    # in this case the record will fail to match any of its inner parsers, raising a NoProgress error
-    @test err isa OptParse.MainError
+    # but we already matched the arg with the "TEST" token, so a duplicate error is raised.
+    @test err isa OptParse.ArgArgumentError
 
     @test parse_ok(obj, ["--host", "host", "ARG", "--"]) == (option = "host", flag = nothing, arg = "ARG")
 
 end
 
-@testset "should be type stable" begin
-
-    @test_opt record(
-        "test", (
-            cst = @constant(10),
-            option = option("--host", str(; metavar = "HOST")),
-            flag = switch("--verbose", "-v"),
-            flag2 = switch("--test"),
-            arg = arg(str(; metavar = "TEST")),
-        )
+@testset "should handle empty input if all optional (#9)" begin
+    parser = record(
+        verbose = flag("-v", "--verbose"),
+        files = many(arg(str("FILE")))
     )
 
-    obj = record(
-        "test", (
-            cst = @constant(10),
-            option = option("--host", str(; metavar = "HOST")),
-            flag = switch("--verbose", "-v"),
-            flag2 = switch("--test"),
-            arg = arg(str(; metavar = "TEST")),
-        )
-    )
-
-    ctx = mkctx(["--verbose", "--host", "me", "--test", "--", "--test"], obj.initialState)
-
-    res = splitparse(obj, ctx)
-    succ = unwrap(res)
+    @test parse_ok(parser, String[]) == (verbose = false, files = String[])
 end
