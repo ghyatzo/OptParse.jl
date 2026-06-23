@@ -1,8 +1,10 @@
 UsageStyle(::Val{:compact}) = UsageCompactStyle()
 UsageStyle(::Val{:expanded}) = UsageExpandedStyle()
+UsageStyle(::Val{:helplabel}) = UsageHelpLabelStyle()
 UsageStyle(style::Symbol) =
     style === :compact ? UsageCompactStyle() :
     style === :expanded ? UsageExpandedStyle() :
+    style === :helplabel ? UsageHelpLabelStyle() :
     throw(ArgumentError("Unknown usage render style: $(style)"))
 
 function render_usage(node::UsageNode; style::Symbol = :compact, progname::AbstractString = "")
@@ -55,15 +57,19 @@ function _render_wrapped_usage(io::IO, node::UsageNode, style::AbstractUsageRend
 end
 
 
+_usage_leaf_names(names, ::AbstractUsageRenderStyle) = _usage_primary_name(names)
+_usage_leaf_names(names, ::UsageHelpLabelStyle) = join(names, ", ")
+
+
 function _render_usage(io::IO, node::UsageNode, style::AbstractUsageRenderStyle, state::UsageRenderState)
 
     ##=----------------------------=##
     #   leaf rendering
     ##=----------------------------=##
     if node.kind == USAGE_Flag
-        print(io, _usage_primary_name(node.names))
+        print(io, _usage_leaf_names(node.names, style))
     elseif node.kind == USAGE_Option
-        print(io, _usage_primary_name(node.names))
+        print(io, _usage_leaf_names(node.names, style))
         print(io, " <")
         print(io, _usage_metavar(node.metavar))
         print(io, '>')
@@ -102,9 +108,21 @@ function _render_usage(io::IO, node::UsageNode, style::AbstractUsageRenderStyle,
             _render_usage_alternatives_inline(io, node.children, style, false)
         end
     elseif node.kind == USAGE_Optional
-        print(io, '[')
-        _render_wrapped_usage(io, first(node.children), style)
-        print(io, ']')
+        if style isa UsageHelpLabelStyle
+            _render_wrapped_usage(io, first(node.children), style)
+        else
+            print(io, '[')
+            _render_wrapped_usage(io, first(node.children), style)
+            print(io, ']')
+        end
+    elseif node.kind == USAGE_Default
+        if style isa UsageHelpLabelStyle
+            _render_wrapped_usage(io, first(node.children), style)
+        else
+            print(io, '[')
+            _render_wrapped_usage(io, first(node.children), style)
+            print(io, ']')
+        end
     elseif node.kind == USAGE_Repeat
         min = node.min
         max = node.max

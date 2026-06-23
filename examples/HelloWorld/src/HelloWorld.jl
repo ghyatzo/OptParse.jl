@@ -36,24 +36,28 @@ end # module HelloWorld
 # using OptParse
 
 const parser = @parser struct Option
-    "gossamer formats Julia source code with a focus on fixing mistakes rather than enforcing a uniform style."
+    # @synopsis("""
+    #     gossamer formats Julia source code with a focus on fixing mistakes
+    #     rather than enforcing a uniform style.
+    # """)
 
-    "Do not write output and exit with a non-zero code if the input is not formatted correctly."
+    """Do not write output and exit with a non-zero code
+        if the input is not formatted correctly."""
     check = flag("-c", "--check")
 
     """Print the diff between the input and formatted output to stderr.
-    Requires `git` to be installed."""
+        Requires `git` to be installed."""
     diff = flag("-d", "--diff")
 
     "Format files in place."
     inplace = flag("-i", "--inplace")
 
     """Limit formatting to the line range <start line> to <end line>. Multiple
-    ranges can be formatted by specifying multiple --lines arguments."""
+        ranges can be formatted by specifying multiple --lines arguments."""
     lines = many(option("--lines", str("LINES")))
 
     """File to write formatted output to. If no output is given, or if the file
-    is `-`, output is written to stdout."""
+        is `-`, output is written to stdout."""
     output = optional(option(("-o", "--output"), str("OUTPUT")))
 
     "Assumed filename when formatting from stdin. Used for error messages."
@@ -63,10 +67,14 @@ const parser = @parser struct Option
     verbose = flag("-v", "--verbose")
 
     "Print Gossamer and julia version information."
-    version = flag("--version"),
+    version = flag("--version")
 
     "HHSHS"
     files = many(arg(str("FILE")))
+
+    # @footer("""
+
+    # """)
 end
 
 

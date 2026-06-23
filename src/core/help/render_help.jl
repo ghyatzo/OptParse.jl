@@ -20,7 +20,7 @@ end
 
 @inline function _help_base_usage(node::UsageNode)::UsageNode
     kind = node.kind
-    return if kind == USAGE_Optional || kind == USAGE_Repeat || kind == USAGE_Hidden
+    return if kind == USAGE_Optional || kind == USAGE_Repeat || kind == USAGE_Default || kind == USAGE_Hidden
         isempty(node.children) ? node : _help_base_usage(node.children[1])
     else
         node
@@ -55,28 +55,60 @@ end
     return if base.kind == USAGE_Command
         join(base.names, ", ")
     else
-        render_usage(usage; style = :compact)
+        render_usage(usage; style = :helplabel)
     end
 end
 
-function render_help_entry(io::IO, entry::HelpEntry, usage_width::Int, leftpad::Int, rightpad::Int)
-    usage = _help_entry_label(entry)
+@inline function _help_annotation(entry::HelpEntry)
+    usage = entry.usage
+    if usage.kind == USAGE_Default
+        return "default: " * usage.default
+    elseif _usage_is_optional(usage)
+        return ""
+    else
+        return "required"
+    end
+end
+
+function render_help_entry(io::IO, entry::HelpEntry, usage_width::Int, leftpad::Int, desc_indent::Int)
+    label = _help_entry_label(entry)
+    annotation = _help_annotation(entry)
     brief = entry.info.brief
 
     print(io, " "^leftpad)
-    print(io, rpad(usage, usage_width + rightpad))
-    isempty(brief) || print(io, "  ", brief)
+    print(io, label)
+
+    if !isempty(annotation)
+        gap = 4
+        pad_to = leftpad + usage_width + gap
+        current = leftpad + length(label)
+        if current < pad_to
+            print(io, " "^(pad_to - current))
+        else
+            print(io, "  ")
+        end
+        print(io, annotation)
+    end
+    println(io)
+
+    if !isempty(brief)
+        brief_lines = split(brief, '\n')
+        indent = " "^(leftpad + desc_indent)
+        for line in brief_lines
+            println(io, indent, line)
+        end
+    end
     println(io)
     return nothing
 end
 
-function _render_help_group(io::IO, group::HelpEntryGroup, entries::Vector{HelpEntry}, leftpad::Int, rightpad::Int)
+function _render_help_group(io::IO, group::HelpEntryGroup, entries::Vector{HelpEntry}, leftpad::Int, desc_indent::Int)
     isempty(entries) && return nothing
 
     println(io, _help_group_title(group), ":")
     usage_width = maximum(length(_help_entry_label(entry)) for entry in entries)
     for entry in entries
-        render_help_entry(io, entry, usage_width, leftpad, rightpad)
+        render_help_entry(io, entry, usage_width, leftpad, desc_indent)
     end
     return nothing
 end
@@ -127,12 +159,12 @@ function render_helpdoc(io::IO, doc::HelpDoc; progname = "")
     print(io, "Usage: ")
     render_usage(io, doc; style = :compact, progname)
     println(io)
+    println(io)
 
     printed_group = false
     for group in group_order
         group_entries = groups[Int(group) + 1]
         isempty(group_entries) && continue
-        println(io)
         _render_help_group(io, group, group_entries, 3, 4)
         printed_group = true
     end

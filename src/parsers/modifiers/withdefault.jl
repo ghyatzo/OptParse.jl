@@ -1,18 +1,28 @@
 const WithDefaultState{X} = Option{X}
 
+@inline _should_show_default(::Type{P}, ::Type{Nothing}) where {P} = false
+@inline _should_show_default(::Type{<:ArgGate}, ::Type{Bool}) = false
+@inline _should_show_default(::Type{P}, ::Type{T}) where {P, T} = true
+
 struct ModWithDefault{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     initialState::S
     parser::P
     #
     default::T
+    show_default::Bool
 
     ModWithDefault(parser::P, default::T) where {T, P <: AbstractParser} = let
         retval_t = tval(P) == T ? T : Union{tval(P), T}
-        new{retval_t, terr(P), WithDefaultState{tstate(P)}, P, priority(P)}(none(tstate(P)), parser, default)
+        new{retval_t, terr(P), WithDefaultState{tstate(P)}, P, priority(P)}(
+            none(tstate(P)), parser, default, _should_show_default(P, T)
+        )
     end
 end
 
-@autospecialize p usage(p::ModWithDefault) = UsageOptional(usage(p.parser))
+@autospecialize p usage(p::ModWithDefault) = p.show_default ?
+    UsageDefault(usage(p.parser), string(p.default)) :
+    UsageOptional(usage(p.parser))
+
 @autospecialize p function helpentries(p::ModWithDefault, rt::OverlayContext)
     child = p.parser
     return if (
@@ -24,7 +34,10 @@ end
         )
 
         entry = helpentries(child, rt)[1]
-        HelpEntry[set(entry, (@o _.usage), UsageOptional(entry.usage))]
+        new_usage = p.show_default ?
+            UsageDefault(entry.usage, string(p.default)) :
+            UsageOptional(entry.usage)
+        HelpEntry[set(entry, (@o _.usage), new_usage)]
     else
         helpentries(child, rt)
     end

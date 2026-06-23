@@ -8,6 +8,7 @@
     USAGE_Alternative
     USAGE_Optional
     USAGE_Repeat
+    USAGE_Default
     USAGE_Hidden
     USAGE_Empty
 end
@@ -19,6 +20,7 @@ end
     children::Vector{UsageNode} = UsageNode[]
     min::Int = 0
     max::Int = 0
+    default::String = ""
 end
 
 UsageFlag(names::Vector{String}) =
@@ -60,6 +62,9 @@ UsageOptional(child::UsageNode) = UsageNode(kind = USAGE_Optional, children = Us
 
 UsageRepeat(child::UsageNode, min::Integer, max::Integer) =
     UsageNode(kind = USAGE_Repeat, children = UsageNode[child], min = Int(min), max = Int(max))
+
+UsageDefault(child::UsageNode, default::String) =
+    UsageNode(kind = USAGE_Default, children = UsageNode[child], default = default)
 
 UsageHidden(child::UsageNode) = UsageNode(kind = USAGE_Hidden, children = UsageNode[child])
 

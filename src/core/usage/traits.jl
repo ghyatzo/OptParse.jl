@@ -2,6 +2,7 @@ abstract type AbstractUsageRenderStyle end
 
 struct UsageCompactStyle <: AbstractUsageRenderStyle end
 struct UsageExpandedStyle <: AbstractUsageRenderStyle end
+struct UsageHelpLabelStyle <: AbstractUsageRenderStyle end
 
 Base.@kwdef struct UsageRenderState
     # Prefix to repeat when a child renderer decides to spill onto later lines.
@@ -37,6 +38,7 @@ function _usage_renders_empty(node::UsageNode)
     elseif (
             node.kind == USAGE_Optional
                 || node.kind == USAGE_Repeat
+                || node.kind == USAGE_Default
         )
         return _usage_renders_empty(first(node.children))
     else
@@ -86,6 +88,7 @@ _usage_should_collapse_optional_option(node) =
 
 function _usage_is_optional(node::UsageNode)
     node.kind == USAGE_Optional && return true
+    node.kind == USAGE_Default && return true
     node.kind == USAGE_Repeat && node.min == 0 && return true
     return false
 end
@@ -99,6 +102,7 @@ function _usage_is_optionlike(node::UsageNode)
     elseif (
             node.kind == USAGE_Optional
                 || node.kind == USAGE_Repeat
+                || node.kind == USAGE_Default
                 || node.kind == USAGE_Hidden
         )
         return _usage_is_optionlike(first(node.children))
