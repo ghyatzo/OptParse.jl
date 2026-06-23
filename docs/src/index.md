@@ -331,13 +331,17 @@ On top of that, [`@parser`](@ref) offers a concise typed workflow that defines a
 struct and its matching parser together:
 
 ```julia
-parser = @parser "Server configuration" Config begin
+parser = @parser struct Config
+    "Server configuration"
+    
     "Hostname to bind"
     host = option("--host", str("HOST"))
 
     "TCP port"
     port = default(option("--port", integer("PORT")), 8080)
-end "Used by the development server."
+    
+    "Used by the development server."
+end
 ```
 
 The macro derives struct field types from the parser expressions themselves via

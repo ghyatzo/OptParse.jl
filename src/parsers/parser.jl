@@ -516,51 +516,80 @@ _parser_apply_leading_help(p::AbstractParser, modifier) = modifier(p)
 _parser_apply_trailing_help(p::AbstractParser, text::AbstractString) = help(p; footer = String(text))
 _parser_apply_trailing_help(p::AbstractParser, modifier) = modifier(p)
 
-function _parser_macro_expand(typeexpr, description, body, footer)
-    typeexpr isa Symbol || throw(ArgumentError("@parser currently only supports non-parametric type names."))
-    leading_help_ref = GlobalRef(OptParse, :_parser_apply_leading_help)
-    trailing_help_ref = GlobalRef(OptParse, :_parser_apply_trailing_help)
+function _parser_macro_expand(expr)
+    if !(expr isa Expr && expr.head == :struct)
+        throw(ArgumentError("@parser must be applied to a struct definition."))
+    end
 
-    stmts = body isa Expr && body.head == :block ? body.args : Any[body]
+    is_mutable = expr.args[1]
+    is_mutable && throw(ArgumentError("@parser structs cannot be mutable."))
+
+    typeexpr = expr.args[2]
+    typeexpr isa Symbol || throw(ArgumentError("@parser currently only supports non-parametric type names."))
+
+    body = expr.args[3]
+    stmts = filter(x -> !(x isa LineNumberNode), body.args)
+
+    description = nothing
+    footer = nothing
+
     field_defs = Any[]
     parser_fields = Any[]
     parser_bindings = Any[]
-    pending_help = nothing
 
-    for stmt in stmts
-        stmt isa LineNumberNode && continue
+    leading_help_ref = GlobalRef(OptParse, :_parser_apply_leading_help)
+    trailing_help_ref = GlobalRef(OptParse, :_parser_apply_trailing_help)
 
-        if stmt isa String
-            pending_help === nothing || throw(ArgumentError("Unexpected consecutive help strings in @parser body."))
-            pending_help = stmt
-            continue
-        end
+    i = 1
+    while i <= length(stmts)
+        stmt = stmts[i]
 
-        if stmt isa Expr && stmt.head == :macrocall && length(stmt.args) >= 4 && stmt.args[end - 1] isa String
-            pending_help === nothing || throw(ArgumentError("Unexpected consecutive help strings in @parser body."))
-            pending_help = stmt.args[end - 1]
-            stmt = stmt.args[end]
-        end
+        # Determine if statement is "string-like" or a variable used as help
+        is_assignment = stmt isa Expr && stmt.head == :(=)
 
-        stmt isa Expr && stmt.head == :(=) || throw(ArgumentError("@parser body only supports string literals and `field = parser` definitions."))
-        lhs, rhs = stmt.args
-        lhs isa Symbol || throw(ArgumentError("@parser fields must be written as `field = parser`."))
-        name = lhs
+        if is_assignment
+            lhs, rhs = stmt.args
+            lhs isa Symbol || throw(ArgumentError("@parser fields must be written as `field = parser`."))
+            name = lhs
 
-        parser_name = gensym(Symbol(name, "_parser"))
-
-        parser_rhs = if isnothing(pending_help)
-            rhs
+            parser_name = gensym(Symbol(name, "_parser"))
+            push!(parser_bindings, :(const $(parser_name) = $(rhs)))
+            push!(field_defs, :($(name)::valuetype($(parser_name))))
+            push!(parser_fields, Expr(:kw, name, parser_name))
+            i += 1
         else
-            :($(rhs) |> help($(pending_help)))
-        end
-        push!(parser_bindings, :(const $(parser_name) = $(parser_rhs)))
-        push!(field_defs, :($(name)::valuetype($(parser_name))))
-        push!(parser_fields, Expr(:kw, name, parser_name))
-        pending_help = nothing
-    end
+            if i == length(stmts)
+                # Last statement, must be footer
+                footer = stmt
+                i += 1
+            else
+                next_stmt = stmts[i+1]
+                next_is_assignment = next_stmt isa Expr && next_stmt.head == :(=)
 
-    isnothing(pending_help) || throw(ArgumentError("@parser body ended with a help string that does not apply to any field."))
+                if next_is_assignment
+                    # It's field help
+                    lhs, rhs = next_stmt.args
+                    lhs isa Symbol || throw(ArgumentError("@parser fields must be written as `field = parser`."))
+                    name = lhs
+
+                    parser_name = gensym(Symbol(name, "_parser"))
+
+                    parser_rhs = :($(rhs) |> help($(stmt)))
+                    push!(parser_bindings, :(const $(parser_name) = $(parser_rhs)))
+                    push!(field_defs, :($(name)::valuetype($(parser_name))))
+                    push!(parser_fields, Expr(:kw, name, parser_name))
+                    i += 2
+                else
+                    # It's not followed by an assignment, so it must be a description
+                    if description !== nothing
+                        throw(ArgumentError("Multiple descriptions found in @parser struct. String must be followed by string, an assignment, or be at the end."))
+                    end
+                    description = stmt
+                    i += 1
+                end
+            end
+        end
+    end
 
     parser_expr = :(construct_exact($(typeexpr), (; $(parser_fields...))))
     !isnothing(description) && (parser_expr = Expr(:call, leading_help_ref, parser_expr, description))
@@ -576,23 +605,13 @@ function _parser_macro_expand(typeexpr, description, body, footer)
 end
 
 """
-    @parser TypeName begin
+    @parser struct TypeName
+        "Parser description"
         "Field help"
         field = parser_expr
         ...
+        "Parser footer"
     end
-
-    @parser "Parser description" TypeName begin
-        "Field help"
-        field = parser_expr
-        ...
-    end
-
-    @parser "Parser description" TypeName begin
-        "Field help"
-        field = parser_expr
-        ...
-    end "Parser footer"
 
 Define a concrete struct and return a matching [`construct_exact`](@ref) parser.
 
@@ -604,14 +623,14 @@ Each field definition in the block becomes both:
 The generated struct field types are derived from the parser expressions via
 [`valuetype`](@ref), so the struct shape always matches the parser output.
 
-If a string literal appears immediately before a field definition, it is lowered
+If a string literal (or any variable) appears immediately before a field definition, it is lowered
 to `|> help("...")` on that field parser.
 
-If an expression appears before the type name, it is treated as parser-level
+If an expression appears at the beginning of the struct body and is NOT immediately followed by a field assignment, it is treated as parser-level
 description/help metadata. String values are lowered to
 `|> help(description = ...)`; other values are applied as parser modifiers.
 
-If an expression appears after the block, it is treated as parser-level
+If an expression appears at the very end of the struct body, it is treated as parser-level
 footer/help metadata. String values are lowered to `|> help(footer = ...)`;
 other values are applied as parser modifiers.
 
@@ -622,12 +641,14 @@ mainly syntax sugar over ordinary OptParse combinators.
 ```jldoctest
 julia> using OptParse
 
-julia> parser = @parser "Server configuration" Config begin
+julia> parser = @parser struct Config
+           "Server configuration"
            "Host"
            host = option("--host", str("HOST"))
            "Port"
            port = option("--port", integer("PORT"))
-       end "Server configuration parser";
+           "Server configuration parser"
+       end;
 
 julia> optparse(parser, ["--host", "localhost", "--port", "8080"])
 Config("localhost", 8080)
@@ -637,27 +658,17 @@ Config("localhost", 8080)
 - [`construct_exact`](@ref)
 - [`construct`](@ref)
 """
-macro parser(typeexpr, body)
-    return esc(_parser_macro_expand(typeexpr, nothing, body, nothing))
+macro parser(expr)
+    return esc(_parser_macro_expand(expr))
 end
 
-macro parser(description, typeexpr, body)
-    return esc(_parser_macro_expand(typeexpr, description, body, nothing))
-end
-
-macro parser(description, typeexpr, body, footer)
-    return esc(_parser_macro_expand(typeexpr, description, body, footer))
-end
-
-# @parser MyType{M} begin
-
+# @parser struct MyType{M}
 #     "this is a docstring"
 #     a = option("-i", integer())
-
 #     "this is another docstring"
 #     b = option("-j", integer())
-
-# end "Parser footer"
+#     "Parser footer"
+# end
 
 # struct MyType{M}
 #     a::M

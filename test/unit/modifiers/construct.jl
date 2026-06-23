@@ -22,22 +22,26 @@ struct PositiveOnly
     end
 end
 
-const macro_parser = @parser "Macro parser description" MacroConfig begin
+const macro_parser = @parser struct MacroConfig
+    "Macro parser description"
     "Host"
     host = option("--host", str("HOST"))
     "Port"
     port = option("--port", integer("PORT"))
-end "Macro parser footer"
+    "Macro parser footer"
+end
 
 const macro_desc_var = "Macro parser description from variable"
 const macro_footer_help = help(; footer = "Macro parser footer from help modifier")
 
-const macro_parser_with_values = @parser macro_desc_var MacroConfigFromValues begin
+const macro_parser_with_values = @parser struct MacroConfigFromValues
+    macro_desc_var
     "Host"
     host = option("--host", str("HOST"))
     "Port"
     port = option("--port", integer("PORT"))
-end macro_footer_help
+    macro_footer_help
+end
 
 @testset "should preserve wrapped parser priority and state" begin
     baseParser = record((verbose = switch("-v"),))

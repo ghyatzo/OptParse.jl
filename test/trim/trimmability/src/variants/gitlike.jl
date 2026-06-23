@@ -51,7 +51,8 @@ const statushelp = help(
     """
 )
 
-const _statuscmd = @parser statushelp StatusCmd begin
+const _statuscmd = @parser struct StatusCmd
+    statushelp
 
     "Short"
     short 		= flag("-s", "--short")
@@ -84,7 +85,8 @@ const addhelp = help(
     """
 )
 
-const _addcmd = @parser addhelp AddCmd begin
+const _addcmd = @parser struct AddCmd
+    addhelp
     "Dry run"
     dryrun = flag("-n", "--dry-run")
     "Verbose"
@@ -153,16 +155,24 @@ const commithelp = help(
     """
 )
 
-const _commitcmd = @parser commithelp CommitCmd begin
+const _commitcmd = @parser struct CommitCmd
+    commithelp
+
     message_file = commit_message_source
+
     "All"
     all = flag("-a", "--all")
+
     "Amend"
     amend = flag("--amend")
+
     "Signoff"
     signoff = flag("-s", "--signoff")
+
     author = commit_author
+
     date = commit_date # todo: add date/time value parsers
+
     "Allow empty"
     empty = flag("--allow-empty")
 end
@@ -213,7 +223,8 @@ const clonehelp = help(
     """
 )
 
-const _clonecmd = @parser clonehelp CloneCmd begin
+const _clonecmd = @parser struct CloneCmd
+    clonehelp
     "Quiet"
     quiet = flag("-q", "--quiet")
     "Verbose"
@@ -257,7 +268,8 @@ const pushhelp = help(
     """
 )
 
-const _pushcmd = @parser pushhelp PushCmd begin
+const _pushcmd = @parser struct PushCmd
+    pushhelp
     "Set upstream"
     upstream = flag("-u", "--set-upstream")
     "Force"
@@ -304,7 +316,8 @@ const remote_addhelp = help(
     """
 )
 
-const _remote_add = @parser remote_addhelp RemoteAdd begin
+const _remote_add = @parser struct RemoteAdd
+    remote_addhelp
     "Fetch"
     fetch = flag("-f", "--fetch")
     branches = remote_add_branches
@@ -316,7 +329,8 @@ const _remote_add = @parser remote_addhelp RemoteAdd begin
 end
 
 
-const _remote_remove = @parser help("Remote remove", description = "Remove a configured remote.") RemoteRemove begin
+const _remote_remove = @parser struct RemoteRemove
+    help("Remote remove", description = "Remove a configured remote.")
     "Remote name"
     name = arg(str("NAME"))
 end
@@ -328,7 +342,8 @@ const remote_geturlhelp = help(
     Display one or more URLs configured for a remote.
     """
 )
-const _remote_geturl = @parser remote_geturlhelp RemoteGetUrl begin
+const _remote_geturl = @parser struct RemoteGetUrl
+    remote_geturlhelp
     "Push URL"
     push = flag("--push")
     "All URLs"
@@ -350,7 +365,8 @@ const remote_seturlhelp = help(
     """
 )
 
-const _remote_seturl = @parser remote_seturlhelp RemoteSetUrl begin
+const _remote_seturl = @parser struct RemoteSetUrl
+    remote_seturlhelp
     "Push URL"
     push = flag("--push")
     "Remote name"
@@ -374,12 +390,13 @@ const _remote_rename = construct_exact(RemoteRename, sequence(
 
 
 
-const _remotecmd = @parser """
+const _remotecmd = @parser struct RemoteCmd
+"""
 Manage the set of tracked repositories.
 
 This nested command family is the part of the example that most closely
 stresses focused help generation and nested command rendering.
-""" RemoteCmd begin
+"""
 
     verbose = flag("-v", "--verbose") |> many()
 
@@ -394,11 +411,12 @@ stresses focused help generation and nested command rendering.
 
         command("set-url", _remote_seturl) |> help("Change remote URLs"),
     )
-end """
+"""
 Examples:
   gitlike remote add origin https://example/repo.git
   gitlike remote set-url origin https://example/new.git
 """
+end
 
 
 # -----------------------------------------------------------------------------
