@@ -23,19 +23,19 @@ struct PositiveOnly
 end
 
 const macro_parser = @parser struct MacroConfig
-    "Macro parser description"
+    @description "Macro parser description"
     "Host"
     host = option("--host", str("HOST"))
     "Port"
     port = option("--port", integer("PORT"))
-    "Macro parser footer"
+    @footer "Macro parser footer"
 end
 
 const macro_desc_var = "Macro parser description from variable"
 const macro_footer_help = help(; footer = "Macro parser footer from help modifier")
 
 const macro_parser_with_values = @parser struct MacroConfigFromValues
-    macro_desc_var
+    @description macro_desc_var
     "Host"
     host = option("--host", str("HOST"))
     "Port"
@@ -164,6 +164,21 @@ end
     @test occursin("Port", helptext)
 end
 
+const order_parser = @parser struct OrderConfig
+    @description "first description"
+    @footer "first footer"
+    "Value"
+    value = option("--value", integer("VALUE"))
+    @description "second description"
+end
+
+const factored_mod = help("Brief", description = "factored description", footer = "factored footer")
+const factored_parser = @parser struct FactoredConfig
+    factored_mod
+    "Value"
+    value = option("--value", integer("VALUE"))
+end
+
 @testset "parser macro should accept non-literal parser help expressions" begin
     value = parse_ok(macro_parser_with_values, ["--host", "localhost", "--port", "8080"])
     @test value == MacroConfigFromValues("localhost", 8080)
@@ -171,4 +186,40 @@ end
     helptext = OptParse.generate_help(macro_parser_with_values, String[]; progname = "prog")
     @test occursin(macro_desc_var, helptext)
     @test occursin("Macro parser footer from help modifier", helptext)
+end
+
+@testset "parser macro should apply @description and @footer in source order" begin
+    info = order_parser.info
+    @test info.description == "second description"
+    @test info.footer == "first footer"
+    @test parse_ok(order_parser, ["--value", "7"]) == OrderConfig(7)
+end
+
+@testset "parser macro should reject misplaced bare strings" begin
+    @test_throws ArgumentError @macroexpand(@parser struct BadTrailing
+        "Value"
+        value = option("--value", integer("VALUE"))
+        "stray trailing string"
+    end)
+
+    @test_throws ArgumentError @macroexpand(@parser struct BadLeading
+        "stray leading string"
+        "Value"
+        value = option("--value", integer("VALUE"))
+    end)
+end
+
+@testset "parser macro should reject unknown markers" begin
+    @test_throws ArgumentError @macroexpand(@parser struct BadMarker
+        @bogus "nope"
+        value = option("--value", integer("VALUE"))
+    end)
+end
+
+@testset "parser macro should accept a bare modifier expression" begin
+    info = factored_parser.info
+    @test info.brief == "Brief"
+    @test info.description == "factored description"
+    @test info.footer == "factored footer"
+    @test parse_ok(factored_parser, ["--value", "3"]) == FactoredConfig(3)
 end

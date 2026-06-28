@@ -391,12 +391,12 @@ const _remote_rename = construct_exact(RemoteRename, sequence(
 
 
 const _remotecmd = @parser struct RemoteCmd
-"""
-Manage the set of tracked repositories.
+    @description """
+    Manage the set of tracked repositories.
 
-This nested command family is the part of the example that most closely
-stresses focused help generation and nested command rendering.
-"""
+    This nested command family is the part of the example that most closely
+    stresses focused help generation and nested command rendering.
+    """
 
     verbose = flag("-v", "--verbose") |> many()
 
@@ -411,11 +411,11 @@ stresses focused help generation and nested command rendering.
 
         command("set-url", _remote_seturl) |> help("Change remote URLs"),
     )
-"""
-Examples:
-  gitlike remote add origin https://example/repo.git
-  gitlike remote set-url origin https://example/new.git
-"""
+    @footer """
+    Examples:
+      gitlike remote add origin https://example/repo.git
+      gitlike remote set-url origin https://example/new.git
+    """
 end
 
 

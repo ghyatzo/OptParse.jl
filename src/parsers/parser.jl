@@ -510,11 +510,26 @@ construct_exact(::Type{T}) where {T} = (x::Union{NamedTuple, Tuple, AbstractPars
 construct_exact(::Type{T}, nt::NamedTuple) where {T} = ModConstructExact(record(nt), T)
 construct_exact(::Type{T}, t::Tuple) where {T} = ModConstructExact(sequence(t), T)
 
-_parser_apply_leading_help(p::AbstractParser, text::AbstractString) = help(p; description = String(text))
-_parser_apply_leading_help(p::AbstractParser, modifier) = modifier(p)
+# A field assignment is `field = parser_expr`, with a Symbol on the left-hand side.
+@inline _parser_macro_is_field_assignment(stmt) =
+    stmt isa Expr && stmt.head === :(=) && (stmt.args[1] isa Symbol)
 
-_parser_apply_trailing_help(p::AbstractParser, text::AbstractString) = help(p; footer = String(text))
-_parser_apply_trailing_help(p::AbstractParser, modifier) = modifier(p)
+# Recognize the @parser-internal markers. These are not real macros; they are
+# only meaningful inside a `@parser struct ... end` block and are intercepted
+# here as `Expr(:macrocall, ...)` nodes. Returns :description, :footer, :unknown,
+# or nothing when `stmt` is not a macrocall at all.
+function _parser_macro_marker_kind(stmt)
+    stmt isa Expr && stmt.head === :macrocall || return nothing
+    name = stmt.args[1]
+    name isa Symbol || return nothing
+    return if name === Symbol("@description")
+        :description
+    elseif name === Symbol("@footer")
+        :footer
+    else
+        :unknown
+    end
+end
 
 function _parser_macro_expand(expr)
     if !(expr isa Expr && expr.head == :struct)
@@ -530,70 +545,85 @@ function _parser_macro_expand(expr)
     body = expr.args[3]
     stmts = filter(x -> !(x isa LineNumberNode), body.args)
 
-    description = nothing
-    footer = nothing
-
     field_defs = Any[]
     parser_fields = Any[]
     parser_bindings = Any[]
-
-    leading_help_ref = GlobalRef(OptParse, :_parser_apply_leading_help)
-    trailing_help_ref = GlobalRef(OptParse, :_parser_apply_trailing_help)
+    # Ordered list of parser-level overlays applied to the whole parser, in
+    # source order. Each entry is either (:description, arg), (:footer, arg),
+    # or (:modifier, expr) for a bare modifier expression.
+    post = Any[]
 
     i = 1
-    while i <= length(stmts)
+    n = length(stmts)
+    while i <= n
         stmt = stmts[i]
 
-        # Determine if statement is "string-like" or a variable used as help
-        is_assignment = stmt isa Expr && stmt.head == :(=)
-
-        if is_assignment
-            lhs, rhs = stmt.args
-            lhs isa Symbol || throw(ArgumentError("@parser fields must be written as `field = parser`."))
-            name = lhs
-
+        if _parser_macro_is_field_assignment(stmt)
+            name = stmt.args[1]
+            rhs = stmt.args[2]
             parser_name = gensym(Symbol(name, "_parser"))
             push!(parser_bindings, :(const $(parser_name) = $(rhs)))
             push!(field_defs, :($(name)::valuetype($(parser_name))))
             push!(parser_fields, Expr(:kw, name, parser_name))
             i += 1
-        else
-            if i == length(stmts)
-                # Last statement, must be footer
-                footer = stmt
-                i += 1
+        elseif stmt isa AbstractString
+            # A bare string is only valid as a field brief, which requires it to
+            # be immediately followed by a field assignment. Anything else is an
+            # error: parser-level prose must use @description or @footer.
+            if i < n && _parser_macro_is_field_assignment(stmts[i + 1])
+                next = stmts[i + 1]
+                name = next.args[1]
+                rhs = next.args[2]
+                parser_name = gensym(Symbol(name, "_parser"))
+                parser_rhs = :($(rhs) |> help($(stmt)))
+                push!(parser_bindings, :(const $(parser_name) = $(parser_rhs)))
+                push!(field_defs, :($(name)::valuetype($(parser_name))))
+                push!(parser_fields, Expr(:kw, name, parser_name))
+                i += 2
             else
-                next_stmt = stmts[i+1]
-                next_is_assignment = next_stmt isa Expr && next_stmt.head == :(=)
-
-                if next_is_assignment
-                    # It's field help
-                    lhs, rhs = next_stmt.args
-                    lhs isa Symbol || throw(ArgumentError("@parser fields must be written as `field = parser`."))
-                    name = lhs
-
-                    parser_name = gensym(Symbol(name, "_parser"))
-
-                    parser_rhs = :($(rhs) |> help($(stmt)))
-                    push!(parser_bindings, :(const $(parser_name) = $(parser_rhs)))
-                    push!(field_defs, :($(name)::valuetype($(parser_name))))
-                    push!(parser_fields, Expr(:kw, name, parser_name))
-                    i += 2
-                else
-                    # It's not followed by an assignment, so it must be a description
-                    if description !== nothing
-                        throw(ArgumentError("Multiple descriptions found in @parser struct. String must be followed by string, an assignment, or be at the end."))
-                    end
-                    description = stmt
-                    i += 1
+                throw(ArgumentError(
+                    "@parser: a bare string must be immediately followed by a " *
+                    "field assignment to act as that field's brief. For " *
+                    "parser-level help use @description or @footer."
+                ))
+            end
+        else
+            kind = _parser_macro_marker_kind(stmt)
+            if kind === :description || kind === :footer
+                # stmt.args = [macro_name, LineNumberNode, macro_args...]
+                macro_args = stmt.args[3:end]
+                if length(macro_args) != 1
+                    label = kind === :description ? "@description" : "@footer"
+                    throw(ArgumentError("@parser: $(label) takes exactly one argument."))
                 end
+                push!(post, (kind, macro_args[1]))
+                i += 1
+            elseif kind === :unknown
+                throw(ArgumentError(
+                    "@parser: unknown marker $(stmt.args[1]). Only @description " *
+                    "and @footer are recognized inside @parser."
+                ))
+            else
+                # Bare non-string expression: a parser modifier applied to the
+                # whole parser as expr(parser). Lets users factor help metadata
+                # into reusable modifiers (e.g. `commithelp = help(...)`).
+                push!(post, (:modifier, stmt))
+                i += 1
             end
         end
     end
 
     parser_expr = :(construct_exact($(typeexpr), (; $(parser_fields...))))
-    !isnothing(description) && (parser_expr = Expr(:call, leading_help_ref, parser_expr, description))
-    !isnothing(footer) && (parser_expr = Expr(:call, trailing_help_ref, parser_expr, footer))
+    for item in post
+        if item[1] === :description
+            parser_expr = :(help($(parser_expr); description = $(item[2])))
+        elseif item[1] === :footer
+            parser_expr = :(help($(parser_expr); footer = $(item[2])))
+        else
+            m = item[2]
+            parser_expr = :($(m)($(parser_expr)))
+        end
+    end
 
     return quote
         $(parser_bindings...)
@@ -606,11 +636,12 @@ end
 
 """
     @parser struct TypeName
-        "Parser description"
-        "Field help"
+        @description "Parser description"
+        @footer "Parser footer"
+
+        "Field brief"
         field = parser_expr
         ...
-        "Parser footer"
     end
 
 Define a concrete struct and return a matching [`construct_exact`](@ref) parser.
@@ -623,31 +654,42 @@ Each field definition in the block becomes both:
 The generated struct field types are derived from the parser expressions via
 [`valuetype`](@ref), so the struct shape always matches the parser output.
 
-If a string literal (or any variable) appears immediately before a field definition, it is lowered
-to `|> help("...")` on that field parser.
+## Help metadata
 
-If an expression appears at the beginning of the struct body and is NOT immediately followed by a field assignment, it is treated as parser-level
-description/help metadata. String values are lowered to
-`|> help(description = ...)`; other values are applied as parser modifiers.
+A bare string literal immediately followed by a field assignment is lowered to
+`|> help("...")` on that field parser, becoming that field's brief. A bare
+string anywhere else is an error; use the markers below for parser-level help.
 
-If an expression appears at the very end of the struct body, it is treated as parser-level
-footer/help metadata. String values are lowered to `|> help(footer = ...)`;
-other values are applied as parser modifiers.
+Two markers are recognized inside the struct body. They are not real macros and
+only exist within `@parser`:
 
-The parser expressions on the right-hand side are used as-is, so this macro is
-mainly syntax sugar over ordinary OptParse combinators.
+- `@description expr` — lowered to `help(parser; description = expr)`.
+- `@footer expr` — lowered to `help(parser; footer = expr)`.
+
+Each marker takes a single string-valued expression (a literal or a variable).
+Markers may appear in any order and are applied to the whole parser in source
+order, after all field parsers are assembled.
+
+Any other bare expression (a variable or call that evaluates to a parser
+modifier) is applied to the whole parser as `expr(parser)`. This lets you
+factor help metadata into a reusable modifier, e.g. a `commithelp` value
+defined as `help("Commit", description = "...", footer = "...")`.
+
+The parser expressions on the right-hand side of field assignments are used
+as-is, so this macro is mainly syntax sugar over ordinary OptParse combinators.
 
 # Examples
 ```jldoctest
 julia> using OptParse
 
 julia> parser = @parser struct Config
-           "Server configuration"
+           @description "Server configuration"
+           @footer "Used by the development server."
+
            "Host"
            host = option("--host", str("HOST"))
            "Port"
            port = option("--port", integer("PORT"))
-           "Server configuration parser"
        end;
 
 julia> optparse(parser, ["--host", "localhost", "--port", "8080"])
@@ -657,26 +699,21 @@ Config("localhost", 8080)
 # See Also
 - [`construct_exact`](@ref)
 - [`construct`](@ref)
+- [`help`](@ref)
 """
 macro parser(expr)
     return esc(_parser_macro_expand(expr))
 end
 
+# Future: parametric struct support.
 # @parser struct MyType{M}
-#     "this is a docstring"
+#     @description "..."
+#     "this is a field brief"
 #     a = option("-i", integer())
-#     "this is another docstring"
+#     "this is another field brief"
 #     b = option("-j", integer())
-#     "Parser footer"
+#     @footer "..."
 # end
-
-# struct MyType{M}
-#     a::M
-#     b::Int
-# end
-
-# MyType_parser
-# = construct(MyType, (;
 #     a = or(option("-i", integer()), option("-f", flt()))
 #     b = option("-j", integer())
 # ))

@@ -349,15 +349,15 @@ On top of that, `@parser` provides a concise typed workflow:
 
 ```julia
 parser = @parser struct Config
-    "Server configuration"
-    
+    @description "Server configuration"
+
     "Hostname to bind"
     host = option("--host", str("HOST"))
 
     "TCP port"
     port = default(option("--port", integer("PORT")), 8080)
-    
-    "Used by the development server."
+
+    @footer "Used by the development server."
 end
 ```
 
