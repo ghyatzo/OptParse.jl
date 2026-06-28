@@ -331,7 +331,7 @@ On top of that, [`@parser`](@ref) offers a concise typed workflow that defines a
 struct and its matching parser together:
 
 ```julia
-parser = @parser struct Config
+@parser struct Config
     @description "Server configuration"
 
     "Hostname to bind"
@@ -346,6 +346,9 @@ end
 
 The macro derives struct field types from the parser expressions themselves via
 [`valuetype`](@ref), so the struct shape stays aligned with the parser output.
+The generated struct subtypes [`AbstractLiftedParser`](@ref), and the parser is
+retrievable via [`lift`](@ref) or usable directly with the entrypoints
+(`optparse(Config, args)`).
 
 So the typed story now has three layers:
 

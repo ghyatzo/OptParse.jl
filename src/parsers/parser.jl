@@ -625,12 +625,26 @@ function _parser_macro_expand(expr)
         end
     end
 
+    # Build the struct expression with the AbstractLiftedParser supertype
+    # injected. The module is interpolated as a value so this works regardless
+    # of how the user imported OptParse (e.g. selective `using OptParse: @parser`).
+    struct_expr = Expr(
+        :struct,
+        false,  # immutable
+        Expr(:<:, typeexpr, :($(OptParse).AbstractLiftedParser)),
+        Expr(:block, field_defs...),
+    )
+
+    # Define a per-type `lift` method. The module is interpolated as a value so
+    # this works regardless of how the user imported OptParse (e.g. selective
+    # `using OptParse: @parser`). The gensym'd parser bindings live in the
+    # user's module globals and are captured by the method body.
+    lift_method = :($(OptParse).lift(::Type{$(typeexpr)}) = $(parser_expr))
+
     return quote
         $(parser_bindings...)
-        struct $(typeexpr)
-            $(field_defs...)
-        end
-        $parser_expr
+        $struct_expr
+        $lift_method
     end
 end
 
@@ -644,7 +658,12 @@ end
         ...
     end
 
-Define a concrete struct and return a matching [`construct_exact`](@ref) parser.
+Define a concrete struct that doubles as a CLI parser specification.
+
+The struct is declared as a subtype of [`AbstractLiftedParser`](@ref), and a
+per-type [`lift`](@ref) method is registered so that `lift(TypeName)` returns
+the parser value. The entrypoints accept the type directly, so you can write
+`optparse(TypeName, args)` without keeping an explicit binding.
 
 Each field definition in the block becomes both:
 
@@ -682,7 +701,7 @@ as-is, so this macro is mainly syntax sugar over ordinary OptParse combinators.
 ```jldoctest
 julia> using OptParse
 
-julia> parser = @parser struct Config
+julia> @parser struct Config
            @description "Server configuration"
            @footer "Used by the development server."
 
@@ -692,11 +711,16 @@ julia> parser = @parser struct Config
            port = option("--port", integer("PORT"))
        end;
 
-julia> optparse(parser, ["--host", "localhost", "--port", "8080"])
+julia> optparse(Config, ["--host", "localhost", "--port", "8080"])
 Config("localhost", 8080)
+
+julia> lift(Config)  # retrieve the parser object directly
+construct_exact(Config, record(...)) |> help(...)
 ```
 
 # See Also
+- [`lift`](@ref)
+- [`AbstractLiftedParser`](@ref)
 - [`construct_exact`](@ref)
 - [`construct`](@ref)
 - [`help`](@ref)

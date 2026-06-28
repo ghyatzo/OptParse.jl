@@ -22,7 +22,7 @@ struct PositiveOnly
     end
 end
 
-const macro_parser = @parser struct MacroConfig
+@parser struct MacroConfig
     @description "Macro parser description"
     "Host"
     host = option("--host", str("HOST"))
@@ -34,7 +34,7 @@ end
 const macro_desc_var = "Macro parser description from variable"
 const macro_footer_help = help(; footer = "Macro parser footer from help modifier")
 
-const macro_parser_with_values = @parser struct MacroConfigFromValues
+@parser struct MacroConfigFromValues
     @description macro_desc_var
     "Host"
     host = option("--host", str("HOST"))
@@ -152,6 +152,7 @@ end
 end
 
 @testset "parser macro should define a struct and return an exact parser" begin
+    macro_parser = lift(MacroConfig)
     value = parse_ok(macro_parser, ["--host", "localhost", "--port", "8080"])
     @test value == MacroConfig("localhost", 8080)
     @test fieldtype(MacroConfig, 1) == String
@@ -164,7 +165,7 @@ end
     @test occursin("Port", helptext)
 end
 
-const order_parser = @parser struct OrderConfig
+@parser struct OrderConfig
     @description "first description"
     @footer "first footer"
     "Value"
@@ -173,13 +174,15 @@ const order_parser = @parser struct OrderConfig
 end
 
 const factored_mod = help("Brief", description = "factored description", footer = "factored footer")
-const factored_parser = @parser struct FactoredConfig
+
+@parser struct FactoredConfig
     factored_mod
     "Value"
     value = option("--value", integer("VALUE"))
 end
 
 @testset "parser macro should accept non-literal parser help expressions" begin
+    macro_parser_with_values = lift(MacroConfigFromValues)
     value = parse_ok(macro_parser_with_values, ["--host", "localhost", "--port", "8080"])
     @test value == MacroConfigFromValues("localhost", 8080)
 
@@ -189,6 +192,7 @@ end
 end
 
 @testset "parser macro should apply @description and @footer in source order" begin
+    order_parser = lift(OrderConfig)
     info = order_parser.info
     @test info.description == "second description"
     @test info.footer == "first footer"
@@ -217,9 +221,26 @@ end
 end
 
 @testset "parser macro should accept a bare modifier expression" begin
+    factored_parser = lift(FactoredConfig)
     info = factored_parser.info
     @test info.brief == "Brief"
     @test info.description == "factored description"
     @test info.footer == "factored footer"
     @test parse_ok(factored_parser, ["--value", "3"]) == FactoredConfig(3)
+end
+
+@testset "parser macro should register a LiftedParser with lift and type-based entrypoints" begin
+    @test MacroConfig <: AbstractLiftedParser
+    @test FactoredConfig <: AbstractLiftedParser
+
+    p = lift(MacroConfig)
+    @test p isa AbstractParser
+    @test valuetype(p) == MacroConfig
+
+    result = optparse(MacroConfig, ["--host", "x", "--port", "9"])
+    @test result == MacroConfig("x", 9)
+
+    tres = tryoptparse(MacroConfig, ["--host", "x", "--port", "9"])
+    @test !is_error(tres)
+    @test unwrap(tres) == MacroConfig("x", 9)
 end

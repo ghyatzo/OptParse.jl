@@ -51,7 +51,7 @@ const statushelp = help(
     """
 )
 
-const _statuscmd = @parser struct StatusCmd
+@parser struct StatusCmd
     statushelp
 
     "Short"
@@ -85,7 +85,7 @@ const addhelp = help(
     """
 )
 
-const _addcmd = @parser struct AddCmd
+@parser struct AddCmd
     addhelp
     "Dry run"
     dryrun = flag("-n", "--dry-run")
@@ -155,7 +155,7 @@ const commithelp = help(
     """
 )
 
-const _commitcmd = @parser struct CommitCmd
+@parser struct CommitCmd
     commithelp
 
     message_file = commit_message_source
@@ -223,7 +223,7 @@ const clonehelp = help(
     """
 )
 
-const _clonecmd = @parser struct CloneCmd
+@parser struct CloneCmd
     clonehelp
     "Quiet"
     quiet = flag("-q", "--quiet")
@@ -268,7 +268,7 @@ const pushhelp = help(
     """
 )
 
-const _pushcmd = @parser struct PushCmd
+@parser struct PushCmd
     pushhelp
     "Set upstream"
     upstream = flag("-u", "--set-upstream")
@@ -316,7 +316,7 @@ const remote_addhelp = help(
     """
 )
 
-const _remote_add = @parser struct RemoteAdd
+@parser struct RemoteAdd
     remote_addhelp
     "Fetch"
     fetch = flag("-f", "--fetch")
@@ -329,7 +329,7 @@ const _remote_add = @parser struct RemoteAdd
 end
 
 
-const _remote_remove = @parser struct RemoteRemove
+@parser struct RemoteRemove
     help("Remote remove", description = "Remove a configured remote.")
     "Remote name"
     name = arg(str("NAME"))
@@ -342,7 +342,7 @@ const remote_geturlhelp = help(
     Display one or more URLs configured for a remote.
     """
 )
-const _remote_geturl = @parser struct RemoteGetUrl
+@parser struct RemoteGetUrl
     remote_geturlhelp
     "Push URL"
     push = flag("--push")
@@ -365,7 +365,7 @@ const remote_seturlhelp = help(
     """
 )
 
-const _remote_seturl = @parser struct RemoteSetUrl
+@parser struct RemoteSetUrl
     remote_seturlhelp
     "Push URL"
     push = flag("--push")
@@ -390,7 +390,7 @@ const _remote_rename = construct_exact(RemoteRename, sequence(
 
 
 
-const _remotecmd = @parser struct RemoteCmd
+@parser struct RemoteCmd
     @description """
     Manage the set of tracked repositories.
 
@@ -401,15 +401,15 @@ const _remotecmd = @parser struct RemoteCmd
     verbose = flag("-v", "--verbose") |> many()
 
     subcmd = or(
-        command("add", _remote_add) |> help("Add a new remote"),
+        command("add", lift(RemoteAdd)) |> help("Add a new remote"),
 
         command("rename", _remote_rename) |> help("Rename an existing remote"),
 
-        command("remove", _remote_remove) |> help("Remove a configured remote"),
+        command("remove", lift(RemoteRemove)) |> help("Remove a configured remote"),
 
-        command("get-url", _remote_geturl) |> help("Show remote URLs"),
+        command("get-url", lift(RemoteGetUrl)) |> help("Show remote URLs"),
 
-        command("set-url", _remote_seturl) |> help("Change remote URLs"),
+        command("set-url", lift(RemoteSetUrl)) |> help("Change remote URLs"),
     )
     @footer """
     Examples:
@@ -443,12 +443,12 @@ const gitlikehelp = help(
 const parser = record((
     options = globoptions,
     cmd     = or(
-        command("status", _statuscmd) |> help("Show working tree status"),
-        command("add", _addcmd) |> help("Add file contents to the index"),
-        command("commit", _commitcmd) |> help("Record changes to the repository"),
-        command("clone", _clonecmd) |> help("Clone a repository into a new directory"),
-        command("push", _pushcmd) |> help("Update remote refs"),
-        command("remote", _remotecmd) |> help("Manage configured remotes"),
+        command("status", lift(StatusCmd)) |> help("Show working tree status"),
+        command("add", lift(AddCmd)) |> help("Add file contents to the index"),
+        command("commit", lift(CommitCmd)) |> help("Record changes to the repository"),
+        command("clone", lift(CloneCmd)) |> help("Clone a repository into a new directory"),
+        command("push", lift(PushCmd)) |> help("Update remote refs"),
+        command("remote", lift(RemoteCmd)) |> help("Manage configured remotes"),
     ),
 )) |> gitlikehelp
 

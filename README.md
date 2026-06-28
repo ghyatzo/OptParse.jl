@@ -348,7 +348,7 @@ the parser output and the target type.
 On top of that, `@parser` provides a concise typed workflow:
 
 ```julia
-parser = @parser struct Config
+@parser struct Config
     @description "Server configuration"
 
     "Hostname to bind"
@@ -363,6 +363,9 @@ end
 
 The macro derives struct field types from the parser expressions themselves via
 `valuetype(...)`, so the typed definition stays aligned with the parser output.
+The generated struct subtypes `AbstractLiftedParser`, and the parser is
+retrievable via `lift(Config)` or usable directly with the entrypoints
+(`optparse(Config, args)`).
 
 That gives OptParse three useful layers:
 
