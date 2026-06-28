@@ -308,6 +308,11 @@ This is the main way to annotate parsers with user-facing prose. The same parser
 tree still defines CLI behavior; `help(...)` only enriches that tree with
 documentation.
 
+Inside [`@parser`](@ref) structs, the `@description` and `@footer` markers
+provide a shorthand for `help(parser; description=...)` and
+`help(parser; footer=...)` respectively, and bare strings before a field
+assignment are lowered to `help(field_parser, "...")` for that field's brief.
+
 # Arguments
 - `p::AbstractParser`: The parser to annotate
 - `brief::String`: Short one-line summary
@@ -334,6 +339,7 @@ julia> (result.host, result.verbose)
 
 # See Also
 - [`hidden`](@ref): Convenience modifier for hidden parsers
+- [`@parser`](@ref): Macro that provides `@description`/`@footer` shorthand
 """
 function help end
 
@@ -500,7 +506,7 @@ Point{Int64}(10, 20)
 - [`construct`](@ref)
 - [`record`](@ref)
 - [`sequence`](@ref)
-- [`@parser`](@ref)
+- [`@parser`](@ref): generates `construct_exact` parsers with `lift`-accessible types
 """
 function construct_exact end
 
@@ -698,7 +704,7 @@ The parser expressions on the right-hand side of field assignments are used
 as-is, so this macro is mainly syntax sugar over ordinary OptParse combinators.
 
 # Examples
-```jldoctest
+```julia
 julia> using OptParse
 
 julia> @parser struct Config

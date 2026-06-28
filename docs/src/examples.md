@@ -104,3 +104,30 @@ result = optparse(pkgParser, ["add", "DataFrames", "Plots"])
 @assert result.action == Val(:add)
 @assert result.packages == ["DataFrames", "Plots"]
 ```
+
+### Typed Parsers with `@parser`
+
+```julia
+using OptParse
+
+@parser struct Config
+    @description "My application"
+
+    verbose = flag("-v", "--verbose") |> help("Verbose", "Enable verbose output")
+    name = option("-n", "--name", str("NAME")) |> help("Name", "Your name")
+    @footer "Pass --help for more information."
+end
+
+# Type-based entrypoints — no binding needed
+result = optparse(Config, ["--name", "Alice", "-v"])
+println("Hello, $(result.name)")  # "Hello, Alice"
+
+# Or use lift to get the parser
+parser = lift(Config)
+```
+
+### Running an Application
+
+For a full CLI application with `--help` and subcommands, see
+[`examples/HelloWorld/`](https://github.com/anomalyco/OptParse.jl/tree/main/examples/HelloWorld).
+```

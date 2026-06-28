@@ -62,8 +62,13 @@ Current parsing conventions:
 For the public entrypoints:
 
 - `optparse(parser, argv)` is the high-level convenience entrypoint
+- `optparse(::Type{T}, argv)` where `T<:AbstractLiftedParser` — type-based variant using [`@parser`](@ref) structs
 - `tryoptparse(parser, argv)` is the lower-level entrypoint and returns a result container instead of throwing
+- `tryoptparse(::Type{T}, argv)` — type-based variant
+- `runparse(parser, argv; ...)` — application-facing entrypoint with built-in help
+- `runparse(::Type{T}, argv; ...)` — type-based variant
 - `partial(parser)` wraps a parser for partial argument consumption (pass-through)
+- `lift(::Type{T})` — access the parser associated with an `@parser` struct
 - `valuetype(parser)` returns the final value type produced by a parser
 
 `optparse` has two modes controlled through the `juliac` key via

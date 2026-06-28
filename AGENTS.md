@@ -15,6 +15,8 @@ OptParse.jl is a type-stable, composable CLI argument parser for Julia, designed
 
 **`AbstractValueParser{T, E}`** — callable parsers that convert a single string token into `ParseResult{T, E}`.
 
+**`AbstractLiftedParser`** — supertype automatically applied to all `@parser` structs. Enables type-based entrypoints (`optparse(MyType, argv)`, `lift(::Type{MyType})`).
+
 ### Parser Categories
 
 - **Value parsers** (`src/parsers/valueparsers/`): `StringVal`, `IntegerVal`, `FloatVal`, `Choice`, `UUIDVal`, `PathVal`. Extension: `IdentifierVal` (via `FastIdentifiersExt`).
@@ -29,6 +31,8 @@ OptParse.jl is a type-stable, composable CLI argument parser for Julia, designed
 - `optparse(parser, argv)` → `T | nothing` (prints error to stderr)
 - `runparse(parser, argv; ...)` → application-level with built-in `--help` and help subcommands
 - `partial(parser)` → wraps parser for partial consumption; `tryoptparse(partial(p), argv)` returns `(value, remaining)`
+- `lift(::Type{T})` → retrieves the parser associated with an `@parser` struct type
+- `optparse(::Type{T}, argv)`, `tryoptparse(::Type{T}, argv)`, `runparse(::Type{T}, argv)` — type-based entrypoint variants for `T<:AbstractLiftedParser`
 - `build_help_doc(parser, argv)` → `HelpDoc` (focused help document for a given argv context)
 - `generate_help(parser, argv)` / `print_help(io, parser, argv)` — render help text
 
@@ -94,9 +98,9 @@ These are transparent at runtime (Julia expands them), so `typeof(x).parameters[
 
 | Path | Role |
 |------|------|
-| `src/OptParse.jl` | Module entry, loads `juliac` preference, `AbstractParser{T,E,S,P,R}`, `AbstractValueParser{T,E}`, exports, `normalize_argv` |
+| `src/OptParse.jl` | Module entry, loads `juliac` preference, `AbstractParser{T,E,S,P,R}`, `AbstractValueParser{T,E}`, `AbstractLiftedParser`, exports, `normalize_argv` |
 | `src/utils.jl` | `@autospecialize` macro, tuple sort utilities |
-| `src/entrypoints.jl` | Core entrypoints (`optparse`, `tryoptparse`, `runparse`, `partial`), parsing loop |
+| `src/entrypoints.jl` | Core entrypoints (`optparse`, `tryoptparse`, `runparse`, `partial`), `lift`, type-based entrypoints, parsing loop |
 | `src/parsers/parser.jl` | `OverlayContext`, `validate`, public API constructors (all exported parser functions), `@parser` macro, then includes all parser subdirectories |
 | `src/parsers/constructors/constructors.jl` | Constructor includes, static/dynamic split, `_usage_children`, `_merge`, `_concat` |
 | `src/core/context.jl` | `Context{S}` struct and helpers |
