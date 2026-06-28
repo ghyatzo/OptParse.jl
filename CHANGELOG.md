@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.4.0](https://github.com/ghyatzo/OptParse.jl/compare/v0.3.0...v0.4.0) (2026-06-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* redefine the @parser macro structure
+
+### Features
+
+* **@parser:** adds [@description](https://github.com/description) and [@footer](https://github.com/footer) syntax to [@parser](https://github.com/parser) macro ([c39db32](https://github.com/ghyatzo/OptParse.jl/commit/c39db32840a87bfac0d7638b50e127268147b1b7))
+* adds "partial" passthrough pseudo parser ([b136758](https://github.com/ghyatzo/OptParse.jl/commit/b136758463cbe91888426f4da69e78121e10b458))
+* **ext:** FastIdentifiers ValueParser extention ([270a972](https://github.com/ghyatzo/OptParse.jl/commit/270a972b6a56eac156981a3912e7a11f3f714074))
+* **interface:** adds validation checks for user provided ([bf474f4](https://github.com/ghyatzo/OptParse.jl/commit/bf474f4488c9b197c30877b304d7a55550828aa6))
+* **record:** pass parsers as keyword arguments (no named tuple). ([0cd328e](https://github.com/ghyatzo/OptParse.jl/commit/0cd328ec7e42b79e552cca0ae22b6537c3c0029b))
+
+
+### Bug Fixes
+
+* correctly handle unrecognized tokens. minor cleanups ([2197c8c](https://github.com/ghyatzo/OptParse.jl/commit/2197c8c050e5406b79f828a10e6c2860b4062f71))
+* fix issue [#9](https://github.com/ghyatzo/OptParse.jl/issues/9) of incorrectly handled empty args with optionals. ([7a0cefb](https://github.com/ghyatzo/OptParse.jl/commit/7a0cefbc775b8466de33b97c0dbb35d2e5e649df))
+* return correct error from no progress ([429f4bb](https://github.com/ghyatzo/OptParse.jl/commit/429f4bba0af276571e11dd47454cca908cd756c2))
+* **test:** fix a test expecting the wrong error type. ([7ce7b7c](https://github.com/ghyatzo/OptParse.jl/commit/7ce7b7ca2b6ce6fbbba1daab2536e1448a4459ee))
+
+
+### Refactors
+
+* **@parser:** introduce the `lift` function to retrieve the parser ([b378e44](https://github.com/ghyatzo/OptParse.jl/commit/b378e44813e9951e3452b8b5e2647d2afdafb3eb))
+* additional work on reducing precompilation ([9aa7796](https://github.com/ghyatzo/OptParse.jl/commit/9aa779617f9722141476abeaac3f36dc13c2873f))
+* **api:** removes the default_metavar function. ([0c4d9f1](https://github.com/ghyatzo/OptParse.jl/commit/0c4d9f1ea64f06dc814afad06e0fab977e433c3d))
+* **error:** introduce ParseError{E}, AbstractParseError, and per-parser error structs ([1240b60](https://github.com/ghyatzo/OptParse.jl/commit/1240b608a8fb744ee6e21b4f2d4e83b4ee5575f2))
+* **error:** remove error traces and phase as unused. keep only subject ([388fdcb](https://github.com/ghyatzo/OptParse.jl/commit/388fdcbce0501fe5237a08ba4ad14cc6a71eaa28))
+* **error:** remove the subject entirely for preparatory work. ([ed53c4f](https://github.com/ghyatzo/OptParse.jl/commit/ed53c4f98f91d80ad40ce6b706c9f62445d41029))
+* **help:** new help printing layout with annotations ([67ef70a](https://github.com/ghyatzo/OptParse.jl/commit/67ef70ad4e63fa8d6421577de85b9f7fa1dd7fae))
+* redefine the [@parser](https://github.com/parser) macro structure ([4a43ffb](https://github.com/ghyatzo/OptParse.jl/commit/4a43ffba0b0da6a896a59f022659c379e34a6644))
+* **show:** better define a show interface and make better prints. ([6461b3c](https://github.com/ghyatzo/OptParse.jl/commit/6461b3c720037834cd276a1823b929062ce55a74))
+* split dynamic/static code to help with interactive TTFP ([d5b572c](https://github.com/ghyatzo/OptParse.jl/commit/d5b572c214728aac4920f09773c44e4bcec33166))
+* **test:** run tests both in dynamic and static modes ([3f66998](https://github.com/ghyatzo/OptParse.jl/commit/3f669983416c446102ff0f9056fc308a230e3f49))
+* **types:** reorder parser type parameters to {T, E, S, P, R} ([850df30](https://github.com/ghyatzo/OptParse.jl/commit/850df305264fd3d0022b12350f5b43133a3f33b4))
+* **usage:** adds a generic "annotations" interface, adds choices ([639876d](https://github.com/ghyatzo/OptParse.jl/commit/639876d6b80d71e4d884753d72384fe29f6c4ca9))
+
+
+### Documentation
+
+* refresh docs ([d8d4105](https://github.com/ghyatzo/OptParse.jl/commit/d8d4105578d5ff49deecfe34811a990cd1cb0d0c))
+* refresh migration guide ([c172826](https://github.com/ghyatzo/OptParse.jl/commit/c172826cf14ce2f7bd5f5a04f4a6928c73462d9d))
+* update docs ([7635c11](https://github.com/ghyatzo/OptParse.jl/commit/7635c11b8592e75d9f326c707d92da556bc06577))
+
 ## [0.3.0](https://github.com/ghyatzo/OptParse.jl/compare/v0.2.1...v0.3.0) (2026-05-13)
 
 
