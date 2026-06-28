@@ -48,3 +48,5 @@ end
     return ParseResult{T, ChoiceValError}(Ok(c.outputs[index]))
 
 end
+
+usage_annotations(c::ChoiceVal) = ["choices: " * join(lowercase.(c.values), ", ")]

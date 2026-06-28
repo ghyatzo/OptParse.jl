@@ -102,6 +102,10 @@ end
     end
 end
 
+@testset "Help annotation" failfast = true begin
+    include("unit/core/help/choices.jl")
+end
+
 @testset "@autospecialize" begin
     include("unit/core/autospecialize.jl")
 end

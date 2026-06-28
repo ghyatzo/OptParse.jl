@@ -61,13 +61,12 @@ end
 
 @inline function _help_annotation(entry::HelpEntry)
     usage = entry.usage
-    if usage.kind == USAGE_Default
-        return "default: " * usage.default
-    elseif _usage_is_optional(usage)
-        return ""
-    else
-        return "required"
-    end
+    parts = String[]
+    _usage_is_optional(usage) || push!(parts, "required")
+    append!(parts, usage.annotations)
+    base = _help_base_usage(usage)
+    base === usage || append!(parts, base.annotations)
+    return join(parts, "  ")
 end
 
 function render_help_entry(io::IO, entry::HelpEntry, usage_width::Int, leftpad::Int, desc_indent::Int)

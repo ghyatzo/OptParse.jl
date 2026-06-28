@@ -46,3 +46,11 @@ end
     @test metavar(ch) == "MODE"
     @test (@? ch("release")) == Release
 end
+
+@testset "usage_annotations" begin
+    ch = choice(["fast", "safe"])
+    @test OptParse.usage_annotations(ch) == ["choices: fast, safe"]
+
+    ch2 = choice(Mode)
+    @test OptParse.usage_annotations(ch2) == ["choices: debug, release"]
+end

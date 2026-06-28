@@ -42,7 +42,7 @@ struct ArgArgument{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     end
 end
 
-usage(p::ArgArgument) = UsageArgument(metavar(p.valparser))
+usage(p::ArgArgument) = UsageArgument(metavar(p.valparser); annotations = usage_annotations(p.valparser))
 helpentries(p::ArgArgument, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
 focused_helpdoc(
     p::ArgArgument{<:Any, <:Any, ArgumentState{S, E}},

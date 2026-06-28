@@ -17,6 +17,8 @@ terr(::X) where {T, E, X <: AbstractValueParser{T, E}} = E
 
 metavar(v::AbstractValueParser) = v.metavar
 
+usage_annotations(::AbstractValueParser) = String[]
+
 """
     validate(v::AbstractValueParser)
 

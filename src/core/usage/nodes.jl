@@ -20,7 +20,7 @@ end
     children::Vector{UsageNode} = UsageNode[]
     min::Int = 0
     max::Int = 0
-    default::String = ""
+    annotations::Vector{String} = String[]
 end
 
 UsageFlag(names::Vector{String}) =
@@ -29,14 +29,14 @@ UsageFlag(names::Tuple{Vararg{String}}) = UsageFlag(String[name for name in name
 UsageFlag(names::Vararg{String}) = UsageFlag(String[name for name in names])
 
 
-UsageOption(names::Vector{String}, metavar::AbstractString) =
-    UsageNode(kind = USAGE_Option, names = names, metavar = String(metavar))
-UsageOption(names::Tuple{Vararg{String}}, metavar::AbstractString) =
-    UsageOption(String[name for name in names], String(metavar))
+UsageOption(names::Vector{String}, metavar::AbstractString; annotations::Vector{String} = String[]) =
+    UsageNode(kind = USAGE_Option, names = names, metavar = String(metavar), annotations = annotations)
+UsageOption(names::Tuple{Vararg{String}}, metavar::AbstractString; annotations::Vector{String} = String[]) =
+    UsageOption(String[name for name in names], String(metavar); annotations = annotations)
 
 
-UsageArgument(metavar::AbstractString) =
-    UsageNode(kind = USAGE_Argument, metavar = String(metavar))
+UsageArgument(metavar::AbstractString; annotations::Vector{String} = String[]) =
+    UsageNode(kind = USAGE_Argument, metavar = String(metavar), annotations = annotations)
 
 
 UsageCommand(names::Vector{String}, child::UsageNode) =
@@ -64,7 +64,7 @@ UsageRepeat(child::UsageNode, min::Integer, max::Integer) =
     UsageNode(kind = USAGE_Repeat, children = UsageNode[child], min = Int(min), max = Int(max))
 
 UsageDefault(child::UsageNode, default::String) =
-    UsageNode(kind = USAGE_Default, children = UsageNode[child], default = default)
+    UsageNode(kind = USAGE_Default, children = UsageNode[child], annotations = ["default: " * default])
 
 UsageHidden(child::UsageNode) = UsageNode(kind = USAGE_Hidden, children = UsageNode[child])
 
