@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/ghyatzo/OptParse.jl/compare/v0.4.0...v0.4.1) (2026-06-29)
+
+
+### Documentation
+
+* fix migration guide ([d6dccbd](https://github.com/ghyatzo/OptParse.jl/commit/d6dccbd8c8b0882ba062e9af912b67b311b41d37))
+
 ## [0.4.0](https://github.com/ghyatzo/OptParse.jl/compare/v0.3.0...v0.4.0) (2026-06-28)
 
 
