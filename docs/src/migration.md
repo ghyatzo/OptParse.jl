@@ -5,6 +5,73 @@ OptParse code. OptParse is still experimental, so this guide focuses on
 mechanical source changes rather than long compatibility notes. Each section is
 named after the version line that introduced the breaking changes.
 
+## 0.4.x
+
+These changes alter the `@parser` macro syntax, the `str` value parser default,
+and the low-level error/type interfaces. The parser behavior is unchanged for
+code that is updated to the new spellings.
+
+### `@parser` macro
+
+The macro is now applied to a `struct` definition instead of wrapping a
+`begin ... end` block. Parser-level description and footer use `@description`
+and `@footer` markers inside the body rather than positional string arguments,
+and the generated struct subtypes `AbstractLiftedParser`. Retrieve the parser
+with [`lift`](@ref) or pass the type directly to the entrypoints.
+
+| Old | New | Notes |
+| --- | --- | --- |
+| `@parser Config begin ... end` | `@parser struct Config ... end` | Required syntax change. |
+| `@parser "desc" Config begin ... end` | `@description "desc"` inside the body | Description marker. |
+| `@parser ... begin ... end "footer"` | `@footer "footer"` inside the body | Footer marker. |
+| `parser = @parser Config begin ... end` | `parser = lift(Config)` | Or use `optparse(Config, args)` directly. |
+
+Before:
+
+```julia
+parser = @parser "Server configuration" Config begin
+    "Host"
+    host = option("--host", str("HOST"))
+    "Port"
+    port = option("--port", integer("PORT"))
+end "Server configuration parser"
+```
+
+After:
+
+```julia
+@parser struct Config
+    @description "Server configuration"
+    "Host"
+    host = option("--host", str("HOST"))
+    "Port"
+    port = option("--port", integer("PORT"))
+    @footer "Server configuration parser"
+end
+
+# Retrieve the parser for composition:
+parser = lift(Config)
+# Or pass the type directly to the entrypoints:
+optparse(Config, args)
+```
+
+Bare strings inside the body are now reserved for field briefs and must be
+immediately followed by a field assignment. For parser-level prose, use
+`@description` or `@footer`.
+
+### `str` rejects empty strings by default
+
+`str()` now rejects empty-string input. Pass `allow_empty = true` to restore the
+old behavior.
+
+```julia
+# Old: accepted ""
+name = str("NAME")
+
+# New: rejects "" unless explicitly allowed
+name = str("NAME"; allow_empty = true)
+```
+
 ## 0.3.x
 
 These changes rename public constructors and keywords, but keep the underlying
@@ -95,86 +162,6 @@ mode = choice("MODE", ["debug", "release"]; case_insensitive = true)
 ratio = flt("RATIO"; allow_infinity = true, allow_nan = false)
 id = uuid("ID"; allowed_versions = [4])
 ```
-
-## 0.4.x
-
-These changes alter the `@parser` macro syntax, the `str` value parser default,
-and the low-level error/type interfaces. The parser behavior is unchanged for
-code that is updated to the new spellings.
-
-### `@parser` macro
-
-The macro is now applied to a `struct` definition instead of wrapping a
-`begin ... end` block. Parser-level description and footer use `@description`
-and `@footer` markers inside the body rather than positional string arguments,
-and the generated struct subtypes `AbstractLiftedParser`. Retrieve the parser
-with [`lift`](@ref) or pass the type directly to the entrypoints.
-
-| Old | New | Notes |
-| --- | --- | --- |
-| `@parser Config begin ... end` | `@parser struct Config ... end` | Required syntax change. |
-| `@parser "desc" Config begin ... end` | `@description "desc"` inside the body | Description marker. |
-| `@parser ... begin ... end "footer"` | `@footer "footer"` inside the body | Footer marker. |
-| `parser = @parser Config begin ... end` | `parser = lift(Config)` | Or use `optparse(Config, args)` directly. |
-
-Before:
-
-```julia
-parser = @parser "Server configuration" Config begin
-    "Host"
-    host = option("--host", str("HOST"))
-    "Port"
-    port = option("--port", integer("PORT"))
-end "Server configuration parser"
-```
-
-After:
-
-```julia
-@parser struct Config
-    @description "Server configuration"
-    "Host"
-    host = option("--host", str("HOST"))
-    "Port"
-    port = option("--port", integer("PORT"))
-    @footer "Server configuration parser"
-end
-
-# Retrieve the parser for composition:
-parser = lift(Config)
-# Or pass the type directly to the entrypoints:
-optparse(Config, args)
-```
-
-Bare strings inside the body are now reserved for field briefs and must be
-immediately followed by a field assignment. For parser-level prose, use
-`@description` or `@footer`.
-
-### `str` rejects empty strings by default
-
-`str()` now rejects empty-string input. Pass `allow_empty = true` to restore the
-old behavior.
-
-```julia
-# Old: accepted ""
-name = str("NAME")
-
-# New: rejects "" unless explicitly allowed
-name = str("NAME"; allow_empty = true)
-```
-
-### Value-parser / error interface
-
-| Old | New | Notes |
-| --- | --- | --- |
-| `default_metavar(::Type{P})` | metavar set via constructor keyword | Removed. |
-| `AbstractParser{T, S, P, R}` | `AbstractParser{T, E, S, P, R}` | Error union `E` is now a type parameter. |
-| domain/code `ParseError` | concrete `<: AbstractParseError` struct | Define `render_error(io::IO, err::MyError)`. |
-
-Custom parsers and value parsers now implement a documented interface
-(`parse`, `complete`, `usage`, `helpentries`, `focused_helpdoc` for parsers;
-callable `(v)(::String)` for value parsers). Use `validate(parser)` /
-`validate(valueparser)` to check an implementation at runtime.
 
 ## 0.2.x
 
