@@ -101,6 +101,23 @@ end
     @test unwrap(res_nextstate(ps)) == "Alice"
 end
 
+@testset "should fail on ambiguous flaglike string values" begin
+    parser = option("--port", str())
+    context = mkctx(["--port", "-a"], parser.initialState)
+
+    res = splitparse(parser, context)
+
+    @test is_error(res)
+    pf = unwrap_error(res)
+
+    @test res_num_consumed(pf) == 1
+    @test pf.error isa OptParse.ArgOptionError
+    @test pf.error.code == OptParse.OPTION_AmbiguousValue
+    @test pf.error.token == "--port"
+    @test pf.error.detail == "-a"
+
+end
+
 @testset "should propagate value parser failures" begin
     parser = option("--port", integer(; min = 1, max = 0xffff))
     context = mkctx(["--port", "invalid"], parser.initialState)

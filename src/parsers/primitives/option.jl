@@ -5,6 +5,7 @@ const OptionState{X, E} = ParseResult{X, E}
     OPTION_EndOfInput
     OPTION_Duplicate
     OPTION_MissingValue
+    OPTION_AmbiguousValue
     OPTION_NoMatch
     OPTION_Missing
 end
@@ -24,6 +25,8 @@ function render_error(io::IO, err::ArgOptionError)
         print(io, "Option $(err.token) cannot be used multiple times")
     elseif err.code == OPTION_MissingValue
         print(io, "Option $(err.token) requires a value")
+    elseif err.code == OPTION_AmbiguousValue
+        print(io, "Option value $(err.detail) for '$(err.token)' is ambiguous. Use the $(err.token)=$(err.detail) format.")
     elseif err.code == OPTION_NoMatch
         print(io, "Unexpected option: $(err.token)")
     elseif err.code == OPTION_Missing
@@ -100,7 +103,12 @@ function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <
             return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_MissingValue, tok, ""); consumed = 1))
         end
 
-        result = p.valparser(ctx_peek(ctx, 2))
+        val = ctx_peek(ctx, 2)
+        if occursin(r"^--?[a-zA-Z].*", val)
+            return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_AmbiguousValue, tok, val); consumed = 1))
+        end
+
+        result = p.valparser(val)
 
         nextctx = widen_restate(S, ctx, result)
         return InnerParseResult{S, E}(innerOk(nextctx, 2))
