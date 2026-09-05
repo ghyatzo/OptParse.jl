@@ -27,8 +27,6 @@ optparse(tags, ["--no-tags"])   # false
 - [ ] Add date parsing.
 - [ ] Add date-time parsing if the date API shape works well.
 - [ ] Revisit URI parsing.
-- [ ] Add custom identifier parsers inspired by tecosaur packages.
-- [ ] Keep each value parser small, concrete, documented, and covered by `@test_opt`.
 
 Open design questions:
 
@@ -37,18 +35,8 @@ Open design questions:
 - Should any new value parser live behind optional extensions if it requires non-stdlib dependencies?
 
 
-## Better Error/PrettyPrinting/Usage Interface
-
-This is to allow user defined parsers and value parsers.
-Initially it was designed not to be extensible by default since we were bound by wrapped unions.
-but now that we don't actually need them we should make them a proper interface so that
-external users can create their own parsers/value parsers.
-
-This could very well go hand in hand with
-
 ## Better taxonomy and generic traits for parsers
 
 We should start defining abstract traits to lift some of the parsers behaviours in the
 type system. This is long term.
 
-## Investigate compilation times/generating functions

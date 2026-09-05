@@ -27,6 +27,7 @@ using WrappedUnions: @unionsplit, unwrap as unwrapunion
 using JET
 using UUIDs
 using ExprTools: splitdef
+using Supposition
 
 # define it here for ease of use
 splitparse(p::AbstractParser, ctx::Context) = parse(p, ctx)

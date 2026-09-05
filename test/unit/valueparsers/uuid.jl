@@ -1,3 +1,7 @@
+# properties:
+# it always return a UUID
+# it excludes uuids of a version that is not allowed
+
 @testset "UUIDVal" begin
     u = uuid(allowed_versions = [1, 4])
     u1 = string(uuid1())

@@ -23,52 +23,65 @@ end
     annotations::Vector{String} = String[]
 end
 
+#——— Flags ——————————————————————————————————————————————————————————————————
+
 UsageFlag(names::Vector{String}) =
     UsageNode(kind = USAGE_Flag, names = names)
 UsageFlag(names::Tuple{Vararg{String}}) = UsageFlag(String[name for name in names])
 UsageFlag(names::Vararg{String}) = UsageFlag(String[name for name in names])
 
 
+#——— Options ——————————————————————————————————————————————————————————————————
+
 UsageOption(names::Vector{String}, metavar::AbstractString; annotations::Vector{String} = String[]) =
     UsageNode(kind = USAGE_Option, names = names, metavar = String(metavar), annotations = annotations)
 UsageOption(names::Tuple{Vararg{String}}, metavar::AbstractString; annotations::Vector{String} = String[]) =
     UsageOption(String[name for name in names], String(metavar); annotations = annotations)
 
-
+#——— Argument ——————————————————————————————————————————————————————————————————
 UsageArgument(metavar::AbstractString; annotations::Vector{String} = String[]) =
     UsageNode(kind = USAGE_Argument, metavar = String(metavar), annotations = annotations)
 
-
+#——— Command ——————————————————————————————————————————————————————————————————
 UsageCommand(names::Vector{String}, child::UsageNode) =
     UsageNode(kind = USAGE_Command, names = names, children = UsageNode[child])
 UsageCommand(names::Tuple{Vararg{String}}, child::UsageNode) = UsageCommand(String[name for name in names], child)
 
+
+#——— Object ——————————————————————————————————————————————————————————————————
 UsageObject(items::Vector{UsageNode}) = UsageNode(kind = USAGE_Object, children = items)
 UsageObject(items::Tuple{Vararg{UsageNode}}) = UsageObject(UsageNode[item for item in items])
 UsageObject(items::Vararg{UsageNode}) = UsageObject(UsageNode[item for item in items])
 
+#——— Tuple ——————————————————————————————————————————————————————————————————
 UsageTuple(items::Vector{UsageNode}) = UsageNode(kind = USAGE_Tuple, children = items)
 UsageTuple(items::Tuple{Vararg{UsageNode}}) = UsageTuple(UsageNode[item for item in items])
 UsageTuple(items::Vararg{UsageNode}) = UsageTuple(UsageNode[item for item in items])
 
+#——— Alternative ——————————————————————————————————————————————————————————————————
 UsageAlternative(branches::Vector{UsageNode}) =
     UsageNode(kind = USAGE_Alternative, children = branches)
 UsageAlternative(branches::Tuple{Vararg{UsageNode}}) = UsageAlternative(UsageNode[b for b in branches])
 UsageAlternative(branches::Vararg{UsageNode}) = UsageAlternative(UsageNode[b for b in branches])
 
-
+#——— Optional ——————————————————————————————————————————————————————————————————
 UsageOptional(child::UsageNode) = UsageNode(kind = USAGE_Optional, children = UsageNode[child])
 
-
+#——— Repeat ——————————————————————————————————————————————————————————————————
 UsageRepeat(child::UsageNode, min::Integer, max::Integer) =
     UsageNode(kind = USAGE_Repeat, children = UsageNode[child], min = Int(min), max = Int(max))
 
+#——— Default ——————————————————————————————————————————————————————————————————
 UsageDefault(child::UsageNode, default::String) =
     UsageNode(kind = USAGE_Default, children = UsageNode[child], annotations = ["default: " * default])
 
+#——— Hidden ——————————————————————————————————————————————————————————————————
 UsageHidden(child::UsageNode) = UsageNode(kind = USAGE_Hidden, children = UsageNode[child])
 
 UsageEmpty() = UsageNode()
+
+
+#——— Utils ——————————————————————————————————————————————————————————————————
 
 function _usage_with_prefix(progname::AbstractString, prefix::Vector{String})
     isempty(prefix) && return String(progname)

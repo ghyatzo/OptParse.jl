@@ -227,6 +227,7 @@ end
 @autospecialize pp function recover_usage_context(
         pp::AbstractParser{T, E, S}, argv::Vector{String}
     )::Context{S} where {T, E, S}
+
     canonical_argv, _ = normalize_argv(argv)
     ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = usage(pp))
 
@@ -367,27 +368,19 @@ using PrecompileTools: @compile_workload
 @compile_workload begin
     # Build a representative parser exercising all constructor + leaf types
     _pc_parser = or(
-        command(
-            "run", record(
-                (
-                    host = default(option("--host", str("HOST")), "localhost"),
-                    port = default(option(("-p", "--port"), integer(; min = 1, max = 65535)), 8080),
-                    verbose = switch("-v", "--verbose"),
-                    debug = flag("-d"),
-                    file = arg(str("FILE")),
-                    mode = @constant(:run),
-                )
-            )
-        ),
-        command(
-            "test", record(
-                (
-                    filter = default(option("--filter", str("PATTERN")), ""),
-                    count = default(option("-n", integer()), 1),
-                    mode = @constant(:test),
-                )
-            )
-        ),
+        command("run", record(
+            host = default(option("--host", str("HOST")), "localhost"),
+            port = default(option(("-p", "--port"), integer(; min = 1, max = 65535)), 8080),
+            verbose = switch("-v", "--verbose"),
+            debug = flag("-d"),
+            file = arg(str("FILE")),
+            mode = @constant(:run),
+        )),
+        command("test", record(
+            filter = default(option("--filter", str("PATTERN")), ""),
+            count = default(option("-n", integer()), 1),
+            mode = @constant(:test),
+        )),
     )
 
     # Exercise parse + complete (success path)
