@@ -33,7 +33,7 @@ ctx_pos(ctx::Context) = ℒ_pos(ctx)
 ctx_state(ctx::Context) = ℒ_state(ctx)
 ctx_usage(ctx::Context) = ℒ_usage(ctx)
 ctx_optterm(ctx::Context) = ℒ_optterm(ctx)
-ctx_tstate(ctx::Context{S}) where {S} = S
+ctx_tstate(::Context{S}) where {S} = S
 
 @inline ctx_with_options_terminated(ctx::Context, flag::Bool) = set(ctx, ℒ_optterm, flag)
 @inline ctx_with_buffer(ctx::Context, buf::Vector{String}) = set(ctx, ℒ_buffer, buf)

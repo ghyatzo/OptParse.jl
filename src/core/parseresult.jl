@@ -104,7 +104,7 @@ struct InnerParseSuccess{S}
     counts_as_match::Bool
 end
 
-function Base.convert(::InnerParseSuccess{S}, x::InnerParseSuccess{S2}) where {S, S2 <: S}
+function Base.convert(::InnerParseSuccess{S}, inner::InnerParseSuccess{S2}) where {S, S2 <: S}
     InnerParseSuccess(
         ℒ_consumed(inner),
         widen_state(S, ℒ_nextctx(inner)),

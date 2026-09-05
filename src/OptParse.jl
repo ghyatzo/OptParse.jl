@@ -197,8 +197,9 @@ function normalize_argv(argv::Vector{String})
             push!(expanded, tok); push!(origin, i)
             continue
         end
+        isbundled = occursin(r"^-[a-zA-Z]+", tok)
 
-        if !optterm && startswith(tok, "-") && !startswith(tok, "--") && lastindex(tok) > 2
+        if !optterm && isbundled && lastindex(tok) > 2
             # "-abc" => "-a","-b","-c"
             for c in tok[2:end]
                 push!(expanded, "-" * string(c))

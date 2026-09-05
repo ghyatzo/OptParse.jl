@@ -44,6 +44,12 @@ end
     @test as_tuple(res_consumed(ps)) == ("--port=8080",)
 end
 
+@testset "should correctly parse negative integers" begin
+    p = option("--opt", integer())
+
+    @test parse_ok(p, ["--opt", "-1000"]) == -1000
+end
+
 @testset "should handle option terminator edge cases correctly" begin
     parser = option("--name", str())
 

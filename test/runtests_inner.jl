@@ -70,10 +70,6 @@ end
 
 @testset "Modifiers" failfast = true begin
 
-    # @testset "Optional parser" begin
-    #     include("unit/modifiers/optional.jl")
-    # end
-
     @testset "Default Modifier" begin
         include("unit/modifiers/default.jl")
     end
