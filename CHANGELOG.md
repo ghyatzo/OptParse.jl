@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.2](https://github.com/ghyatzo/OptParse.jl/compare/v0.4.1...v0.4.2) (2026-09-06)
+
+
+### Bug Fixes
+
+* avoid debundling negative numbers. short flags can only be letters. ([fb22177](https://github.com/ghyatzo/OptParse.jl/commit/fb2217723add35313552400728b5fe59de2ef0f6))
+* don't allow options to have values that can be misinterpreted as ([8666a9c](https://github.com/ghyatzo/OptParse.jl/commit/8666a9c8248445a961f19701b9426b4ecaaf9b3e))
+
 ## [0.4.1](https://github.com/ghyatzo/OptParse.jl/compare/v0.4.0...v0.4.1) (2026-06-29)
 
 
