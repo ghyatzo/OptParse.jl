@@ -36,11 +36,11 @@ to reflect if it succeded or not. This is the `parse` step.
 using OptParse
 
 # Define a parser
-parser = record((
+parser = record(;
     name = option("-n", "--name", str("NAME")),
     port = option("-p", "--port", integer("PORT"; min=1000)),
     verbose = flag("-v", "--verbose")
-))
+)
 
 # Parse arguments
 result = optparse(parser, ["--name", "myserver", "-p", "8080", "-v"])
@@ -98,11 +98,11 @@ result = optparse(port, ["--port=8080"])  # Long form with =
 result = optparse(port, ["-p", "8080"])   # Short form
 
 # Flags can be bundled
-parser = record((
+parser = record(;
     all = switch("-a"),
     long = switch("-l"),
     human = switch("-h")
-))
+)
 result = optparse(parser, ["-alh"])  # Equivalent to ["-a", "-l", "-h"]
 ```
 
@@ -162,11 +162,11 @@ verbosity = many(switch("-v"))  # -v -v -v or -vvv
 files = many1(arg(str("FILE")))
 
 # Help annotations
-serve = command("serve", record((
+serve = command("serve", record(;
     host = option("--host", str("HOST")) |> help("Host", "Hostname to bind"),
     port = default(option("--port", integer("PORT")), 8080) |> help("Port", "TCP port to listen on"),
     verbose = flag("-v", "--verbose") |> help("Verbose", "Enable verbose logging"),
-)))
+))
 ```
 
 `help(...)` does not change parsing semantics. It annotates the parser tree so
@@ -185,22 +185,22 @@ Compose parsers into complex structures:
 
 ```julia
 # Record composition
-parser = record((
+parser = record(;
     input = arg(str("INPUT")),
     output = option("-o", "--output", str("OUTPUT")),
     force = flag("-f", "--force")
-))
+)
 
 # Alternative commands with or
-addCmd = command("add", record((
+addCmd = command("add", record(;
     action = @constant(:add),
     packages = many(arg(str("PACKAGE")))
-)))
+))
 
-removeCmd = command("remove", record((
+removeCmd = command("remove", record(;
     action = @constant(:remove),
     packages = many(arg(str("PACKAGE")))
-)))
+))
 
 pkgParser = or(addCmd, removeCmd)
 ```
@@ -213,33 +213,33 @@ Here's a more realistic example showing subcommands:
 using OptParse
 
 # Shared options
-commonOpts = record((
+commonOpts = record(;
     verbose = flag("-v", "--verbose"),
     quiet = flag("-q", "--quiet")
-))
+)
 
 # Add command
 addCmd = command("add", combine(
     commonOpts,
-    record((packages = many(arg(str("PACKAGE"))),))
+    record(; packages = many(arg(str("PACKAGE"))))
 ))
 
 # Remove command
 removeCmd = command("remove", "rm", combine(
     commonOpts,
-    record((
+    record(;
         all = flag("--all"),
         packages = many(arg(str("PACKAGE")))
-    ))
+    )
 ))
 
 # Instantiate command
 instantiateCmd = command("instantiate", combine(
     commonOpts,
-    record((
+    record(;
         manifest = flag("-m", "--manifest"),
         project = flag("-p", "--project")
-    ))
+    )
 ))
 
 # Complete parser
@@ -256,16 +256,16 @@ parser = or(addCmd, removeCmd, instantiateCmd)
 OptParse is designed for type stability. The return type of your parser is fully determined at compile time:
 
 ```julia
-parser = record((
+parser = record(;
     name = option("-n", str()),
     port = option("-p", integer())
-))
+)
 
 # Return type: @NamedTuple{name::String, port::Int64}
 
 parser = or(
-    record((mode = @constant(:a), value = arg(integer()))),
-    record((mode = @constant(:b), value = arg(str())))
+    record(; mode = @constant(:a), value = arg(integer())),
+    record(; mode = @constant(:b), value = arg(str()))
 )
 
 # Return type: Union{@NamedTuple{mode::Val{:a}, ...}, @NamedTuple{mode::Val{:b}, ...}}
@@ -276,10 +276,10 @@ If you want to dispatch on parsed values, prefer constructing a named type with
 anonymous:
 
 ```julia
-greet = command("greet", record((
+greet = command("greet", record(;
     cmd = @constant(:greet),
     name = option("-n", str("NAME")),
-)))
+))
 
 const Greet = valuetype(greet)
 
@@ -304,10 +304,10 @@ adds a small amount of CLI policy:
 - customizable behavior for bare invocation through `on_empty`
 
 ```julia
-parser = command("serve", record((
+parser = command("serve", record(;
     host = option("--host", str("HOST")),
     port = default(option("--port", integer("PORT")), 8080),
-)))
+))
 
 runparse(parser, ["--help"]; progname = "prog")
 runparse(parser, []; progname = "prog", on_empty = ["help"])
@@ -336,10 +336,10 @@ struct ServerConfig
     port::Int
 end
 
-parser = construct(ServerConfig, record((
+parser = construct(ServerConfig, record(;
     host = option("--host", str("HOST")),
     port = option("--port", integer("PORT")),
-)))
+))
 ```
 
 `construct` delegates to StructUtils. In normal Julia runtime, that means it

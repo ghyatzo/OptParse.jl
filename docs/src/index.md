@@ -44,11 +44,11 @@ Pkg.add(url="https://github.com/ghyatzo/OptParse")
 using OptParse
 
 # Define a parser
-parser = record((
+parser = record(;
     name = option("-n", "--name", str("NAME")),
     port = option("-p", "--port", integer("PORT"; min=1000)),
     verbose = flag("-v", "--verbose")
-))
+)
 
 # Parse arguments
 result = optparse(parser, ["--name", "myserver", "-p", "8080", "-v"])
@@ -131,11 +131,11 @@ Enhance parsers with additional behavior:
 Help annotations compose directly with normal parsers:
 
 ```julia
-parser = command("serve", record((
+parser = command("serve", record(;
     host = option("--host", str("HOST")) |> help("Host", "Hostname to bind"),
     port = default(option("--port", integer("PORT")), 8080) |> help("Port", "TCP port to listen on"),
     verbose = flag("-v", "--verbose") |> help("Verbose", "Enable verbose logging"),
-)))
+))
 ```
 
 Those annotations do not change how parsing works. They are used when OptParse
@@ -150,10 +150,9 @@ Compose parsers into complex structures:
 - [`sequence`](@ref) - Ordered sequence of parsers (returns a tuple)
 - [`combine`](@ref) / [`concat`](@ref) - Merge several parser groups
 
-`record` accepts either a `NamedTuple` or keyword arguments:
+`record` accepts keyword arguments:
 
 ```julia
-record((name = option("-n", str()), port = option("-p", integer())))
 record(; name = option("-n", str()), port = option("-p", integer()))
 ```
 
@@ -167,33 +166,33 @@ Here's a more realistic example showing a package manager-style CLI:
 using OptParse
 
 # Shared options
-commonOpts = record((
+commonOpts = record(;
     verbose = flag("-v", "--verbose"),
     quiet = flag("-q", "--quiet")
-))
+)
 
 # Add command
 addCmd = command("add", combine(
     commonOpts,
-    record((packages = many(arg(str("PACKAGE"))),))
+    record(; packages = many(arg(str("PACKAGE"))))
 ))
 
 # Remove command
 removeCmd = command("remove", "rm", combine(
     commonOpts,
-    record((
+    record(;
         all = flag("--all"),
         packages = many(arg(str("PACKAGE")))
-    ))
+    )
 ))
 
 # Instantiate command
 instantiateCmd = command("instantiate", combine(
     commonOpts,
-    record((
+    record(;
         manifest = flag("-m", "--manifest"),
         project = flag("-p", "--project")
-    ))
+    )
 ))
 
 # Complete parser
@@ -210,16 +209,16 @@ parser = or(addCmd, removeCmd, instantiateCmd)
 OptParse is designed for type stability. The return type of your parser is fully determined at compile time:
 
 ```julia
-parser = record((
+parser = record(;
     name = option("-n", str()),
     port = option("-p", integer())
-))
+)
 
 # Return type: @NamedTuple{name::String, port::Int64}
 
 parser = or(
-    record((mode = @constant(:a), value = integer())),
-    record((mode = @constant(:b), value = str()))
+    record(; mode = @constant(:a), value = integer()),
+    record(; mode = @constant(:b), value = str())
 )
 
 # Return type: Union{@NamedTuple{mode::Val{:a}, ...}, NamedTuple{mode::Val{:b}, ...}}
@@ -233,10 +232,10 @@ with [`construct`](@ref). For anonymous parser outputs, [`valuetype`](@ref)
 still gives you the resulting value type:
 
 ```julia
-greet = command("greet", record((
+greet = command("greet", record(;
     cmd = @constant(:greet),
     name = option("-n", str("NAME")),
-)))
+))
 
 const Greet = valuetype(greet)
 
@@ -263,10 +262,10 @@ adds a small amount of CLI policy on top:
 - customizable behavior for bare invocation through `on_empty`
 
 ```julia
-parser = command("serve", record((
+parser = command("serve", record(;
     host = option("--host", str("HOST")),
     port = default(option("--port", integer("PORT")), 8080),
-)))
+))
 
 runparse(parser, ["--help"]; progname = "prog")
 runparse(parser, []; progname = "prog", on_empty = ["help"])
@@ -294,10 +293,10 @@ For wrapper CLIs that only handle some arguments and pass the rest to a child
 program, OptParse provides [`partial`](@ref):
 
 ```julia
-wrapper = partial(record((
+wrapper = partial(record(;
     verbose = flag("-v", "--verbose"),
     config = optional(option("-c", str("FILE"))),
-)))
+))
 
 result = tryoptparse(wrapper, ["-v", "--child-flag", "somefile"])
 # result is Ok((value = (verbose = true, config = nothing), remaining = ["--child-flag", "somefile"]))
@@ -320,10 +319,10 @@ struct ServerConfig
     port::Int
 end
 
-parser = construct(ServerConfig, record((
+parser = construct(ServerConfig, record(;
     host = option("--host", str("HOST")),
     port = option("--port", integer("PORT")),
-)))
+))
 ```
 
 `construct` delegates to `StructUtils`, which makes it the dynamic and

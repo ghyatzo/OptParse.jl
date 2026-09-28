@@ -90,7 +90,7 @@ parser behavior the same.
 
 | Old API | Use | Notes |
 | --- | --- | --- |
-| `object((...))` | `record((...))` | Builds a named-tuple parser. |
+| `object((...))` | `record(; ...)` | Builds a named-tuple parser. |
 
 Before:
 
@@ -104,10 +104,10 @@ parser = object((
 After:
 
 ```julia
-parser = record((
+parser = record(;
     host = option("--host", str("HOST")),
     port = option("--port", integer("PORT")),
-))
+)
 ```
 
 ### Repetition

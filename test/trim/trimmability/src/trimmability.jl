@@ -12,20 +12,20 @@ using FastIdentifiers
 
 const greet = command(
 	"greet",
-	record((;
+	record(;
 		cmd = @constant(:greet),
 		name = option("-n", str()),
 		port = option("-p", integer())
-	))
+	)
 )
 
 const goodbye = command(
 	"bye",
-	record((;
+	record(;
 		cmd = @constant(:bye),
 		name = option("-n", str()),
 		port = option("-p", integer())
-	))
+	)
 )
 
 const simple = switch("-v")

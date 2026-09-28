@@ -67,14 +67,14 @@ end
 end
 
 @testset "choices in full help output" begin
-    p = record((; mode = option("--mode", choice(["fast", "safe"]))))
+    p = record(; mode = option("--mode", choice(["fast", "safe"])))
     helptext = OptParse.generate_help(p, String[]; progname = "prog")
     @test occursin("choices: fast, safe", helptext)
     @test occursin("required", helptext)
 end
 
 @testset "choices + default in full help output" begin
-    p = record((; mode = default(option("--mode", choice(["fast", "safe"])), "safe")))
+    p = record(; mode = default(option("--mode", choice(["fast", "safe"])), "safe"))
     helptext = OptParse.generate_help(p, String[]; progname = "prog")
     @test occursin("default: safe  choices: fast, safe", helptext)
 end

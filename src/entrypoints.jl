@@ -153,7 +153,7 @@ through to a child program.
 
 # Examples
 ```julia
-wrapper = partial(record((; verbose = default(flag("--verbose"), false))))
+wrapper = partial(record(; verbose = default(flag("--verbose"), false)))
 result = tryoptparse(wrapper, ["--verbose", "--child-flag", "arg"])
 # → Ok((value = (verbose = true,), remaining = ["--child-flag", "arg"]))
 ```

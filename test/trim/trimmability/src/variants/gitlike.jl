@@ -15,13 +15,13 @@ const globalhelp = help(
     """
 )
 
-const globoptions = record((;
+const globoptions = record(;
     cwd      = option("-C", str("PATH"))      |> help("Working directory") |> many(),
     config   = option("-c", str("KEY=VALUE")) |> help("Config override")   |> many(),
     paginate = flag("-p", "--paginate")       |> help("Paginate"),
     nopager  = flag("-P", "--no-pager")       |> help("No pager"),
     version  = flag("--version")              |> help("Version"),
-)) |> globalhelp
+) |> globalhelp
 
 
 # -----------------------------------------------------------------------------
@@ -440,7 +440,7 @@ const gitlikehelp = help(
     """
 )
 
-const parser = record((
+const parser = record(;
     options = globoptions,
     cmd     = or(
         command("status", lift(StatusCmd)) |> help("Show working tree status"),
@@ -450,7 +450,7 @@ const parser = record((
         command("push", lift(PushCmd)) |> help("Update remote refs"),
         command("remote", lift(RemoteCmd)) |> help("Manage configured remotes"),
     ),
-)) |> gitlikehelp
+) |> gitlikehelp
 
 
 function @main(args::Vector{String})::Cint

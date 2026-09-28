@@ -31,9 +31,9 @@ end
 
 @testset "Or optparse infers" begin
     parser = or(
-        record((verbose = switch("-v"),)),
-        record((version = switch("-v"),)),
-        record((verify = switch("-v"),)),
+        record(; verbose = switch("-v")),
+        record(; version = switch("-v")),
+        record(; verify = switch("-v")),
     )
     @test_opt optparse(parser, ["-v"])
 end

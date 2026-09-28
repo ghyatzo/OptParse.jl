@@ -326,10 +326,10 @@ assignment are lowered to `help(field_parser, "...")` for that field's brief.
 ```jldoctest
 julia> using OptParse
 
-julia> parser = record((
+julia> parser = record(;
            host = option("--host", str("HOST")) |> help("Host", "Hostname to bind"),
            verbose = flag("-v", "--verbose") |> help("Verbose", "Enable verbose logging"),
-       ));
+       );
 
 julia> result = optparse(parser, ["--host", "localhost", "-v"]);
 
@@ -400,7 +400,7 @@ their values to the final result.
 ```jldoctest
 julia> using OptParse
 
-julia> parser = record((debug = flag("--debug") |> hidden(), file = arg(str("FILE"))));
+julia> parser = record(; debug = flag("--debug") |> hidden(), file = arg(str("FILE")));
 
 julia> optparse(parser, ["--debug", "input.txt"]).debug
 true
@@ -929,11 +929,11 @@ julia> result
 true
 
 julia> # In an record parser
-       parser = record((
+       parser = record(;
            help = flag("-h", "--help"),
            version = flag("--version"),
            quiet = flag("-q", "--quiet")
-       ));
+       );
 
 julia> result = optparse(parser, ["-h", "--version"]);
 
@@ -983,16 +983,16 @@ A parser that always succeeds and returns `val` without consuming any input.
 julia> using OptParse
 
 julia> # Tagging subcommands
-       addCmd = command("add", record((
+       addCmd = command("add", record(;
            action = @constant(:add),
            key = arg(str("KEY")),
            value = arg(str("VALUE"))
-       )));
+       ));
 
-julia> removeCmd = command("remove", record((
+julia> removeCmd = command("remove", record(;
            action = @constant(:remove),
            key = arg(str("KEY"))
-       )));
+       ));
 
 julia> parser = or(addCmd, removeCmd);
 
@@ -1008,10 +1008,10 @@ julia> result.value
 "alice"
 
 julia> # Providing metadata
-       parser2 = record((
+       parser2 = record(;
            version = @constant(Symbol("1.0.0")),
            name = arg(str())
-       ));
+       );
 
 julia> result = optparse(parser2, ["myapp"]);
 
@@ -1060,10 +1060,10 @@ julia> result
 "/path/to/file"
 
 julia> # Repeated positional arguments
-       parser = record((
+       parser = record(;
            source = arg(str("SOURCE")),
            dest = arg(str("DEST"))
-       ));
+       );
 
 julia> result = optparse(parser, ["/from/here", "/to/here"]);
 
@@ -1093,11 +1093,11 @@ julia> result
 8080
 
 julia> # Mixed with options (order flexible)
-       parser = record((
+       parser = record(;
            input = arg(str("INPUT")),
            output = option("-o", "--output", str()),
            verbose = flag("-v")
-       ));
+       );
 
 julia> result = optparse(parser, ["input.txt", "-o", "output.txt", "-v"]);
 
@@ -1146,10 +1146,10 @@ using the provided parser.
 julia> using OptParse
 
 julia> # Simple command
-       instantiate = command("instantiate", record((
+       instantiate = command("instantiate", record(;
            verbose = flag("-v", "--verbose"),
            manifest = flag("-m", "--manifest")
-       )));
+       ));
 
 julia> result = optparse(instantiate, ["instantiate", "-v", "-m"]);
 
@@ -1157,15 +1157,15 @@ julia> (result.verbose, result.manifest)
 (true, true)
 
 julia> # Repeated commands with or combinator
-       addCmd = command("add", record((
+       addCmd = command("add", record(;
            action = @constant(:add),
            packages = many(arg(str("PACKAGE")))
-       )));
+       ));
 
-julia> removeCmd = command("remove", record((
+julia> removeCmd = command("remove", record(;
            action = @constant(:remove),
            packages = many(arg(str("PACKAGE")))
-       )));
+       ));
 
 julia> pkgParser = or(addCmd, removeCmd);
 
@@ -1259,22 +1259,25 @@ helpcommand(name::String, alias::String) = helpcommand((name, alias))
 ## Record
 
 """
+    record(; parsers...)
     record(obj::NamedTuple)
     record(objlabel, obj::NamedTuple)
 
-Constructor that creates a parser from a named tuple of parsers, returning a named tuple
-of parsed values.
+Constructor that creates a parser from keyword arguments (or a named tuple) of
+parsers, returning a named tuple of parsed values.
 
-This is the primary way to combine several parsers into a cohesive structure. Each field
-in the named tuple should be a parser, and the result will be a named tuple with the same
+This is the primary way to combine several parsers into a cohesive structure. Each value
+should be a parser, and the result will be a named tuple with the same
 field names containing the parsed values.
 
 # Arguments
+- `parsers...`: Keyword arguments where each value is a parser
 - `obj::NamedTuple`: Named tuple where each field is a parser
 - `objlabel`: Optional label used in diagnostics and stored as record metadata
 
 # Returns
-A parser that returns a named tuple with the same structure as `obj`, where each field
+A parser that returns a named tuple with the same field names as the input parsers,
+where each field
 contains the parsed result from the corresponding parser.
 
 # Examples
@@ -1282,11 +1285,11 @@ contains the parsed result from the corresponding parser.
 julia> using OptParse
 
 julia> # Basic usage
-       parser = record((
+       parser = record(;
            name = option("-n", "--name", str()),
            port = option("-p", "--port", integer()),
            verbose = flag("-v")
-       ));
+       );
 
 julia> result = optparse(parser, ["-n", "server", "-p", "8080", "-v"]);
 
@@ -1309,13 +1312,13 @@ julia> result = optparse(parser, ["--host", "localhost", "--port", "3000"]);
 julia> result.host
 "localhost"
 
-julia> parser = record((
-           server = record((
+julia> parser = record(;
+           server = record(;
                host = option("--host", str()),
                port = option("--port", integer())
-           )),
+           ),
            timeout = option("--timeout", integer())
-       ));  # Nested records
+       );  # Nested records
 
 julia> result = optparse(parser, ["--host", "localhost", "--port", "8080", "--timeout", "30"]);
 
@@ -1370,15 +1373,15 @@ A parser that combines all fields from the input records into a single result.
 julia> using OptParse
 
 julia> # Reusable parser components
-       commonOpts = record((
+       commonOpts = record(;
            verbose = flag("-v", "--verbose"),
            quiet = flag("-q", "--quiet")
-       ));
+       );
 
-julia> networkOpts = record((
+julia> networkOpts = record(;
            host = option("--host", str()),
            port = option("--port", integer())
-       ));
+       );
 
 julia> # Merge into single parser
        parser = combine(commonOpts, networkOpts);
@@ -1445,15 +1448,15 @@ A parser that returns the result of the first successfully matching parser.
 julia> using OptParse
 
 julia> # Subcommands
-       addCmd = command("add", record((
+       addCmd = command("add", record(;
            action = @constant(:add),
            packages = many(arg(str("PACKAGE")))
-       )));
+       ));
 
-julia> removeCmd = command("remove", record((
+julia> removeCmd = command("remove", record(;
            action = @constant(:remove),
            packages = many(arg(str("PACKAGE")))
-       )));
+       ));
 
 julia> parser = or(addCmd, removeCmd);
 
@@ -1491,8 +1494,8 @@ true
 
 julia> # Different configuration modes
        config = or(
-           record((mode = @constant(:file), file = option("-f", str()))),
-           record((mode = @constant(:inline), config = option("-c", str())))
+           record(; mode = @constant(:file), file = option("-f", str())),
+           record(; mode = @constant(:inline), config = option("-c", str()))
        );
 
 julia> result = optparse(config, ["-f", "config.toml"]);

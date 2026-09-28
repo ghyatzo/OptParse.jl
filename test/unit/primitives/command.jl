@@ -313,10 +313,10 @@ end
 @testset "should handle options terminator with commands" begin
     parser = command(
         "exec",
-        record((
+        record(;
             type = @constant(:exec),
             args = many(arg(str())),
-        )),
+        ),
     )
 
     # Test with -- to terminate options parsing
@@ -328,10 +328,10 @@ end
 @testset "should keep treating input after -- as positional once a command is selected" begin
     parser = command(
         "test",
-        record((
+        record(;
             type = @constant(:test),
             args = many(arg(str())),
-        )),
+        ),
     )
 
     val = parse_ok(parser, ["test", "--", "-v", "hello"])

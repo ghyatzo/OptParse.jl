@@ -1,11 +1,11 @@
 @testset "should combine record parsers into a single parser" begin
     parser = combine(
-        record((
+        record(;
             verbose = switch("-v", "--verbose"),
-        )),
-        record((
+        ),
+        record(;
             port = option(("-p", "--port"), integer()),
-        )),
+        ),
     )
 
     names = propertynames(parser.initialState)
@@ -20,12 +20,12 @@ end
 @testset "should work with labeled combined records" begin
     parser = combine(
         "network",
-        record((
+        record(;
             host = option("--host", str()),
-        )),
-        record((
+        ),
+        record(;
             port = option("--port", integer()),
-        )),
+        ),
     )
 
     val = parse_ok(parser, ["--host", "localhost", "--port", "8080"])
@@ -35,7 +35,7 @@ end
 
 @testset "should fail when combined records have duplicate field names" begin
     @test_throws Exception combine(
-        record((name = option("--name", str()),)),
-        record((name = option("--other-name", str()),)),
+        record(; name = option("--name", str())),
+        record(; name = option("--other-name", str())),
     )
 end

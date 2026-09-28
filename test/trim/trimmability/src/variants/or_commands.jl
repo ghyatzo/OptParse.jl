@@ -2,20 +2,20 @@ using OptParse
 
 const show_cmd = command(
     "show",
-    record((;
+    record(;
         kind = @constant(:show),
         id = arg(str()),
         verbose = optional(switch("-v", "--verbose")),
-    ))
+    )
 )
 
 const edit_cmd = command(
     "edit",
-    record((;
+    record(;
         kind = @constant(:edit),
         id = arg(str()),
         editor = optional(option("-e", "--editor", str())),
-    ))
+    )
 )
 
 const parser = or(

@@ -44,7 +44,7 @@ const macro_footer_help = help(; footer = "Macro parser footer from help modifie
 end
 
 @testset "should preserve wrapped parser priority and state" begin
-    baseParser = record((verbose = switch("-v"),))
+    baseParser = record(; verbose = switch("-v"))
     parser = construct(TestConfig, (
         host = default(option("--host", str()), "localhost"),
         port = default(option("--port", integer()), 8080),

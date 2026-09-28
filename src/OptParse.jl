@@ -118,10 +118,10 @@ For application-facing dispatch, prefer constructing a named type directly with
 ```jldoctest
 julia> using OptParse
 
-julia> greet = command("greet", record((
+julia> greet = command("greet", record(;
            cmd = @constant(:greet),
            name = option("-n", str("NAME")),
-       )));
+       ));
 
 julia> const Greet = valuetype(greet);
 
@@ -266,10 +266,10 @@ focused help information yourself.
 ```jldoctest
 julia> using OptParse
 
-julia> parser = command("serve", record((
+julia> parser = command("serve", record(;
            host = option("--host", str("HOST")),
            verbose = flag("-v", "--verbose"),
-       )));
+       ));
 
 julia> doc = OptParse.build_help_doc(parser, ["serve", "--unknown"]);
 
@@ -308,10 +308,10 @@ generation.
 ```jldoctest
 julia> using OptParse
 
-julia> parser = command("serve", record((
+julia> parser = command("serve", record(;
            host = option("--host", str("HOST")),
            verbose = flag("-v", "--verbose"),
-       )));
+       ));
 
 julia> print(OptParse.generate_help(parser, ["serve"]; progname = "prog"))
 
