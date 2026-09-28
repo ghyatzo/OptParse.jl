@@ -33,7 +33,7 @@ TRIM*.md
 RELEASE_NOTES.md
 scripts/
 
-test/trim/trimmability/build
 test/SuppositionDB/
+test/trimmability/build
 
 examples/*/build

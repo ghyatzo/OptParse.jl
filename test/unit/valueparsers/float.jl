@@ -33,3 +33,9 @@ end
     f64 = flt64("LARGE")
     @test metavar(f64) == "LARGE"
 end
+
+@testset "Float parser aliases" begin
+    f32kw = flt32(; min = 0.0)
+    @test (@? f32kw("1.5")) === Float32(1.5)
+    @test is_error(f32kw("-1.0"))
+end

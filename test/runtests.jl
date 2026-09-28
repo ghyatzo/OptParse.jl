@@ -3,7 +3,7 @@ using Test
 # ─── Functional tests with juliac from test/Project.toml preference ───
 
 include("helpers.jl")
-# include("runtests_inner.jl")
+include("runtests_inner.jl")
 
 if OptParse.juliac
     @testset "Type Stability (juliac only)" begin

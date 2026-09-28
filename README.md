@@ -7,6 +7,7 @@
 A Type Stable Composable CLI Parser for Julia, inspired by [optparse-applicative](https://github.com/pcapriotti/optparse-applicative) and [Optique](https://optique.dev/).
 
 [![Build Status](https://github.com/ghyatzo/OptParse.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/ghyatzo/OptParse.jl/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/ghyatzo/OptParse.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/ghyatzo/OptParse.jl)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 [![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://ghyatzo.github.io/OptParse.jl/dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)

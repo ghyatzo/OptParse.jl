@@ -90,6 +90,10 @@ end
         include("integration/optparse.jl")
     end
 
+    @testset "Runparse" begin
+        include("integration/runparse.jl")
+    end
+
 end
 
 @testset "Usage" failfast = true begin

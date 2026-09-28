@@ -185,7 +185,8 @@ end
         if is_error(mayberesult)
             if res_num_consumed(mayberesult) > 0
                 # real error — parser recognized something but couldn't handle it
-                return Result{RT, UE}(typedErr(UE, res_error(err)))
+                err = unwrap_error(mayberesult)::InnerParseFailure{E}
+                return Result{RT, UE}(typedErr(UE, ℒ_error(err)))
             end
             # parser doesn't recognize this token — skip it
             push!(skipped, ctx_peek(ctx))

@@ -1,3 +1,10 @@
+# Hand-subtyped lifted parsers get no lift method; only @parser registers one.
+struct UnregisteredLift <: AbstractLiftedParser end
+
+@testset "lift fallback error" begin
+    @test_throws "no `lift` method is defined" lift(UnregisteredLift)
+end
+
 @testset "should parse simple flag successfully" begin
     parser = switch("-v")
     @test parse_ok(parser, ["-v"]) == true

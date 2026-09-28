@@ -82,3 +82,18 @@ end
     result = tryoptparse(parser, String["--verbose", "abc"])
     @test is_error(result)
 end
+
+@testset "propagates the child error when tokens were consumed" begin
+    parser = partial(option("--port", integer()))
+    err = parse_fail(parser, ["--port", "abc"])
+    @test occursin("abc", sprint(OptParse.render_error, err))
+end
+
+@testset "skips tokens when the parser succeeds without consuming" begin
+    parser = partial(default(flag("--verbose"), false))
+    result = tryoptparse(parser, ["--verbose", "--child-flag"])
+    @test !is_error(result)
+    val, remaining = unwrap(result)
+    @test val == true
+    @test remaining == ["--child-flag"]
+end
