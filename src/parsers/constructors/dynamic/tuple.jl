@@ -10,7 +10,7 @@ end
 function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Context))
     N = length(parsers)
     perm = _sort_tup_by_priority(parsers)
-    E = Union{ConstrTupleError, map(p -> terr(typeof(p)), values(parsers))...}
+    E = Union{ConstrTupleError, map(p -> err_t(typeof(p)), values(parsers))...}
 
     current_ctx = ctx
     allconsumed = Consumed[consumed_empty(ctx)]
@@ -23,7 +23,7 @@ function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Conte
             0,
             ConstrTupleError(
                 TUPLE_NoRemainingParser,
-                ctx_hasmore(current_ctx) ? ctx_peek(current_ctx) : "",
+                hasmore(current_ctx) ? peek(current_ctx) : "",
             )
         )
 
@@ -33,8 +33,8 @@ function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Conte
             orig_i = perm[sorted_i]
 
             parser = parsers[orig_i]
-            child_state = ctx_state(current_ctx)[orig_i]
-            child_ctx = ctx_with_state(current_ctx, child_state)
+            child_state = state(current_ctx)[orig_i]
+            child_ctx = with_state(current_ctx, child_state)
 
             result = parse(parser, child_ctx)
 
@@ -42,15 +42,15 @@ function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Conte
                 parse_ok = unwrap(result)
 
                 if parse_ok.counts_as_match
-                    newstate = set(ctx_state(current_ctx), IndexLens(orig_i), ctx_state(res_nextctx(parse_ok)))
-                    current_ctx = ctx_with_state(res_nextctx(parse_ok), newstate)
+                    newstate = set(state(current_ctx), IndexLens(orig_i), state(res_nextctx(parse_ok)))
+                    current_ctx = with_state(res_nextctx(parse_ok), newstate)
 
                     push!(allconsumed, res_consumed(parse_ok))
                     push!(matched_parsers, sorted_i)
                     found_match = true
                     break
                 else
-                    current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
+                    current_ctx = with_state(res_nextctx(parse_ok), state(current_ctx))
                     push!(allconsumed, res_consumed(parse_ok))
                 end
             elseif is_error(result) && res_num_consumed(error) < res_num_consumed(result)
@@ -66,15 +66,15 @@ function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Conte
                 orig_i = perm[sorted_i]
 
                 parser = parsers[orig_i]
-                child_state = ctx_state(current_ctx)[orig_i]
-                child_ctx = ctx_with_state(current_ctx, child_state)
+                child_state = state(current_ctx)[orig_i]
+                child_ctx = with_state(current_ctx, child_state)
 
                 result = parse(parser, child_ctx)
 
                 if !is_error(result) && length(unwrap(result).consumed) < 1
                     parse_ok = unwrap(result)
-                    newstate = set(ctx_state(current_ctx), IndexLens(orig_i), ctx_state(res_nextctx(parse_ok)))
-                    current_ctx = ctx_with_state(res_nextctx(parse_ok), newstate)
+                    newstate = set(state(current_ctx), IndexLens(orig_i), state(res_nextctx(parse_ok)))
+                    current_ctx = with_state(res_nextctx(parse_ok), newstate)
 
                     push!(matched_parsers, sorted_i)
                     found_match = true
@@ -96,8 +96,8 @@ function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Conte
 end
 
 function _tuple_complete_impl(@nospecialize(parsers::Tuple), @nospecialize(state::Tuple))
-    T = Tuple{map(p -> tval(typeof(p)), parsers)...}
-    E = Union{ConstrTupleError, map(p -> terr(typeof(p)), parsers)...}
+    T = Tuple{map(p -> val_t(typeof(p)), parsers)...}
+    E = Union{ConstrTupleError, map(p -> err_t(typeof(p)), parsers)...}
     results = Vector{Any}(undef, length(parsers))
     for i in eachindex(parsers)
         child_state = state[i]
@@ -127,9 +127,9 @@ function _focused_helpdoc_tuple(
     )
     entries = HelpEntry[]
     parsers = p.parsers
-    state = ctx_state(ctx)
+    st = state(ctx)
     for i in 1:length(parsers)
-        child_state = state[i]
+        child_state = st[i]
         child_ctx = widen_restate(typeof(child_state), ctx, child_state)
         child_helpdoc = focused_helpdoc(parsers[i], child_ctx, prefix, descend_child(rt))::HelpDoc
 

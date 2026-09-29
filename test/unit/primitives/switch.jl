@@ -18,8 +18,8 @@ end
 
     @test !is_error(result)
     succ = unwrap(result)
-    @test is_ok_and(==(true), ctx_state(res_nextctx(succ)))
-    @test ctx_remaining(res_nextctx(succ)) == String[]
+    @test is_ok_and(==(true), state(res_nextctx(succ)))
+    @test remaining(res_nextctx(succ)) == String[]
     @test as_tuple(res_consumed(succ)) == ("-v",)
 end
 
@@ -31,8 +31,8 @@ end
 
     @test !is_error(result)
     succ = unwrap(result)
-    @test is_ok_and(==(true), ctx_state(res_nextctx(succ)))
-    @test ctx_remaining(res_nextctx(succ)) == String[]
+    @test is_ok_and(==(true), state(res_nextctx(succ)))
+    @test remaining(res_nextctx(succ)) == String[]
     @test as_tuple(res_consumed(succ)) == ("--verbose",)
 end
 
@@ -64,13 +64,13 @@ end
 #     result = splitparse(parser, context)
 
 #     succ = unwrap(result)
-#     @info ℒ_nextstate(succ)
+#     @info res_nextstate(succ)
 #     @test is_ok_and(result) do succ
-#         is_ok_and(==(true), ℒ_nextstate(succ))
+#         is_ok_and(==(true), res_nextstate(succ))
 #     end
 #     succ = unwrap(result)
-#     @test ctx_remaining(ℒ_nextctx(succ)) == ["-d", "ss"]
-#     @test as_tuple(ℒ_consumed(succ)) == ("-v",)
+#     @test remaining(res_nextctx(succ)) == ["-d", "ss"]
+#     @test as_tuple(res_consumed(succ)) == ("-v",)
 # end
 
 @testset "should fail when flags are terminated" begin
@@ -94,8 +94,8 @@ end
 
     @test !is_error(result)
     succ = unwrap(result)
-    @test ctx_optterm(res_nextctx(succ)) == true
-    @test ctx_remaining(res_nextctx(succ)) == String[]
+    @test options_terminated(res_nextctx(succ)) == true
+    @test remaining(res_nextctx(succ)) == String[]
     @test as_tuple(res_consumed(succ)) == ("--",)
 end
 

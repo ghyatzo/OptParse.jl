@@ -141,7 +141,7 @@ end
     @test !is_error(pres1)
     succ1 = unwrap(pres1)
 
-    ctx2 = mkctx(["-p", "8080"], ctx_state(res_nextctx(succ1)))
+    ctx2 = mkctx(["-p", "8080"], state(res_nextctx(succ1)))
     pres2 = splitparse(parser, ctx2)
     @test !is_error(pres2)
 end

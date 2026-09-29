@@ -12,9 +12,9 @@ struct ModWithDefault{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     show_default::Bool
 
     ModWithDefault(parser::P, default::T) where {T, P <: AbstractParser} = let
-        retval_t = tval(P) == T ? T : Union{tval(P), T}
-        new{retval_t, terr(P), WithDefaultState{tstate(P)}, P, priority(P)}(
-            none(tstate(P)), parser, default, _should_show_default(P, T)
+        retval_t = val_t(P) == T ? T : Union{val_t(P), T}
+        new{retval_t, err_t(P), WithDefaultState{state_t(P)}, P, priority(P)}(
+            none(state_t(P)), parser, default, _should_show_default(P, T)
         )
     end
 end
@@ -37,7 +37,7 @@ end
         new_usage = p.show_default ?
             UsageDefault(entry.usage, string(p.default)) :
             UsageOptional(entry.usage)
-        HelpEntry[set(entry, (@o _.usage), new_usage)]
+        HelpEntry[@set entry.usage = new_usage]
     else
         helpentries(child, rt)
     end
@@ -48,7 +48,7 @@ end
         prefix::Vector{String},
         rt::OverlayContext
     )::HelpDoc where {S, P <: AbstractParser{<:Any, <:Any, S}}
-    child_state = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))
+    child_state = is_error(state(ctx)) ? p.parser.initialState : unwrap(state(ctx))
     child_ctx = widen_restate(S, ctx, child_state)
     # we don't reset the OverlayContext because the modifiers are sort of "behavioural overlays"
     # so they can't consume the node local informations.
@@ -64,8 +64,8 @@ end
     ) where {E, S, P <: AbstractParser{<:Any, <:Any, S}}
     WDS = WithDefaultState{S}
 
-    childstate = is_error(ctx_state(ctx)) ? p.parser.initialState : unwrap(ctx_state(ctx))
-    childctx = ctx_with_state(ctx, childstate)
+    childstate = is_error(state(ctx)) ? p.parser.initialState : unwrap(state(ctx))
+    childctx = with_state(ctx, childstate)
 
     result = parse(p.parser, childctx)
 
@@ -80,13 +80,13 @@ end
     end
 
     parse_ok = unwrap(result)
-    if ℒ_nextstate(parse_ok) != childstate || res_num_consumed(parse_ok) == 0
+    if res_nextstate(parse_ok) != childstate || res_num_consumed(parse_ok) == 0
         #=Inner parser actually consumed something or changed its state=#
-        newctx = ctx_restate(res_nextctx(parse_ok), some(ℒ_nextstate(parse_ok)))
+        newctx = restate(res_nextctx(parse_ok), some(res_nextstate(parse_ok)))
     else
         #=Inner parser returned success but nothing changed while consuming input. (i.e. "--")
         Treat as unmatched, but still propagate side effects.=#
-        newctx = ctx_restate(res_nextctx(parse_ok), ctx_state(ctx))
+        newctx = restate(res_nextctx(parse_ok), state(ctx))
     end
 
     return InnerParseResult{WDS, E}(innerOk(newctx, res_consumed(parse_ok)))

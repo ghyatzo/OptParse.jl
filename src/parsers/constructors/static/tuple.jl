@@ -5,13 +5,13 @@
 
     N = fieldcount(PTup)
     perm, sorted_ptup = _sortperm_by_priority(fieldtypes(parsers))
-    E = Union{ConstrTupleError, map(p -> terr(p), fieldtypes(PTup))...}
+    E = Union{ConstrTupleError, map(p -> err_t(p), fieldtypes(PTup))...}
 
     whilebody_consumers = Expr(:block)
     whilebody_nonconsumers = Expr(:block)
 
     for (i, parser_t) in enumerate(sorted_ptup)
-        child_parser_tstate = tstate(parser_t)
+        child_parser_state_t = state_t(parser_t)
 
         push!(
             whilebody_consumers.args, quote
@@ -21,20 +21,20 @@
                 if $i ∉ matched_parsers
                     parser = parsers[$(perm[i])]
 
-                    child_state = (IndexLens($(perm[i])) ∘ ℒ_state)(current_ctx)::$child_parser_tstate
-                    child_ctx = ctx_with_state(current_ctx, child_state)
+                    child_state = state(current_ctx)[$(perm[i])]::$child_parser_state_t
+                    child_ctx = with_state(current_ctx, child_state)
 
-                    result = parse(parser, child_ctx)::InnerParseResult{$child_parser_tstate}
+                    result = parse(parser, child_ctx)::InnerParseResult{$child_parser_state_t}
 
                     if !is_error(result) && length(unwrap(result).consumed) > 0
                         parse_ok = unwrap(result)
 
                         if parse_ok.counts_as_match
                             #= parser succeded and consumed input - match it =#
-                            newstate = set(ctx_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
-                            current_ctx = ctx_with_state(res_nextctx(parse_ok), newstate)
+                            newstate = set(state(current_ctx), IndexLens($(perm[i])), res_nextstate(parse_ok))
+                            current_ctx = with_state(res_nextctx(parse_ok), newstate)
 
-                            push!(allconsumed, ℒ_consumed(parse_ok))
+                            push!(allconsumed, res_consumed(parse_ok))
 
                             push!(matched_parsers, $i)
                             found_match = true
@@ -43,7 +43,7 @@
                         else
                             #= the inner parser succeded and consumed but by consuming control tokens, not semantic ones
                         # so we update the context with the new information and keep going. =#
-                            current_ctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(current_ctx))
+                            current_ctx = with_state(res_nextctx(parse_ok), state(current_ctx))
                             push!(allconsumed, res_consumed(parse_ok))
                         end
 
@@ -61,17 +61,17 @@
                 if $i ∉ matched_parsers
                     parser = parsers[$(perm[i])]
 
-                    child_state = (IndexLens($(perm[i])) ∘ ℒ_state)(current_ctx)::$child_parser_tstate
-                    child_ctx = ctx_with_state(current_ctx, child_state)
+                    child_state = state(current_ctx)[$(perm[i])]::$child_parser_state_t
+                    child_ctx = with_state(current_ctx, child_state)
 
-                    result = parse(parser, child_ctx)::InnerParseResult{tstate(parser)}
+                    result = parse(parser, child_ctx)::InnerParseResult{state_t(parser)}
 
                     if !is_error(result) && length(unwrap(result).consumed) < 1
                         #=parser succeded without consuming - match it as success=#
                         parse_ok = unwrap(result)
 
-                        newstate = set(ctx_state(current_ctx), IndexLens($(perm[i])), ℒ_nextstate(parse_ok))
-                        current_ctx = ctx_with_state(res_nextctx(parse_ok), newstate)
+                        newstate = set(state(current_ctx), IndexLens($(perm[i])), res_nextstate(parse_ok))
+                        current_ctx = with_state(res_nextctx(parse_ok), newstate)
 
                         push!(matched_parsers, $i)
                         found_match = true
@@ -103,7 +103,7 @@
                 0,
                 ConstrTupleError(
                     TUPLE_NoRemainingParser,
-                    ctx_hasmore(current_ctx) > 0 ? ctx_peek(current_ctx) : "",
+                    hasmore(current_ctx) > 0 ? peek(current_ctx) : "",
                 )
             )
 
@@ -136,8 +136,8 @@ end
 @generated function _tuple_complete_impl(p::PTup, state::STup) where {PTup <: Tuple, STup <: Tuple}
     Ps = PTup.parameters
     Ss = STup.parameters
-    T = Tuple{map(tval, Ps)...}
-    E = Union{ConstrTupleError, map(terr, Ps)...}
+    T = Tuple{map(val_t, Ps)...}
+    E = Union{ConstrTupleError, map(err_t, Ps)...}
 
     ex = Expr(:block)
 
@@ -156,7 +156,7 @@ end
     end
 
     # Phase 2: construct the Tuple from all successful results
-    unwraps = [:(unwrap($(Symbol("result_", i)))::$(tval(Ps[i]))) for i in eachindex(Ps)]
+    unwraps = [:(unwrap($(Symbol("result_", i)))::$(val_t(Ps[i]))) for i in eachindex(Ps)]
     push!(ex.args, :(return Result{$T, $E}(typedOk($T, ($(unwraps...),)::$T))))
 
     return ex
@@ -189,7 +189,7 @@ end
         child_state_t = fieldtype(S, i)
         push!(
             body.args, quote
-                child_state = ctx_state(ctx)[$i]::$child_state_t
+                child_state = state(ctx)[$i]::$child_state_t
                 child_ctx = widen_restate($child_state_t, ctx, child_state)
                 child_helpdoc = (focused_helpdoc(p.parsers[$i], child_ctx, prefix, descend_child(rt)))::HelpDoc
 

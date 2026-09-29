@@ -6,7 +6,7 @@
     ) where {PTup <: Tuple, U}
 
     N = fieldcount(PTup)
-    E = Union{ConstrOrError, map(terr, fieldtypes(PTup))...}
+    E = Union{ConstrOrError, map(err_t, fieldtypes(PTup))...}
 
     body = quote
         currctx = ctx
@@ -14,16 +14,16 @@
 
     for i in 1:N
         child_parser_t = fieldtype(PTup, i)
-        child_parser_tstate = tstate(child_parser_t)
-        child_parser_terr = terr(child_parser_t)
+        child_parser_state_t = state_t(child_parser_t)
+        child_parser_err_t = err_t(child_parser_t)
 
         push!(
             body.args, quote
                 parser = parsers[$i]::$child_parser_t
-                child_state = parser.initialState::$child_parser_tstate
-                child_ctx = ctx_with_state(currctx, child_state)
+                child_state = parser.initialState::$child_parser_state_t
+                child_ctx = with_state(currctx, child_state)
 
-                result = parse(parser, child_ctx)::InnerParseResult{$child_parser_tstate, $child_parser_terr}
+                result = parse(parser, child_ctx)::InnerParseResult{$child_parser_state_t, $child_parser_err_t}
                 if !is_error(result) && res_num_consumed(result) > 0
                     parse_ok = unwrap(result)
 
@@ -37,9 +37,9 @@
                     branches still get a chance to match semantically.=#
 
                         push!(allconsumed, res_consumed(parse_ok))
-                        currctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(currctx))
+                        currctx = with_state(res_nextctx(parse_ok), state(currctx))
                     else
-                        new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_tstate}(parse_ok)))
+                        new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_state_t}(parse_ok)))
                         newctx = widen_restate(OrState{$U}, res_nextctx(parse_ok), new_innerstate)
                         push!(allconsumed, res_consumed(parse_ok))
                         return _OrParseOutcome{OrState{$U}, $E}(

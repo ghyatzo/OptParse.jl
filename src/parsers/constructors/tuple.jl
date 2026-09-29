@@ -35,9 +35,9 @@ struct ConstrTuple{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
         end
 
         new{
-            Tuple{map(tval, parsers)...},
-            Union{ConstrTupleError, map(terr, parsers)...},
-            Tuple{map(tstate, parsers)...},
+            Tuple{map(val_t, parsers)...},
+            Union{ConstrTupleError, map(err_t, parsers)...},
+            Tuple{map(state_t, parsers)...},
             PTup,
             mapreduce(priority, max, parsers, init = 0),
         }(map(p -> p.initialState, parsers), parsers, label)
@@ -81,6 +81,6 @@ end
     end
 end
 
-@autospecialize p function complete(p::ConstrTuple{T, E, TState}, st::TState) where {T, E, TState <: Tuple}
+@autospecialize p function complete(p::ConstrTuple{T, E, state_t}, st::state_t) where {T, E, state_t <: Tuple}
     return _tuple_complete_impl(p.parsers, st)::ParseResult{T, E}
 end

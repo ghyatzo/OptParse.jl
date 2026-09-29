@@ -3,7 +3,7 @@
     defaultParser = default(baseParser, false)
 
     @test priority(defaultParser) == priority(baseParser)
-    @test defaultParser.initialState === none(tstate(baseParser))
+    @test defaultParser.initialState === none(state_t(baseParser))
 end
 
 @testset "should return wrapped parser value when it succeeds" begin
@@ -11,8 +11,8 @@ end
     defaultParser = default(baseParser, false)
 
     buffer = ["-v"]
-    state = defaultParser.initialState
-    ctx = mkctx(buffer, state)
+    istate = defaultParser.initialState
+    ctx = mkctx(buffer, istate)
 
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
@@ -27,7 +27,7 @@ end
     defaultValue = false
     defaultParser = default(baseParser, defaultValue)
 
-    completeResult = splitcomplete(defaultParser, none(tstate(baseParser)))
+    completeResult = splitcomplete(defaultParser, none(state_t(baseParser)))
     @test !is_error(completeResult)
     @test unwrap(completeResult) === defaultValue
 end
@@ -62,13 +62,13 @@ end
     defaultParser = default(baseParser, "anonymous")
 
     buffer = ["-n", "Alice"]
-    state = defaultParser.initialState
-    ctx = mkctx(buffer, state)
+    istate = defaultParser.initialState
+    ctx = mkctx(buffer, istate)
 
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
     ps = unwrap(parseResult)
-    @test ctx_remaining(res_nextctx(ps)) == String[]
+    @test remaining(res_nextctx(ps)) == String[]
     @test as_tuple(res_consumed(ps)) == ("-n", "Alice")
 
     completeResult = splitcomplete(defaultParser, res_nextstate(ps))
@@ -81,8 +81,8 @@ end
     defaultParser = default(baseParser, false)
 
     buffer = ["--help"]
-    state = defaultParser.initialState
-    ctx = mkctx(buffer, state)
+    istate = defaultParser.initialState
+    ctx = mkctx(buffer, istate)
 
     parseResult = splitparse(defaultParser, ctx)
 
@@ -91,7 +91,7 @@ end
     @test !is_error(parseResult)
     pf = unwrap(parseResult)
     @test length(res_consumed(pf)) == 0
-    @test ctx_remaining(res_nextctx(pf)) == ["--help"]
+    @test remaining(res_nextctx(pf)) == ["--help"]
 end
 
 @testset "should work in record combinations - main use case" begin
@@ -133,8 +133,8 @@ end
     defaultParser = default(baseParser, Val(:hello))
 
     buffer = String[]
-    state = defaultParser.initialState
-    ctx = mkctx(buffer, state)
+    istate = defaultParser.initialState
+    ctx = mkctx(buffer, istate)
 
     parseResult = splitparse(defaultParser, ctx)
     @test !is_error(parseResult)
@@ -151,28 +151,28 @@ end
     arrayParser = default(@constant((1, 2, 3)), Val((1, 2, 3)))
 
     # Test string default
-    stringResult = splitcomplete(stringParser, none(tstate(stringParser.parser)))
+    stringResult = splitcomplete(stringParser, none(state_t(stringParser.parser)))
     @test !is_error(stringResult)
     @test unwrap(stringResult) == "default-string"
 
     # Test number default
-    numberResult = splitcomplete(numberParser, none(tstate(numberParser.parser)))
+    numberResult = splitcomplete(numberParser, none(state_t(numberParser.parser)))
     @test !is_error(numberResult)
     @test unwrap(numberResult) == 42
 
     # Test boolean default
-    booleanResult = splitcomplete(booleanParser, none(tstate(booleanParser.parser)))
+    booleanResult = splitcomplete(booleanParser, none(state_t(booleanParser.parser)))
     @test !is_error(booleanResult)
     @test unwrap(booleanResult) == true
 
     # Test array default (returns constant value, not default when parser succeeds)
-    # When manually feeding a completion state, mirror it with Vector{Result}
+    # When manually feeding a completion istate, mirror it with Vector{Result}
     arrayResult = splitcomplete(arrayParser, some(Val((1, 2, 3))))
     @test !is_error(arrayResult)
     @test unwrap(arrayResult) == Val((1, 2, 3))
 end
 
-@testset "should return error when the inner state fails to validate the matched input." begin
+@testset "should return error when the inner istate fails to validate the matched input." begin
     baseParser = option(("--port", "-p"), integer(; min = 100))
     defaultParser = default(baseParser, 8080)
 
@@ -181,16 +181,16 @@ end
     @test err.code == OptParse.INTEGER_BelowMin
 end
 
-@testset "should handle state transitions correctly" begin
+@testset "should handle istate transitions correctly" begin
     baseParser = option(("-n", "--name"), str())
     defaultParser = default(baseParser, "anonymous")
 
-    # Test with undefined initial state
-    @test defaultParser.initialState === none(tstate(baseParser))
+    # Test with undefined initial istate
+    @test defaultParser.initialState === none(state_t(baseParser))
 
-    # Test state wrapping during successful parse
+    # Test istate wrapping during successful parse
     buffer = ["-n", "test"]
-    ctx = mkctx(buffer, none(tstate(baseParser)))
+    ctx = mkctx(buffer, none(state_t(baseParser)))
     parseResult = splitparse(defaultParser, ctx)
 
     @test !is_error(parseResult)
@@ -268,14 +268,14 @@ end
 
     @test parse_ok(def, ["--"]) == "bob"
 
-    # should also correctly propagate the side effects properly optionsTerminated state.
+    # should also correctly propagate the side effects properly optionsTerminated istate.
     ctx = mkctx(["--", "arg"], def.initialState)
     pres = splitparse(def, ctx)
     @test !is_error(pres)
     pok = unwrap(pres)
     @test as_tuple(res_consumed(pok)) == ("--",)
-    @test ctx_optterm(res_nextctx(pok)) == true
-    @test ctx_remaining(res_nextctx(pok)) == ["arg"]
+    @test options_terminated(res_nextctx(pok)) == true
+    @test remaining(res_nextctx(pok)) == ["arg"]
 
 end
 

@@ -6,9 +6,9 @@ end
 
 ModHelp(parser::P, info::HelpInfo) where {P <: AbstractParser} =
     ModHelp{
-    tval(P),
-    terr(P),
-    tstate(P),
+    val_t(P),
+    err_t(P),
+    state_t(P),
     P,
     priority(P),
 }(parser.initialState, parser, info)

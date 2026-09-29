@@ -42,15 +42,15 @@ function ConstrObject(parsers_obj::NT; label = "") where {NT <: NamedTuple}
     end
 
     parsers = values(parsers_obj)
-    parsers_tvals = map(tval, parsers_t)
-    parsers_tstates = map(tstate, parsers_t)
-    parsers_errors = map(terr, parsers_t)
+    parsers_val_ts = map(val_t, parsers_t)
+    parsers_tstates = map(state_t, parsers_t)
+    parsers_errors = map(err_t, parsers_t)
 
-    parsers_obj_tval = NamedTuple{labels, Tuple{parsers_tvals...}}
+    parsers_obj_val_t = NamedTuple{labels, Tuple{parsers_val_ts...}}
     init_state = NamedTuple{labels, Tuple{parsers_tstates...}}(map(p -> p.initialState, parsers))
 
     return ConstrObject{
-        parsers_obj_tval,
+        parsers_obj_val_t,
         Union{ConstrObjectError, parsers_errors...},
         typeof(init_state),
         typeof(parsers_obj),
@@ -114,8 +114,8 @@ end
         return InnerParseResult{S, E}(innerOk(outctx, mergedcons))
     end
 
-    if ctx_hasnone(ctx)
-        if _object_can_complete(p.parsers, ctx_state(ctx))
+    if hasnone(ctx)
+        if _object_can_complete(p.parsers, state(ctx))
             return InnerParseResult{S, E}(innerOk(ctx, consumed_empty(ctx)))
         end
     end

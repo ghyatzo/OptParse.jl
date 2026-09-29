@@ -5,18 +5,16 @@
 
     sorted_labels = _sort_obj_labels(labels, PTup)
     whilebody = Expr(:block)
-    E = Union{ConstrObjectError, map(p -> terr(p), fieldtypes(PTup))...}
+    E = Union{ConstrObjectError, map(p -> err_t(p), fieldtypes(PTup))...}
 
     for field in sorted_labels
         push!(
             whilebody.args, quote
-                child_state_lens = PropertyLens($(QuoteNode(field))) ∘ ℒ_state
-
                 child_parser = p[$(QuoteNode(field))]
-                child_state = child_state_lens(current_ctx)
-                child_ctx = widen_restate(tstate(child_parser), current_ctx, child_state)
+                child_state = getproperty(state(current_ctx), $(QuoteNode(field)))
+                child_ctx = widen_restate(state_t(child_parser), current_ctx, child_state)
 
-                result = (parse(child_parser, child_ctx))::InnerParseResult{tstate(child_parser)}
+                result = (parse(child_parser, child_ctx))::InnerParseResult{state_t(child_parser)}
 
                 if is_error(result)
                     parse_err = unwrap_error(result)
@@ -30,7 +28,7 @@
                     if res_num_consumed(parse_ok) > 0
 
                         #= we update the current context state with the result from the parse=#
-                        newstate = set(ctx_state(current_ctx), PropertyLens($(QuoteNode(field))), ℒ_nextstate(parse_ok))
+                        newstate = set(state(current_ctx), PropertyLens($(QuoteNode(field))), res_nextstate(parse_ok))
 
                         #= then we continue the parse using the information from the parse result but with the new state=#
                         newctx = widen_restate($S, res_nextctx(parse_ok), newstate)
@@ -53,8 +51,8 @@
     return quote
         #= if nothing inside the record can match our token, then it's "unexpected" =#
         error = InnerParseFailure{$E}(0,
-               ctx_hasmore(ctx) ?
-                   ConstrObjectError(OBJECT_UnexpectedToken, ctx_peek(ctx)) :
+               hasmore(ctx) ?
+                   ConstrObjectError(OBJECT_UnexpectedToken, peek(ctx)) :
                    ConstrObjectError(OBJECT_EndOfInput, "")
            )
         #= greedy parsing trying to consume as many field as possible =#
@@ -67,7 +65,7 @@
         iter = 0
         maxiter = 10000 # avoids infinite loops (mainly useful while debugging.)
         @label startwhile
-        while (madeprogress && ctx_hasmore(current_ctx) > 0) && iter < maxiter
+        while (madeprogress && hasmore(current_ctx) > 0) && iter < maxiter
             madeprogress = false
             iter += 1
 
@@ -105,8 +103,8 @@ end
 @generated function _object_complete_impl(p::NamedTuple{labels, PTup}, state::NamedTuple{labels, STup}) where {labels, PTup, STup}
     Ps = PTup.parameters
     Ss = STup.parameters
-    T = NamedTuple{labels, Tuple{map(tval, Ps)...}}
-    E = Union{ConstrObjectError, map(terr, Ps)...}
+    T = NamedTuple{labels, Tuple{map(val_t, Ps)...}}
+    E = Union{ConstrObjectError, map(err_t, Ps)...}
 
     ex = Expr(:block)
 
@@ -125,7 +123,7 @@ end
     end
 
     # Phase 2: construct the NamedTuple from all successful results
-    unwraps = [:(unwrap($(Symbol("result_", i)))::$(tval(Ps[i]))) for i in eachindex(Ps)]
+    unwraps = [:(unwrap($(Symbol("result_", i)))::$(val_t(Ps[i]))) for i in eachindex(Ps)]
     push!(ex.args, :(return ParseResult{$T, $E}(typedOk($T, $T(($(unwraps...),))))))
 
     return ex
@@ -158,7 +156,7 @@ end
         child_state_t = fieldtype(S, i)
         push!(
             body.args, quote
-                child_state = ctx_state(ctx)[$i]::$child_state_t
+                child_state = state(ctx)[$i]::$child_state_t
                 child_ctx = widen_restate($child_state_t, ctx, child_state)
                 child_helpdoc = (focused_helpdoc(p.parsers[$i], child_ctx, prefix, descend_child(rt)))::HelpDoc
 

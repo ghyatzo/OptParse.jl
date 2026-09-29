@@ -52,7 +52,7 @@ end
 
     @test priority(parser) == priority(parser.parser)
     @test parser.initialState === parser.parser.initialState
-    @test tstate(parser) === tstate(parser.parser)
+    @test state_t(parser) === state_t(parser.parser)
     @test baseParser isa AbstractParser
 end
 

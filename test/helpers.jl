@@ -6,18 +6,19 @@ using OptParse:
     as_tuple,
     complete,
     consumed_empty,
-    ctx_optterm,
-    ctx_remaining,
-    ctx_state,
-    ctx_with_options_terminated,
+    options_terminated,
+    remaining,
+    state,
+    with_options_terminated,
     metavar,
     parse,
     priority,
     res_consumed,
     res_nextctx,
+    res_nextstate,
     res_num_consumed,
-    tstate,
-    tval,
+    state_t,
+    val_t,
     widen_state
 
 
@@ -32,10 +33,9 @@ splitparse(p::AbstractParser, ctx::Context) = parse(p, ctx)
 splitcomplete(p::AbstractParser, st) = complete(p, st)
 function mkctx(buffer::Vector{String}, state; options_terminated::Bool = false)
     ctx = Context(; buffer, state)
-    options_terminated && (ctx = ctx_with_options_terminated(ctx, true))
+    options_terminated && (ctx = with_options_terminated(ctx, true))
     return ctx
 end
-res_nextstate(succ) = ctx_state(res_nextctx(succ))
 val(::Val{x}) where {x} = x
 
 parse_ok(p, argv) = unwrap(tryoptparse(p, argv))

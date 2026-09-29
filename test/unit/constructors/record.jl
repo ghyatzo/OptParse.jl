@@ -65,9 +65,9 @@ end
     )
 
     buffer = ["--help"]
-    state = parser.initialState
+    istate = parser.initialState
     # optionsTerminated defaults to false
-    ctx = mkctx(buffer, state)
+    ctx = mkctx(buffer, istate)
     res = splitparse(parser, ctx)
 
     @test is_error(res)

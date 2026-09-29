@@ -54,7 +54,7 @@ focused_helpdoc(
 function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{ArgumentState{S, IE}}) where {T, E, S, IE <: E}
     optpattern = r"^--?[a-z0-9-]+$"i
 
-    if ctx_hasnone(ctx)
+    if hasnone(ctx)
         return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
             ArgArgumentError(ARGUMENT_EndOfInput, "", metavar(p.valparser)),
             consumed = 0
@@ -63,25 +63,25 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
 
     i = 0
 
-    tok = ctx_peek(ctx)
-    options_terminated = ctx_optterm(ctx)
-    if !options_terminated
+    tok = peek(ctx)
+    optterm = options_terminated(ctx)
+    if !optterm
         #=Options aren't "officially" terminated yet. Need to be careful.=#
         if tok == "--"
             #=If we encounter "--" consume it and update the context=#
-            options_terminated = true
+            optterm = true
             #=we have to consume an extra token=#
             i += 1
-        elseif !isnothing(match(optpattern, ctx_peek(ctx, 1 + i)))
+        elseif !isnothing(match(optpattern, peek(ctx, 1 + i)))
             #=Otherwise, check that we are not matching an option.=#
             return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
-                ArgArgumentError(ARGUMENT_GotOption, ctx_peek(ctx, 1 + i), metavar(p.valparser));
+                ArgArgumentError(ARGUMENT_GotOption, peek(ctx, 1 + i), metavar(p.valparser));
                 consumed = i
             ))
         end
     end
 
-    if ctx_haslessthan(1 + i, ctx)
+    if haslessthan(1 + i, ctx)
         #=Check again, in case we only had a "--" in the buffer.=#
         return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
             ArgArgumentError(ARGUMENT_EndOfInput, "", metavar(p.valparser));
@@ -89,7 +89,7 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
         ))
     end
 
-    if !is_error(ctx_state(ctx))
+    if !is_error(state(ctx))
         #=The state is a some, so this parser matched already with something.
         Add one to the consumed since we're technically consuming this duplicate=#
         return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
@@ -98,10 +98,10 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
         ))
     end
 
-    result = p.valparser(ctx_peek(ctx, 1 + i))
+    result = p.valparser(peek(ctx, 1 + i))
 
-    nextctx = ctx_with_options_terminated(ctx, options_terminated)
-    nextctx = ctx_with_state(nextctx, some(result))
+    nextctx = with_options_terminated(ctx, optterm)
+    nextctx = with_state(nextctx, some(result))
 
     return InnerParseResult{ArgumentState{S, IE}, E}(
         innerOk(nextctx, 1+i)

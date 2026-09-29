@@ -9,11 +9,11 @@
 
 abstract type AbstractValueParser{T, E} end
 
-tval(::Type{<:AbstractValueParser{T}}) where {T} = T
-tval(::X) where {T, X <: AbstractValueParser{T}} = T
+val_t(::Type{<:AbstractValueParser{T}}) where {T} = T
+val_t(::X) where {T, X <: AbstractValueParser{T}} = T
 
-terr(::Type{<:AbstractValueParser{T, E}}) where {T, E} = E
-terr(::X) where {T, E, X <: AbstractValueParser{T, E}} = E
+err_t(::Type{<:AbstractValueParser{T, E}}) where {T, E} = E
+err_t(::X) where {T, E, X <: AbstractValueParser{T, E}} = E
 
 metavar(v::AbstractValueParser) = v.metavar
 

@@ -23,7 +23,7 @@ end
     @test unwrap(res_nextstate(ps)) == 8080
 
     # buffer consumed
-    @test ctx_remaining(res_nextctx(ps)) == String[]
+    @test remaining(res_nextctx(ps)) == String[]
     # tuple, not Vector
     @test as_tuple(res_consumed(ps)) == ("--port", "8080")
 end
@@ -40,7 +40,7 @@ end
     @test !is_error(res_nextstate(ps))
     @test unwrap(res_nextstate(ps)) == 8080
 
-    @test ctx_remaining(res_nextctx(ps)) == String[]
+    @test remaining(res_nextctx(ps)) == String[]
     @test as_tuple(res_consumed(ps)) == ("--port=8080",)
 end
 
@@ -68,8 +68,8 @@ end
 #     @test !is_error(res)
 #     ps = unwrap(res)
 
-#     @test !is_error(ℒ_nextstate(ps))
-#     @test unwrap(ℒ_nextstate(ps)) == 8080
+#     @test !is_error(res_nextstate(ps))
+#     @test unwrap(res_nextstate(ps)) == 8080
 #     # TS test does not check buffer/consumed here
 # end
 

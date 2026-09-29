@@ -67,27 +67,27 @@ focused_helpdoc(
 
 function parse(p::ArgGate{Bool, ArgGateError, S}, ctx::Context{S}) where {S <: GateState}
 
-    if ctx_optterm(ctx)
+    if options_terminated(ctx)
         return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_NoMoreOptions, "", "")))
-    elseif ctx_hasnone(ctx)
+    elseif hasnone(ctx)
         return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_EndOfInput, "", "")))
     end
 
-    tok = ctx_peek(ctx)
+    tok = peek(ctx)
 
     #= When the input contains `--` stop parsing options =#
     if (tok === "--")
-        nextctx = ctx_with_options_terminated(ctx, true)
+        nextctx = with_options_terminated(ctx, true)
         return InnerParseResult{S, ArgGateError}(innerOk(nextctx, 1; counts_as_match = false))
     end
 
     if tok in p.names
 
-        if !is_error(ctx_state(ctx))
+        if !is_error(state(ctx))
             return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_Duplicate, tok, ""); consumed = 1))
         end
 
-        nextctx = ctx_with_state(ctx, ParseResult{Bool, ArgGateError}(Ok(true)))
+        nextctx = with_state(ctx, ParseResult{Bool, ArgGateError}(Ok(true)))
         return InnerParseResult{S, ArgGateError}(innerOk(nextctx, 1))
     end
 

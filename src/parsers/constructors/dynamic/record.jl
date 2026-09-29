@@ -10,12 +10,12 @@ end
 
 function _object_parse_impl(@nospecialize(parsers::NamedTuple), @nospecialize(ctx::Context))
     sorted_keys = _sort_obj_labels_dynamic(parsers)
-    S = typeof(ctx_state(ctx))
-    E = Union{ConstrObjectError, map(p -> terr(typeof(p)), values(parsers))...}
+    S = typeof(state(ctx))
+    E = Union{ConstrObjectError, map(p -> err_t(typeof(p)), values(parsers))...}
 
     error = InnerParseFailure{E}(0,
-        ctx_hasmore(ctx) ?
-            ConstrObjectError(OBJECT_UnexpectedToken, ctx_peek(ctx)) :
+        hasmore(ctx) ?
+            ConstrObjectError(OBJECT_UnexpectedToken, peek(ctx)) :
             ConstrObjectError(OBJECT_EndOfInput, "")
     )
 
@@ -27,14 +27,14 @@ function _object_parse_impl(@nospecialize(parsers::NamedTuple), @nospecialize(ct
     iter = 0
     maxiter = 10000
 
-    while madeprogress && ctx_hasmore(current_ctx) && iter < maxiter
+    while madeprogress && hasmore(current_ctx) && iter < maxiter
         madeprogress = false
         iter += 1
 
         for field in sorted_keys
             child_parser = parsers[field]
-            child_state = getproperty(ctx_state(current_ctx), field)
-            child_ctx = ctx_with_state(current_ctx, child_state)
+            child_state = getproperty(state(current_ctx), field)
+            child_ctx = with_state(current_ctx, child_state)
 
             result = parse(child_parser, child_ctx)
 
@@ -47,7 +47,7 @@ function _object_parse_impl(@nospecialize(parsers::NamedTuple), @nospecialize(ct
                 parse_ok = unwrap(result)
 
                 if res_num_consumed(parse_ok) > 0
-                    newstate = set(ctx_state(current_ctx), PropertyLens(field), ctx_state(res_nextctx(parse_ok)))
+                    newstate = set(state(current_ctx), PropertyLens(field), state(res_nextctx(parse_ok)))
                     newctx = widen_restate(S, res_nextctx(parse_ok), newstate)
 
                     push!(allconsumed, res_consumed(parse_ok))
@@ -78,8 +78,8 @@ function _object_can_complete(@nospecialize(parsers::NamedTuple), @nospecialize(
 end
 
 function _object_complete_impl(@nospecialize(parsers::NamedTuple), @nospecialize(state::NamedTuple))
-    T = NamedTuple{keys(parsers), Tuple{map(p -> tval(typeof(p)), values(parsers))...}}
-    E = Union{ConstrObjectError, map(p -> terr(typeof(p)), values(parsers))...}
+    T = NamedTuple{keys(parsers), Tuple{map(p -> val_t(typeof(p)), values(parsers))...}}
+    E = Union{ConstrObjectError, map(p -> err_t(typeof(p)), values(parsers))...}
     results = Vector{Any}(undef, length(parsers))
     for (i, field) in enumerate(keys(parsers))
         child_state = getproperty(state, field)
@@ -109,9 +109,9 @@ function _focused_helpdoc_object(
     )
     entries = HelpEntry[]
     parsers = p.parsers
-    state = ctx_state(ctx)
+    st = state(ctx)
     for i in 1:length(parsers)
-        child_state = state[i]
+        child_state = st[i]
         child_ctx = widen_restate(typeof(child_state), ctx, child_state)
         child_helpdoc = focused_helpdoc(parsers[i], child_ctx, prefix, descend_child(rt))::HelpDoc
 

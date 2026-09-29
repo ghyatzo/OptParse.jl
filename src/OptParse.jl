@@ -4,7 +4,7 @@ module OptParse
 using Preferences
 const juliac = @load_preference("juliac", false)
 
-using Accessors: @o, IndexLens, PropertyLens, insert, set
+using Accessors: @set, set, PropertyLens, IndexLens
 using WrappedUnions: @unionsplit, @wrapped,
     #=conflicts with the unwrap from ErrorTypes.jl=#
     unwrap as unwrapunion
@@ -88,14 +88,14 @@ Types `<: AbstractLiftedParser` carry an associated parser accessible via
 """
 abstract type AbstractLiftedParser end
 
-tval(::Type{<:AbstractParser{T}}) where {T} = T
-tval(::AbstractParser{T}) where {T} = T
+val_t(::Type{<:AbstractParser{T}}) where {T} = T
+val_t(::AbstractParser{T}) where {T} = T
 
-terr(::Type{<:AbstractParser{T, E}}) where {T, E} = E
-terr(::AbstractParser{T, E}) where {T, E} = E
+err_t(::Type{<:AbstractParser{T, E}}) where {T, E} = E
+err_t(::AbstractParser{T, E}) where {T, E} = E
 
-tstate(::Type{<:AbstractParser{T, E, S}}) where {T, E, S} = S
-tstate(::AbstractParser{T, E, S}) where {T, E, S} = S
+state_t(::Type{<:AbstractParser{T, E, S}}) where {T, E, S} = S
+state_t(::AbstractParser{T, E, S}) where {T, E, S} = S
 
 ptypes(::Type{<:AbstractParser{T, E, S, P}}) where {T, E, S, P} = P
 ptypes(::AbstractParser{T, E, S, P}) where {T, E, S, P} = P
@@ -142,8 +142,8 @@ associated parser.
 - [`construct`](@ref)
 - [`lift`](@ref)
 """
-valuetype(::Type{A}) where {A <: AbstractParser} = tval(A)
-valuetype(p::AbstractParser) = tval(p)
+valuetype(::Type{A}) where {A <: AbstractParser} = val_t(A)
+valuetype(p::AbstractParser) = val_t(p)
 
 """
     HelpRequest
@@ -215,9 +215,9 @@ end
 
 
 function no_progress(previous_buffer, @nospecialize(ctx))
-    return ctx_length(ctx) > 0 &&
-        ctx_length(ctx) == length(previous_buffer) &&
-        ctx_remaining(ctx) == previous_buffer
+    return remaining_len(ctx) > 0 &&
+        remaining_len(ctx) == length(previous_buffer) &&
+        remaining(ctx) == previous_buffer
 end
 
 
@@ -235,7 +235,7 @@ end
         end
         result = unwrap(mayberesult)
 
-        previous_buffer = ctx_remaining(ctx)
+        previous_buffer = remaining(ctx)
         ctx = res_nextctx(result)
 
         if no_progress(previous_buffer, ctx)
@@ -243,7 +243,7 @@ end
             return ctx
         end
 
-        ctx_length(ctx) > 0 || break
+        remaining_len(ctx) > 0 || break
     end
 
     return ctx

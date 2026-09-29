@@ -47,7 +47,7 @@ end
 Base.@assume_effects :foldable function _or_inner_branch_union(::Type{PTup}) where {PTup <: Tuple}
     branch_types = ntuple(fieldcount(PTup)) do i
         ptype = fieldtype(PTup, i)
-        OrBranchState{i, tstate(ptype)}
+        OrBranchState{i, state_t(ptype)}
     end
     return Union{branch_types...}
 end
@@ -62,8 +62,8 @@ struct ConstrOr{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
         innerstate_U = _or_inner_branch_union(PTup)
 
         new{
-            Union{map(tval, parsers)...},
-            Union{ConstrOrError, map(terr, parsers)...},
+            Union{map(val_t, parsers)...},
+            Union{ConstrOrError, map(err_t, parsers)...},
             OrState{innerstate_U},
             typeof(parsers),
             mapreduce(p -> priority(p), max, parsers),
@@ -88,14 +88,14 @@ end
         prefix::Vector{String},
         rt::OverlayContext
     )::HelpDoc where {T, U}
-    is_error(ctx_state(ctx)) && return HelpDoc(
+    is_error(state(ctx)) && return HelpDoc(
         prefix,
         usage(p),
         helpinfo(rt),
         helpentries(p, descend_child(rt))::Vector{HelpEntry}
     )
 
-    selected = unwrap(ctx_state(ctx))
+    selected = unwrap(state(ctx))
 
     return @static if juliac
         @unionsplit _focused_helpdoc_or(p, selected, prefix, rt)
@@ -128,14 +128,14 @@ end
 @autospecialize p ctx function parse(p::ConstrOr{T, E, S, PTup}, ctx::Context{S}) where {T, E, S <: OrState, PTup <: Tuple}
 
     error = InnerParseFailure{E}(
-        0, ctx_hasnone(ctx) ?
+        0, hasnone(ctx) ?
             ConstrOrError(OR_EndOfInput, "", "") :
-            ConstrOrError(OR_UnexpectedToken, ctx_peek(ctx), "")
+            ConstrOrError(OR_UnexpectedToken, peek(ctx), "")
     )
     current_ctx = ctx
     allconsumed = Consumed[consumed_empty(ctx)]
 
-    innerstate = ctx_state(ctx)
+    innerstate = state(ctx)
     has_selection = !is_error(innerstate)
 
     if has_selection
@@ -167,8 +167,8 @@ end
         allconsumed::Vector{Consumed}, error::InnerParseFailure
     ) where {T, E, U <: OrState, I, S}
 
-    child_state = ℒ_nextstate(selected.success)
-    child_ctx = ctx_with_state(currctx, child_state)
+    child_state = res_nextstate(selected.success)
+    child_ctx = with_state(currctx, child_state)
 
     result = parse(p.parsers[I], child_ctx)
     if !is_error(result) && res_num_consumed(result) > 0
@@ -220,7 +220,7 @@ end
         selected::OrBranchState{I, S}
     ) where {T, E, I, S, U}
 
-    child_result = complete(p.parsers[I], ℒ_nextstate(selected.success))
+    child_result = complete(p.parsers[I], res_nextstate(selected.success))
     if is_error(child_result)
         return ParseResult{T, E}(typedErr(E, unwrap_error(child_result)))
     end

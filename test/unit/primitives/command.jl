@@ -15,7 +15,7 @@
     )
 
     @test priority(showParser) == 15
-    @test showParser.initialState === none(Option{tstate(inner_obj)})
+    @test showParser.initialState === none(Option{state_t(inner_obj)})
 end
 
 @testset "should parse a basic subcommand with arguments" begin

@@ -3,7 +3,7 @@
     repeatedParser = many(baseParser)
 
     @test priority(repeatedParser) == priority(baseParser)
-    @test repeatedParser.initialState == tval(baseParser)[]
+    @test repeatedParser.initialState == val_t(baseParser)[]
 end
 
 @testset "should parse repeated occurrences of wrapped parser" begin
@@ -193,12 +193,12 @@ end
     @test val == [true, true, true]
 end
 
-@testset "should handle parse context state management correctly" begin
+@testset "should handle parse context istate management correctly" begin
     baseParser = option(("-l", "--locale"), str())
     repeatedParser = many(baseParser)
 
-    state = repeatedParser.initialState
-    ctx1 = mkctx(["-l", "en", "-l", "fr"], state)
+    istate = repeatedParser.initialState
+    ctx1 = mkctx(["-l", "en", "-l", "fr"], istate)
 
     parseRes1 = splitparse(repeatedParser, ctx1)
     @test !is_error(parseRes1)
@@ -207,7 +207,7 @@ end
     @test as_tuple(res_consumed(succ1)) == ("-l", "en")
     @test length(res_nextstate(succ1)) == 1
 
-    # Parse next occurrence with updated buffer and carried state
+    # Parse next occurrence with updated buffer and carried istate
     nextState1 = res_nextstate(succ1)
     ctx2 = mkctx(["-l", "fr"], nextState1)
 
@@ -241,7 +241,7 @@ end
     @test err isa OptParse.IntegerValError
 end
 
-@testset "should handle empty state array with min constraint" begin
+@testset "should handle empty istate array with min constraint" begin
     baseParser = option(("-l", "--locale"), str())
     repeatedParser = many1(baseParser)
 
@@ -318,12 +318,12 @@ end
     @test val.args == ["-l", "fr"]
 end
 
-@testset "should handle state transitions and updates correctly" begin
+@testset "should handle istate transitions and updates correctly" begin
     baseParser = arg(str())
     repeatedParser = many(baseParser)
 
-    # Test initial state
-    @test repeatedParser.initialState == tval(baseParser)[]
+    # Test initial istate
+    @test repeatedParser.initialState == val_t(baseParser)[]
 
     ctx1 = mkctx(["arg1"], repeatedParser.initialState)
     parseRes1 = splitparse(repeatedParser, ctx1)
@@ -332,9 +332,9 @@ end
     @test length(res_nextstate(succ1)) == 1
     @test as_tuple(res_consumed(succ1)) == ("arg1",)
 
-    # Next context with carried state but new buffer
+    # Next context with carried istate but new buffer
     carried = res_nextstate(succ1)
-    ctx2 = widen_state(tstate(repeatedParser), mkctx(["arg2"], carried))
+    ctx2 = widen_state(state_t(repeatedParser), mkctx(["arg2"], carried))
     parseRes2 = @unionsplit  parse(repeatedParser, ctx2)
     @test !is_error(parseRes2)
     succ2 = unwrap(parseRes2)

@@ -40,7 +40,7 @@ struct ModConstruct{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
             end
         end
 
-        return new{T, Union{ModConstructError, terr(p)}, tstate(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
+        return new{T, Union{ModConstructError, err_t(p)}, state_t(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
     end
 end
 
@@ -66,7 +66,7 @@ struct ModConstructExact{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
             _validate_exact_sequence(T, K)
         end
 
-        return new{T, Union{ModConstructError, terr(p)}, tstate(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
+        return new{T, Union{ModConstructError, err_t(p)}, state_t(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
     end
 end
 

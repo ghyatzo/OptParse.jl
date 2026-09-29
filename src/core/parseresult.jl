@@ -38,7 +38,7 @@ Base.iterate(c::Consumed, st::Int = 1) =
 
 Construct an empty consumption at position `pos` (range `pos:pos-1`).
 """
-@inline consumed_empty(ctx; pos = ℒ_pos(ctx)) = Consumed(ctx_buffer(ctx), [pos:(pos - 1)])
+@inline consumed_empty(ctx::Context; pos::Int = ctx.pos) = Consumed(ctx.buffer, [pos:(pos - 1)])
 
 # Optional convenience materializers (allocate on demand)
 @inline as_vector(c::Consumed) = collect(c)
@@ -89,8 +89,8 @@ end
 
 
 function consume(ctx, n)
-    p = ctx_pos(ctx)
-    return ctx_consume(ctx, n), Consumed(ctx_buffer(ctx), [p:(p + n - 1)])
+    p = pos(ctx)
+    return advance(ctx, n), Consumed(buffer(ctx), [p:(p + n - 1)])
 end
 
 #-----------------------------------------
@@ -106,9 +106,9 @@ end
 
 function Base.convert(::InnerParseSuccess{S}, inner::InnerParseSuccess{S2}) where {S, S2 <: S}
     InnerParseSuccess(
-        ℒ_consumed(inner),
-        widen_state(S, ℒ_nextctx(inner)),
-        ℒ_matchcounts(inner)
+        inner.consumed,
+        widen_state(S, inner.next),
+        inner.counts_as_match
     )
 end
 
@@ -122,24 +122,17 @@ InnerParseFailure{E}(x::InnerParseFailure{E2}) where {E, E2 <: E} = InnerParseFa
 const InnerParseResult{S, E} = Result{InnerParseSuccess{S}, InnerParseFailure{E}}
 
 
-const ℒ_nextctx = @o _.next
-const ℒ_matchcounts = @o _.counts_as_match
-const ℒ_consumed = @o _.consumed
-
-const ℒ_ranges = (@o _.ranges) ∘ ℒ_consumed
-const ℒ_error = @o _.error
-const ℒ_nextstate = ℒ_state ∘ ℒ_nextctx
-
-res_consumed(s::InnerParseSuccess) = ℒ_consumed(s)
-res_num_consumed(f::InnerParseFailure) = ℒ_consumed(f)
-res_num_consumed(s::InnerParseSuccess) = length(ℒ_consumed(s))
+res_consumed(s::InnerParseSuccess) = s.consumed
+res_num_consumed(f::InnerParseFailure) = f.consumed
+res_num_consumed(s::InnerParseSuccess) = length(s.consumed)
 res_num_consumed(r::InnerParseResult) =
     is_error(r) ? res_num_consumed(unwrap_error(r)) : res_num_consumed(unwrap(r))
 
-res_nextctx(s::InnerParseSuccess) = ℒ_nextctx(s)
-res_matchcounts(s::InnerParseSuccess) = ℒ_matchcounts(s)
+res_nextctx(s::InnerParseSuccess) = s.next
+res_nextstate(s::InnerParseSuccess) = state(res_nextctx(s))
+res_matchcounts(s::InnerParseSuccess) = s.counts_as_match
 
-res_error(f::InnerParseFailure) = ℒ_error(f)
+res_error(f::InnerParseFailure) = f.error
 res_error(r::InnerParseResult) = res_error(unwrap_error(r))
 
 
@@ -151,9 +144,9 @@ function InnerParseResult{S, E}(x::ErrorTypes.ResultConstructor{InnerParseSucces
     inner = x.x
     return Result{InnerParseSuccess{S}, InnerParseFailure{E}}(typedOk(InnerParseSuccess{S},
         InnerParseSuccess(
-            ℒ_consumed(inner),
-            widen_state(S, ℒ_nextctx(inner)),
-            ℒ_matchcounts(inner)
+            inner.consumed,
+            widen_state(S, inner.next),
+            inner.counts_as_match
         )
     ))
 end
@@ -161,7 +154,7 @@ end
 function InnerParseResult{S, E}(x::ErrorTypes.ResultConstructor{InnerParseFailure{E2}, <:Err}) where {S, E, E2 <: E}
     inner = x.x
     return Result{InnerParseSuccess{S}, InnerParseFailure{E}}(
-        typedErr(InnerParseFailure{E}, InnerParseFailure{E}(ℒ_consumed(inner), ℒ_error(inner))
+        typedErr(InnerParseFailure{E}, InnerParseFailure{E}(inner.consumed, inner.error)
     ))
 end
 

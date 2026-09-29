@@ -77,17 +77,17 @@ focused_helpdoc(
 
 function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <: OptionState{T, IE}}
 
-    if ctx_optterm(ctx)
+    if options_terminated(ctx)
         return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_NoMoreOptions, "", "")))
-    elseif ctx_hasnone(ctx)
+    elseif hasnone(ctx)
         return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_EndOfInput, "", "")))
     end
 
-    tok = ctx_peek(ctx)
+    tok = peek(ctx)
 
     # When the input contains `--` is a signal to stop parsing options
     if (tok === "--")
-        nextctx = ctx_with_options_terminated(ctx, true)
+        nextctx = with_options_terminated(ctx, true)
         return InnerParseResult{S, E}(innerOk(nextctx, 1; counts_as_match = false))
     end
 
@@ -95,15 +95,15 @@ function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <
     if tok in p.names
 
         # st = @? ctx.state
-        if !is_error(ctx_state(ctx)) && unwrap(ctx_state(ctx)) isa T
+        if !is_error(state(ctx)) && unwrap(state(ctx)) isa T
             return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_Duplicate, tok, ""); consumed = 1))
         end
 
-        if ctx_haslessthan(2, ctx) || ctx_peek(ctx, 2) == "--"
+        if haslessthan(2, ctx) || peek(ctx, 2) == "--"
             return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_MissingValue, tok, ""); consumed = 1))
         end
 
-        val = ctx_peek(ctx, 2)
+        val = peek(ctx, 2)
         if occursin(r"^--?[a-zA-Z].*", val)
             return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_AmbiguousValue, tok, val); consumed = 1))
         end
@@ -124,7 +124,7 @@ function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <
     for prefix in prefixes
         startswith(tok, prefix) || continue
 
-        if !is_error(ctx_state(ctx))
+        if !is_error(state(ctx))
 
             return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_Duplicate, prefix[1:(end - 1)], ""); consumed = 1))
         end

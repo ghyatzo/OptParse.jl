@@ -72,9 +72,9 @@ The invariants are:
 Helper functions expose the same information in code:
 
 ```julia
-tval(parser_or_type)
-terr(parser_or_type)
-tstate(parser_or_type)
+val_t(parser_or_type)
+err_t(parser_or_type)
+state_t(parser_or_type)
 ptypes(parser_or_type)
 priority(parser_or_type)
 ```
@@ -292,12 +292,12 @@ there is a very good reason. The helper API keeps context updates:
 
 The main helpers are:
 
-- `ctx_with_state(ctx, s)`
-- `ctx_restate(ctx, s)`
+- `with_state(ctx, s)`
+- `restate(ctx, s)`
 - `widen_state(::Type, ctx)`
 - `widen_restate(::Type, ctx, s)`
-- `ctx_with_options_terminated(ctx, flag)`
-- `ctx_hasmore`, `ctx_hasnone`, `ctx_peek`, `ctx_remaining`, `ctx_length`
+- `with_options_terminated(ctx, flag)`
+- `hasmore`, `hasnone`, `peek`, `remaining`, `remaining_len`
 - `consume(ctx, n)`
 
 ### Flat context access vs optics
@@ -309,7 +309,7 @@ Current guidance:
 
 This is why:
 
-- `Context` updates go through helpers like `ctx_with_state` and `consume`
+- `Context` updates go through helpers like `with_state` and `consume`
 - nested constructor state updates still use `PropertyLens` / `IndexLens`
 
 As a rule of thumb:

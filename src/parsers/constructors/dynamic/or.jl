@@ -3,12 +3,12 @@
 
 function _or_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Context), allconsumed, error)
     U = _or_inner_branch_union(typeof(parsers))
-    E = Union{ConstrOrError, map(terr, parsers)...}
+    E = Union{ConstrOrError, map(err_t, parsers)...}
 
     currctx = ctx
     for (i, parser) in enumerate(parsers)
         child_state = parser.initialState
-        child_ctx = ctx_with_state(currctx, child_state)
+        child_ctx = with_state(currctx, child_state)
 
         result = parse(parser, child_ctx)
         if !is_error(result) && res_num_consumed(result) > 0
@@ -16,7 +16,7 @@ function _or_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Contex
 
             if !parse_ok.counts_as_match
                 push!(allconsumed, res_consumed(parse_ok))
-                currctx = ctx_with_state(res_nextctx(parse_ok), ctx_state(currctx))
+                currctx = with_state(res_nextctx(parse_ok), state(currctx))
             else
                 child_tstate = typeof(child_state)
                 new_innerstate = some(InnerOrState{U}(OrBranchState{i, child_tstate}(parse_ok)))

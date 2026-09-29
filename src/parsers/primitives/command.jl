@@ -1,5 +1,25 @@
 const CommandState{X} = Option{Option{X}}
 
+
+# @sum_type struct CommandState{X}
+#     CommandNotMatched{X}
+#     CommandMatchedEmpty{X}
+#     CommandMatched{X}(x::X)
+# end
+
+
+# struct CommandNotMatched{X} end
+# struct CommandMatchedEmpty{X} end
+# struct CommandMatched{X}; x::X end
+
+# @wrapped struct CommandState{X}
+#     union::Union{
+#         CommandNotMatched{X},
+#         CommandMatchedEmpty{X},
+#         CommandMatched{X}
+#     }
+# end
+
 @enum CommandErrCode::UInt8 begin
     COMMAND_EndOfInput
     COMMAND_WrongName
@@ -33,13 +53,13 @@ struct ArgCommand{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
 
     ArgCommand(names::Tuple{Vararg{String}}, parser::P) where {P <: AbstractParser} =
         new{
-            tval(P),
-            Union{ArgCommandError, terr(P)},
-            CommandState{tstate(P)},
+            val_t(P),
+            Union{ArgCommandError, err_t(P)},
+            CommandState{state_t(P)},
             P,
             15
         }(
-            none(Option{tstate(P)}),
+            none(Option{state_t(P)}),
             parser,
             [names...],
         )
@@ -55,7 +75,7 @@ helpentries(p::ArgCommand, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(r
         prefix::Vector{String},
         rt::OverlayContext
     )::HelpDoc where {S <: CommandState}
-    if is_error(ctx_state(ctx))
+    if is_error(state(ctx))
         # the command failed to parse. This is the root node.
         return HelpDoc(
             prefix,
@@ -65,22 +85,22 @@ helpentries(p::ArgCommand, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(r
         )
     end
 
-    maybestate = unwrap(ctx_state(ctx))
+    maybestate = unwrap(state(ctx))
     child_state = is_error(maybestate) ? p.parser.initialState : unwrap(maybestate)
-    child_ctx = widen_restate(tstate(p.parser), ctx, child_state)
+    child_ctx = widen_restate(state_t(p.parser), ctx, child_state)
     child_prefix = _usage_push_prefix(prefix, first(p.names))
 
     return focused_helpdoc(p.parser, child_ctx, child_prefix, descend_child(rt))::HelpDoc
 end
 
 @autospecialize p ctx function parse(p::ArgCommand{T, E, S}, ctx::Context{S}) where {T, E, S <: CommandState}
-    IS = tstate(typeof(p.parser))
+    IS = state_t(typeof(p.parser))
 
-    if is_error(ctx_state(ctx))
+    if is_error(state(ctx))
         # command not yet matched
         # check if it starts with our command name
-        if ctx_hasnone(ctx) || ctx_peek(ctx) ∉ p.names
-            actual = ctx_hasnone(ctx) ? nothing : ctx_peek(ctx)
+        if hasnone(ctx) || peek(ctx) ∉ p.names
+            actual = hasnone(ctx) ? nothing : peek(ctx)
 
             if actual === nothing
                 return InnerParseResult{S, E}(innerErr(ArgCommandError(COMMAND_EndOfInput, "", p.names[1])))
@@ -90,11 +110,11 @@ end
         end
 
         # command matched, consume it and move to the matched state
-        nextctx = ctx_with_state(ctx, some(none(IS)))
+        nextctx = with_state(ctx, some(none(IS)))
         return InnerParseResult{S, E}(innerOk(nextctx, 1))
 
     else
-        maybestate = base(unwrap(ctx_state(ctx)))
+        maybestate = base(unwrap(state(ctx)))
         childstate = isnothing(maybestate) ? p.parser.initialState : @something maybestate
         childctx = widen_restate(IS, ctx, childstate)
 
@@ -106,7 +126,7 @@ end
             newctx = widen_restate(
                 S,
                 res_nextctx(parse_ok),
-                some(some(ℒ_nextstate(parse_ok)))
+                some(some(res_nextstate(parse_ok)))
             )
             return InnerParseResult{S, E}(innerOk(newctx, res_consumed(parse_ok)))
 

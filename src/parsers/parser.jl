@@ -9,7 +9,7 @@ root_overlay_context() = OverlayContext(HelpInfo())
 node_helpinfo(rt::OverlayContext) = rt.info
 
 with_helpinfo(ctx::OverlayContext, info::HelpInfo) =
-    set(ctx, (@o _.info), merge_helpinfo(ctx.info, info))
+    @set ctx.info = merge_helpinfo(ctx.info, info)
 
 # the help information is Node local, not inherited.
 descend_child(ctx::OverlayContext) =
@@ -44,7 +44,7 @@ Verifies that the concrete type has methods for `parse`, `complete`, `usage`,
 Throws an error listing any missing methods.
 """
 function validate(p::AbstractParser)
-    T, E, S = tval(p), terr(p), tstate(p)
+    T, E, S = val_t(p), err_t(p), state_t(p)
     P = typeof(p)
     missing_methods = String[]
 

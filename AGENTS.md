@@ -38,7 +38,7 @@ OptParse.jl is a type-stable, composable CLI argument parser for Julia, designed
 
 ### Core Subsystems (`src/core/`)
 
-- **Context** (`context.jl`): `Context{S}` carries buffer, position, state accumulator, usage node, and optionsTerminated flag. Immutable — state transitions create new contexts via `ctx_with_state`, `ctx_restate`, `widen_state`.
+- **Context** (`context.jl`): `Context{S}` carries buffer, position, state accumulator, usage node, and optionsTerminated flag. Immutable — state transitions create new contexts via `with_state`, `restate`, `widen_state`.
 - **Parse results** (`parseresult.jl`): `ParseResult{T, E} = Result{T, E}`. Inner parsing uses `InnerParseResult{S, E} = Result{InnerParseSuccess{S}, InnerParseFailure{E}}` which carries consumed tokens and next context. Also defines `Consumed` (lazy view of consumed tokens).
 - **Errors** (`errors.jl`): `ParseError{E}` is a `@wrapped` union container. Each parser family defines its own `<: AbstractParseError` struct (e.g. `MainError`, `ConstrObjectError`, `ModMultipleError`, `StringValError`). Rendering dispatches via `render_error(io, err)` on concrete error types. `ParseException{P, E}` wraps a `ParseError{E}` with the parser and argv for `showerror`.
 - **Usage AST** (`usage/nodes.jl`): `UsageNode` with `UsageKind` enum (`USAGE_Flag`, `USAGE_Option`, `USAGE_Argument`, `USAGE_Command`, `USAGE_Object`, `USAGE_Tuple`, `USAGE_Alternative`, `USAGE_Optional`, `USAGE_Repeat`, `USAGE_Hidden`, `USAGE_Empty`). Constructors: `UsageFlag`, `UsageOption`, `UsageArgument`, etc.

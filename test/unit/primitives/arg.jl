@@ -7,9 +7,9 @@ end
 
 @testset "should parse a string argument" begin
     parser = arg(str(; metavar = "FILE"))
-    state = parser.initialState
+    istate = parser.initialState
     buffer = ["myfile.txt"]
-    ctx = mkctx(buffer, state)
+    ctx = mkctx(buffer, istate)
 
     res = splitparse(parser, ctx)
     @test !is_error(res)
@@ -17,19 +17,19 @@ end
     succ = unwrap(res)
     next = res_nextctx(succ)
 
-    st = ctx_state(next)
+    st = state(next)
     @test !is_error(unwrap(st))
     @test unwrap(unwrap(st)) == "myfile.txt"
 
-    @test ctx_remaining(next) == String[]
+    @test remaining(next) == String[]
     @test as_tuple(res_consumed(succ)) == ("myfile.txt",)
 end
 
 @testset "should parse an integer argument" begin
     parser = arg(integer(; min = 0))
-    state = parser.initialState
+    istate = parser.initialState
     buffer = ["42"]
-    ctx = mkctx(buffer, state)
+    ctx = mkctx(buffer, istate)
 
     res = splitparse(parser, ctx)
     @test !is_error(res)
@@ -37,19 +37,19 @@ end
     succ = unwrap(res)
     next = res_nextctx(succ)
 
-    st = ctx_state(next)
+    st = state(next)
     @test !is_error(unwrap(st))
     @test unwrap(unwrap(st)) == 42
 
-    @test ctx_remaining(next) == String[]
+    @test remaining(next) == String[]
     @test as_tuple(res_consumed(succ)) == ("42",)
 end
 
 @testset "should fail when buffer is empty" begin
     parser = arg(str(; metavar = "FILE"))
-    state = parser.initialState
+    istate = parser.initialState
     buffer = String[]
-    ctx = mkctx(buffer, state)
+    ctx = mkctx(buffer, istate)
 
     res = splitparse(parser, ctx)
     @test is_error(res)
@@ -62,9 +62,9 @@ end
 
 @testset "should propagate value parser failures" begin
     parser = arg(integer(; min = 1, max = 100))
-    state = getproperty((parser), :initialState)
+    istate = getproperty((parser), :initialState)
     buffer = ["invalid"]
-    ctx = mkctx(buffer, state)
+    ctx = mkctx(buffer, istate)
 
     res = splitparse(parser, ctx)
     @test !is_error(res)
@@ -124,7 +124,7 @@ end
 
     pok = unwrap(presult)
     @test as_tuple(res_consumed(pok)) == ("abc",)
-    @test ctx_remaining(res_nextctx(pok)) == ["--"]
+    @test remaining(res_nextctx(pok)) == ["--"]
 
     val = splitcomplete(parser, res_nextstate(pok))
     @test (@? val) == "abc"
