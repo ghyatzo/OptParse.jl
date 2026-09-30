@@ -36,7 +36,7 @@ struct ConstrTuple{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
 
         new{
             Tuple{map(val_t, parsers)...},
-            Union{ConstrTupleError, map(err_t, parsers)...},
+            reduce(joinerr, map(err_t, parsers), init = ConstrTupleError),
             Tuple{map(state_t, parsers)...},
             PTup,
             mapreduce(priority, max, parsers, init = 0),
@@ -77,7 +77,7 @@ end
     if found_match
         return InnerParseResult{S, E}(innerOk(outctx, allconsumed))
     else
-        return InnerParseResult{S, E}(typedErr(InnerParseFailure{E}, error))
+        return InnerParseResult{S, E}(Err(error))
     end
 end
 

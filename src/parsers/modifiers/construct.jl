@@ -40,7 +40,7 @@ struct ModConstruct{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
             end
         end
 
-        return new{T, Union{ModConstructError, err_t(p)}, state_t(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
+        return new{T, joinerr(ModConstructError, err_t(p)), state_t(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
     end
 end
 
@@ -66,7 +66,7 @@ struct ModConstructExact{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
             _validate_exact_sequence(T, K)
         end
 
-        return new{T, Union{ModConstructError, err_t(p)}, state_t(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
+        return new{T, joinerr(ModConstructError, err_t(p)), state_t(typeof(p)), typeof(p), priority(typeof(p))}(p.initialState, p)
     end
 end
 
@@ -166,14 +166,14 @@ end
 
     child_res = complete(p.parser, st)
     if is_error(child_res)
-        return ParseResult{T, E}(typedErr(E, unwrap_error(child_res)))
+        return ParseResult{T, E}(Err(unwrap_error(child_res)))
     else
         val = unwrap(child_res)
         try
-            return ParseResult{T, E}(typedOk(T, StructUtils.make(T, val)))
+            return ParseResult{T, E}(Ok(StructUtils.make(T, val)))
         catch err
             err isa InterruptException && rethrow()
-            return ParseResult{T, E}(typedErr(E,
+            return ParseResult{T, E}(Err(
                 ModConstructError(
                     CONSTRUCT_MakeFailed,
                     construct_type_name(T),
@@ -191,14 +191,14 @@ end
 
     child_res = complete(p.parser, st)
     if is_error(child_res)
-        return ParseResult{T, E}(typedErr(E, unwrap_error(child_res)))
+        return ParseResult{T, E}(Err(unwrap_error(child_res)))
     else
         val = unwrap(child_res)
         try
-            return ParseResult{T, E}(typedOk(T, _make_exact(T, val)))
+            return ParseResult{T, E}(Ok(_make_exact(T, val)))
         catch err
             err isa InterruptException && rethrow()
-            return ParseResult{T, E}(typedErr(E,
+            return ParseResult{T, E}(Err(
                 ModConstructError(
                     CONSTRUCT_MakeFailed,
                     construct_type_name(T),

@@ -6,13 +6,12 @@ const juliac = @load_preference("juliac", false)
 
 using Accessors: @set, set, PropertyLens, IndexLens
 using WrappedUnions: @unionsplit, @wrapped,
-    #=conflicts with the unwrap from ErrorTypes.jl=#
+    #=conflicts with the unwrap from SumResults=#
     unwrap as unwrapunion
 using SumTypes
 
 include("core/sumresults.jl")
-
-using ErrorTypes: @?, Err, ErrorTypes, Ok, Option, Result, ResultConstructor, base, is_error,
+using .SumResults: @?, Err, Ok, Option, Result, base, is_error, is_ok_and,
     none, some, unwrap, unwrap_error
 
 using UUIDs: UUID, uuid_version

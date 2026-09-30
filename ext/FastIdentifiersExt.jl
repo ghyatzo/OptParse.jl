@@ -1,7 +1,7 @@
 module FastIdentifiersExt
 
 using OptParse
-using OptParse.ErrorTypes
+using OptParse.SumResults: Ok, Err
 
 using OptParse: AbstractParseError, AbstractValueParser, ParseResult
 using FastIdentifiers

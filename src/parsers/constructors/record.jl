@@ -51,7 +51,7 @@ function ConstrObject(parsers_obj::NT; label = "") where {NT <: NamedTuple}
 
     return ConstrObject{
         parsers_obj_val_t,
-        Union{ConstrObjectError, parsers_errors...},
+        reduce(joinerr, parsers_errors, init = ConstrObjectError),
         typeof(init_state),
         typeof(parsers_obj),
         mapreduce(p -> priority(p), max, parsers_obj),
@@ -120,7 +120,7 @@ end
         end
     end
 
-    return InnerParseResult{S, E}(typedErr(InnerParseFailure{E}, error))
+    return InnerParseResult{S, E}(Err(error))
 end
 
 @autospecialize p function complete(p::ConstrObject{T, E}, st::ObjectState) where {T, E}

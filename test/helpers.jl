@@ -22,7 +22,7 @@ using OptParse:
     widen_state
 
 
-using ErrorTypes
+using OptParse.SumResults
 using WrappedUnions: @unionsplit, unwrap as unwrapunion
 using JET
 using UUIDs

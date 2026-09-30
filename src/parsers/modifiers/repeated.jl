@@ -31,7 +31,7 @@ struct ModMultiple{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     ModMultiple(parser::P; min::Integer = 0, max::Integer = typemax(Int)) where {P <: AbstractParser} = let
         new{
             Vector{val_t(P)},
-            Union{ModMultipleError, err_t(P)},
+            joinerr(ModMultipleError, err_t(P)),
             MultipleState{state_t(P)},
             P,
             priority(P),
@@ -147,22 +147,22 @@ end
     for s in state
         val = complete(p.parser, s)
         if is_error(val)
-            return ParseResult{T, E}(typedErr(E, unwrap_error(val)))
+            return ParseResult{T, E}(Err(unwrap_error(val)))
         end
         val = unwrap(val)
         push!(result, val)
     end
 
     if length(result) < p.min
-        return ParseResult{T, E}(typedErr(E,
+        return ParseResult{T, E}(Err(
             ModMultipleError(MULTIPLE_TooFew, p.min, length(result))
         ))
     elseif length(result) > p.max
-        return ParseResult{T, E}(typedErr(E,
+        return ParseResult{T, E}(Err(
             ModMultipleError(MULTIPLE_TooMany, p.max, length(result))
         ))
     end
 
-    return ParseResult{T, E}(typedOk(T, result))
+    return ParseResult{T, E}(Ok(result))
 
 end

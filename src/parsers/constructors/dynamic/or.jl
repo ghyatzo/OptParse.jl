@@ -3,7 +3,7 @@
 
 function _or_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Context), allconsumed, error)
     U = _or_inner_branch_union(typeof(parsers))
-    E = Union{ConstrOrError, map(err_t, parsers)...}
+    E = reduce(joinerr, map(err_t, parsers), init = ConstrOrError)
 
     currctx = ctx
     for (i, parser) in enumerate(parsers)

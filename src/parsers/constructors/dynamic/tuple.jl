@@ -10,7 +10,7 @@ end
 function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Context))
     N = length(parsers)
     perm = _sort_tup_by_priority(parsers)
-    E = Union{ConstrTupleError, map(p -> err_t(typeof(p)), values(parsers))...}
+    E = reduce(joinerr, map(p -> err_t(typeof(p)), values(parsers)), init = ConstrTupleError)
 
     current_ctx = ctx
     allconsumed = Consumed[consumed_empty(ctx)]
@@ -97,7 +97,7 @@ end
 
 function _tuple_complete_impl(@nospecialize(parsers::Tuple), @nospecialize(state::Tuple))
     T = Tuple{map(p -> val_t(typeof(p)), parsers)...}
-    E = Union{ConstrTupleError, map(p -> err_t(typeof(p)), parsers)...}
+    E = reduce(joinerr, map(p -> err_t(typeof(p)), parsers), init = ConstrTupleError)
     results = Vector{Any}(undef, length(parsers))
     for i in eachindex(parsers)
         child_state = state[i]
@@ -105,12 +105,12 @@ function _tuple_complete_impl(@nospecialize(parsers::Tuple), @nospecialize(state
 
         result = complete(child_parser, child_state)
         if is_error(result)
-            return ParseResult{T, E}(typedErr(E, unwrap_error(result)))
+            return ParseResult{T, E}(Err(unwrap_error(result)))
         end
         results[i] = unwrap(result)
     end
 
-    return Result{T, E}(typedOk(T, T(Tuple(results))))
+    return Result{T, E}(Ok(T(Tuple(results))))
 end
 
 function _tuple_helpentries_impl(@nospecialize(parsers::Tuple), rt::OverlayContext)

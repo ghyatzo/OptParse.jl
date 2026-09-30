@@ -114,9 +114,9 @@ end
 
     result = complete(p.parser, childstate)
     if is_error(result)
-        return ParseResult{T, E}(typedErr(E, unwrap_error(result)))
+        return ParseResult{T, E}(Err(unwrap_error(result)))
     end
 
     # Rewrap as the widened output type of the modifier.
-    return ParseResult{T, E}(typedOk(T, unwrap(result)))
+    return ParseResult{T, E}(Ok(unwrap(result)))
 end

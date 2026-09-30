@@ -4,8 +4,8 @@
 Errors-as-values result container backed by a SumTypes.jl sum type.
 
 API-compatible with ErrorTypes.jl: `Result{T,E}` / `Option{T}`, the `Ok` / `Err`
-constructors, `is_error` / `unwrap` / `unwrap_error`, `some` / `none` and the
-`@?` early-return macro.
+constructors, `is_error` / `unwrap` / `unwrap_error` / `base`, `some` / `none` and
+the `@?` early-return macro.
 
 Construction is lazy in one type parameter: `Ok(x)` holds `x` and leaves the
 error parameter unset (`Result{typeof(x), Union{}}`); `Err(e)` is its mirror
@@ -23,7 +23,7 @@ module SumResults
 using SumTypes
 
 export Result, Option, Ok, Err, some, none,
-    is_error, is_ok_and, unwrap, unwrap_error, @?
+    base, is_error, is_ok_and, unwrap, unwrap_error, @?
 
 # Payload slots use `Union{T, Nothing}` rather than `T`: `Tuple{T}` is illegal
 # for `T === Union{}` ("Tuple field type cannot be Union{}"), but
@@ -103,6 +103,14 @@ some(x) = Option{typeof(x)}(Ok(x))
 The error value of `Option{T}`.
 """
 none(::Type{T}) where {T} = Option{T}(Err(nothing))
+
+"""
+    base(x::Option{T})
+
+Convert an `Option{T}` to a `Union{Some{T}, Nothing}`: `Some(value)` for the
+success variant, `nothing` for the error variant.
+"""
+base(x::Option{T}) where {T} = is_error(x) ? nothing : Some(unwrap(x))
 
 # ---- accessors ----
 

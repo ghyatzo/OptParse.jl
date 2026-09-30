@@ -114,6 +114,7 @@ Sum types remain named types.
 | `src/core/context.jl` | `Context{S}` struct and helpers |
 | `src/core/parseresult.jl` | `InnerParseSuccess{S}`, `InnerParseFailure{E}`, `InnerParseResult{S, E}`, result constructors |
 | `src/core/consumed.jl` | `Consumed` lazy consumed-token view, `consumed_empty` |
+| `src/core/sumresults.jl` | `SumResults` submodule: `Result`/`Option` errors-as-values container, ErrorTypes-compatible API backed by SumTypes |
 | `src/core/errors.jl` | `AbstractParseError`, `ParseError{E}` (@wrapped union), `MainError`, `ParseException`, `render_error` |
 | `src/core/usage/` | `UsageNode` AST (`nodes.jl`), rendering traits (`traits.jl`), text rendering (`render_usage.jl`) |
 | `src/core/help/` | `HelpInfo`, `HelpEntry`, `HelpDoc` (`helpdoc.jl`), `render_helpdoc` (`render_help.jl`) |

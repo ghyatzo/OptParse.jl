@@ -6,7 +6,7 @@
     ) where {PTup <: Tuple, U}
 
     N = fieldcount(PTup)
-    E = Union{ConstrOrError, map(err_t, fieldtypes(PTup))...}
+    E = reduce(joinerr, map(err_t, fieldtypes(PTup)), init = ConstrOrError)
 
     body = quote
         currctx = ctx

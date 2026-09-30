@@ -11,7 +11,7 @@ end
 function _object_parse_impl(@nospecialize(parsers::NamedTuple), @nospecialize(ctx::Context))
     sorted_keys = _sort_obj_labels_dynamic(parsers)
     S = typeof(state(ctx))
-    E = Union{ConstrObjectError, map(p -> err_t(typeof(p)), values(parsers))...}
+    E = reduce(joinerr, map(p -> err_t(typeof(p)), values(parsers)), init = ConstrObjectError)
 
     error = InnerParseFailure{E}(0,
         hasmore(ctx) ?
@@ -79,7 +79,7 @@ end
 
 function _object_complete_impl(@nospecialize(parsers::NamedTuple), @nospecialize(state::NamedTuple))
     T = NamedTuple{keys(parsers), Tuple{map(p -> val_t(typeof(p)), values(parsers))...}}
-    E = Union{ConstrObjectError, map(p -> err_t(typeof(p)), values(parsers))...}
+    E = reduce(joinerr, map(p -> err_t(typeof(p)), values(parsers)), init = ConstrObjectError)
     results = Vector{Any}(undef, length(parsers))
     for (i, field) in enumerate(keys(parsers))
         child_state = getproperty(state, field)
@@ -87,12 +87,12 @@ function _object_complete_impl(@nospecialize(parsers::NamedTuple), @nospecialize
 
         result = complete(child_parser, child_state)
         if is_error(result)
-            return ParseResult{T, E}(typedErr(E, unwrap_error(result)))
+            return ParseResult{T, E}(Err(unwrap_error(result)))
         end
         results[i] = unwrap(result)
     end
 
-    return ParseResult{T, E}(typedOk(T, T(Tuple(results))))
+    return ParseResult{T, E}(Ok(T(Tuple(results))))
 end
 
 function _object_helpentries_impl(@nospecialize(parsers::NamedTuple), rt::OverlayContext)

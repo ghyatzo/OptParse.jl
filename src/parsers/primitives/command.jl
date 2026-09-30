@@ -40,7 +40,7 @@ struct ArgCommand{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     ArgCommand(names::Tuple{Vararg{String}}, parser::P) where {P <: AbstractParser} =
         new{
             val_t(P),
-            Union{ArgCommandError, err_t(P)},
+            joinerr(ArgCommandError, err_t(P)),
             CommandState{state_t(P)},
             P,
             15

@@ -5,7 +5,7 @@
 
     sorted_labels = _sort_obj_labels(labels, PTup)
     whilebody = Expr(:block)
-    E = Union{ConstrObjectError, map(p -> err_t(p), fieldtypes(PTup))...}
+    E = reduce(joinerr, map(p -> err_t(p), fieldtypes(PTup)), init = ConstrObjectError)
 
     for field in sorted_labels
         push!(
@@ -104,7 +104,7 @@ end
     Ps = PTup.parameters
     Ss = STup.parameters
     T = NamedTuple{labels, Tuple{map(val_t, Ps)...}}
-    E = Union{ConstrObjectError, map(err_t, Ps)...}
+    E = reduce(joinerr, map(err_t, Ps), init = ConstrObjectError)
 
     ex = Expr(:block)
 
@@ -117,14 +117,14 @@ end
                 child_state = state[$(QuoteNode(field))]::$S
                 child_parser = p[$(QuoteNode(field))]
                 $result_sym = complete(child_parser, child_state)
-                is_error($result_sym) && return ParseResult{$T, $E}(typedErr($E, unwrap_error($result_sym)))
+                is_error($result_sym) && return ParseResult{$T, $E}(Err(unwrap_error($result_sym)))
             end
         )
     end
 
     # Phase 2: construct the NamedTuple from all successful results
     unwraps = [:(unwrap($(Symbol("result_", i)))::$(val_t(Ps[i]))) for i in eachindex(Ps)]
-    push!(ex.args, :(return ParseResult{$T, $E}(typedOk($T, $T(($(unwraps...),))))))
+    push!(ex.args, :(return ParseResult{$T, $E}(Ok($T(($(unwraps...),))))))
 
     return ex
 end

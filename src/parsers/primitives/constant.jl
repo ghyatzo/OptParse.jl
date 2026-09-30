@@ -6,7 +6,7 @@ struct ArgConstant{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
 
     ArgConstant(val::T) where {T} = let
         try
-            new{typeof(Val(val)), Union{}, typeof(Val(val)), Nothing, 0}(Val(val), nothing)
+            new{typeof(Val(val)), Uninit, typeof(Val(val)), Nothing, 0}(Val(val), nothing)
         catch e
             e isa TypeError && ArgumentError("Constant only supports isbits types or Symbols.")
             throw(e)
@@ -19,16 +19,16 @@ end
 usage(p::ArgConstant) = UsageHidden(UsageEmpty())
 helpentries(p::ArgConstant, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
 focused_helpdoc(
-    p::ArgConstant{Val{val}, Union{}, ConstantState{val}},
+    p::ArgConstant{Val{val}, Uninit, ConstantState{val}},
     ::Context{ConstantState{val}},
     prefix::Vector{String},
     rt::OverlayContext
 ) where {val} = HelpDoc(prefix, usage(p), helpinfo(rt), HelpEntry[])
 
 function parse(::ArgConstant{Val{val}, <:Any, ConstantState{val}}, ctx::Context{ConstantState{val}}) where {val}
-    return InnerParseResult{ConstantState{val}, Union{}}(innerOk(ctx, consumed_empty(ctx)))
+    return InnerParseResult{ConstantState{val}, Uninit}(innerOk(ctx, consumed_empty(ctx)))
 end
 
 function complete(::ArgConstant{Val{val}, <:Any, ConstantState{val}}, st::ConstantState{val}) where {val}
-    return ParseResult{Val{val}, Union{}}(Ok(st))
+    return ParseResult{Val{val}, Uninit}(Ok(st))
 end

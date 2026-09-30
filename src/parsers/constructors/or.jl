@@ -66,7 +66,7 @@ struct ConstrOr{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
 
         new{
             Union{map(val_t, parsers)...},
-            Union{ConstrOrError, map(err_t, parsers)...},
+            reduce(joinerr, map(err_t, parsers), init = ConstrOrError),
             OrState{innerstate_U},
             typeof(parsers),
             mapreduce(p -> priority(p), max, parsers),
@@ -155,7 +155,7 @@ end
     elseif outcome.kind == OR_OUTCOME_Propagate
         return InnerParseResult{S, E}(innerOk(outcome.ctx, outcome.allconsumed; counts_as_match = false))
     elseif outcome.kind == OR_OUTCOME_NoMatch
-        return InnerParseResult{S, E}(typedErr(InnerParseFailure{E}, outcome.error))
+        return InnerParseResult{S, E}(Err(outcome.error))
     else
         error("unreachable")
     end
@@ -209,7 +209,7 @@ end
         Selected(branch) => branch
     end
     return @static if juliac
-        @unionsplit _complete(p, selected)
+        @unionsplit _complete(p, selected)::ParseResult{T, E}
     else
         _complete(p, unwrapunion(selected))
     end
@@ -223,8 +223,8 @@ end
 
     child_result = complete(p.parsers[I], res_nextstate(selected.success))
     if is_error(child_result)
-        return ParseResult{T, E}(typedErr(E, unwrap_error(child_result)))
+        return ParseResult{T, E}(Err(unwrap_error(child_result)))
     end
 
-    return ParseResult{T, E}(typedOk(T, unwrap(child_result)))
+    return ParseResult{T, E}(Ok(unwrap(child_result)))
 end

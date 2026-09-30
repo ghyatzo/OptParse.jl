@@ -5,7 +5,7 @@
 
     N = fieldcount(PTup)
     perm, sorted_ptup = _sortperm_by_priority(fieldtypes(parsers))
-    E = Union{ConstrTupleError, map(p -> err_t(p), fieldtypes(PTup))...}
+    E = reduce(joinerr, map(p -> err_t(p), fieldtypes(PTup)), init = ConstrTupleError)
 
     whilebody_consumers = Expr(:block)
     whilebody_nonconsumers = Expr(:block)
@@ -137,7 +137,7 @@ end
     Ps = PTup.parameters
     Ss = STup.parameters
     T = Tuple{map(val_t, Ps)...}
-    E = Union{ConstrTupleError, map(err_t, Ps)...}
+    E = reduce(joinerr, map(err_t, Ps), init = ConstrTupleError)
 
     ex = Expr(:block)
 
@@ -150,14 +150,14 @@ end
                 child_state = state[$i]::$S
                 child_parser = p[$i]
                 $result_sym = complete(child_parser, child_state)
-                is_error($result_sym) && return Result{$T, $E}(typedErr($E, unwrap_error($result_sym)))
+                is_error($result_sym) && return Result{$T, $E}(Err(unwrap_error($result_sym)))
             end
         )
     end
 
     # Phase 2: construct the Tuple from all successful results
     unwraps = [:(unwrap($(Symbol("result_", i)))::$(val_t(Ps[i]))) for i in eachindex(Ps)]
-    push!(ex.args, :(return Result{$T, $E}(typedOk($T, ($(unwraps...),)::$T))))
+    push!(ex.args, :(return Result{$T, $E}(Ok(($(unwraps...),)::$T))))
 
     return ex
 end
