@@ -8,6 +8,7 @@ using Accessors: @set, set, PropertyLens, IndexLens
 using WrappedUnions: @unionsplit, @wrapped,
     #=conflicts with the unwrap from ErrorTypes.jl=#
     unwrap as unwrapunion
+using SumTypes
 
 using ErrorTypes: @?, Err, ErrorTypes, Ok, Option, Result, ResultConstructor, base, is_error,
     none, some, unwrap, unwrap_error

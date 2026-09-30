@@ -15,7 +15,7 @@
     )
 
     @test priority(showParser) == 15
-    @test showParser.initialState === none(Option{state_t(inner_obj)})
+    @test showParser.initialState === OptParse.CommandState{state_t(inner_obj)}'.NotMatched
 end
 
 @testset "should parse a basic subcommand with arguments" begin
