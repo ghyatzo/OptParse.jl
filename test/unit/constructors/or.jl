@@ -3,8 +3,6 @@
     parser2 = switch("-b")
     orParser = or(parser1, parser2)
 
-    using OptParse: OrState, GateState, ParseSuccess
-    # @test getproperty(orParser, :initialState) isa OrState{Union{Val{0}, Val{1}, Val{2}}, Tuple{Option{ParseSuccess{GateState}}, Option{ParseSuccess{GateState}}}}
     @test priority(orParser) == max(priority(parser1), priority(parser2))
 end
 
