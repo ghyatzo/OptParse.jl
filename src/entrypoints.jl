@@ -67,12 +67,13 @@ If you need stable non-throwing behavior across environments, use
 [`tryoptparse`](@ref) instead.
 """
 @autospecialize pp function optparse(pp::AbstractParser{T, E}, args::Vector{String}) where {T, E}
-    mayberes = tryoptparse(pp, args)::ParseResult{T, Union{E, MainError}}
+    UE = Union{E, MainError}
+    mayberes = tryoptparse(pp, args)::ParseResult{T, UE}
 
     if is_error(mayberes)
         errmsg = sprint(
-            showerror, ParseException(
-                pp, args, ParseError{E}(unwrap_error(mayberes))
+            showerror, ParseException{typeof(pp), UE}(
+                pp, args, ParseError{UE}(unwrap_error(mayberes))
             )
         )
         print(Core.stderr, "Error: ")
