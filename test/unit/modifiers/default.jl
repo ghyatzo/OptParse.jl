@@ -3,7 +3,7 @@
     defaultParser = default(baseParser, false)
 
     @test priority(defaultParser) == priority(baseParser)
-    @test defaultParser.initialState === none(state_t(baseParser))
+    @test defaultParser.initialState == state_t(defaultParser)'.NotMatched
 end
 
 @testset "should return wrapped parser value when it succeeds" begin
@@ -27,7 +27,7 @@ end
     defaultValue = false
     defaultParser = default(baseParser, defaultValue)
 
-    completeResult = splitcomplete(defaultParser, none(state_t(baseParser)))
+    completeResult = splitcomplete(defaultParser, defaultParser.initialState)
     @test !is_error(completeResult)
     @test unwrap(completeResult) === defaultValue
 end
@@ -151,23 +151,22 @@ end
     arrayParser = default(@constant((1, 2, 3)), Val((1, 2, 3)))
 
     # Test string default
-    stringResult = splitcomplete(stringParser, none(state_t(stringParser.parser)))
+    stringResult = splitcomplete(stringParser, stringParser.initialState)
     @test !is_error(stringResult)
     @test unwrap(stringResult) == "default-string"
 
     # Test number default
-    numberResult = splitcomplete(numberParser, none(state_t(numberParser.parser)))
+    numberResult = splitcomplete(numberParser, numberParser.initialState)
     @test !is_error(numberResult)
     @test unwrap(numberResult) == 42
 
     # Test boolean default
-    booleanResult = splitcomplete(booleanParser, none(state_t(booleanParser.parser)))
+    booleanResult = splitcomplete(booleanParser, booleanParser.initialState)
     @test !is_error(booleanResult)
     @test unwrap(booleanResult) == true
 
-    # Test array default (returns constant value, not default when parser succeeds)
-    # When manually feeding a completion istate, mirror it with Vector{Result}
-    arrayResult = splitcomplete(arrayParser, some(Val((1, 2, 3))))
+    # A matched constant completes to its own value.
+    arrayResult = splitcomplete(arrayParser, state_t(arrayParser)'.Matched(Val((1, 2, 3))))
     @test !is_error(arrayResult)
     @test unwrap(arrayResult) == Val((1, 2, 3))
 end
@@ -176,7 +175,13 @@ end
     baseParser = option(("--port", "-p"), integer(; min = 100))
     defaultParser = default(baseParser, 8080)
 
-    err = parse_fail(defaultParser, ["-p", "10"])
+    parsed = splitparse(defaultParser, mkctx(["-p", "10"], defaultParser.initialState))
+    @test !is_error(parsed)
+    st = res_nextstate(unwrap(parsed))
+    result = splitcomplete(defaultParser, st)
+    @test is_error(result)
+    err = unwrap_error(result)
+    @test st == state_t(defaultParser)'.Matched(state_t(baseParser)'.Invalid(err))
     @test err isa OptParse.IntegerValError
     @test err.code == OptParse.INTEGER_BelowMin
 end
@@ -185,19 +190,18 @@ end
     baseParser = option(("-n", "--name"), str())
     defaultParser = default(baseParser, "anonymous")
 
-    # Test with undefined initial istate
-    @test defaultParser.initialState === none(state_t(baseParser))
+    @test defaultParser.initialState == state_t(defaultParser)'.NotMatched
 
     # Test istate wrapping during successful parse
     buffer = ["-n", "test"]
-    ctx = mkctx(buffer, none(state_t(baseParser)))
+    ctx = mkctx(buffer, defaultParser.initialState)
     parseResult = splitparse(defaultParser, ctx)
 
     @test !is_error(parseResult)
     ps = unwrap(parseResult)
     st = res_nextstate(ps)
-    @test !is_error(st)
-    @test unwrap(st) == OptParse.OptionState{String, OptParse.StringValError}'.Matched("test")
+    childstate = state_t(baseParser)'.Matched("test")
+    @test st == state_t(defaultParser)'.Matched(childstate)
 end
 
 @testset "should work with argument parsers in record context" begin
@@ -248,6 +252,13 @@ end
     @test parse_ok(defflag, String[]) == false
 end
 
+@testset "should preserve optional output types" begin
+    parser = optional(option("--port", integer()))
+    @test parse_ok(parser, String[]) === nothing
+    @test parse_ok(parser, ["--port", "42"]) === 42
+    @test parse_fail(parser, ["--port", "invalid"]) isa OptParse.IntegerValError
+end
+
 @testset "should propagate errors when inner parser partially consumes input" begin
     optionalopt = default(option("-n", str()), "Bob")
 
@@ -274,6 +285,7 @@ end
     @test !is_error(pres)
     pok = unwrap(pres)
     @test as_tuple(res_consumed(pok)) == ("--",)
+    @test res_nextstate(pok) == def.initialState
     @test options_terminated(res_nextctx(pok)) == true
     @test remaining(res_nextctx(pok)) == ["arg"]
 

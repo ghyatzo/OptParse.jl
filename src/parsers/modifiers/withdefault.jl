@@ -1,4 +1,7 @@
-const WithDefaultState{X} = Option{X}
+@sum_type WithDefaultState{X} :hidden begin
+    NotMatched
+    Matched{X}(state::X)
+end
 
 @inline _should_show_default(::Type{P}, ::Type{Nothing}) where {P} = false
 @inline _should_show_default(::Type{<:ArgGate}, ::Type{Bool}) = false
@@ -14,7 +17,7 @@ struct ModWithDefault{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
     ModWithDefault(parser::P, default::T) where {T, P <: AbstractParser} = let
         retval_t = val_t(P) == T ? T : Union{val_t(P), T}
         new{retval_t, err_t(P), WithDefaultState{state_t(P)}, P, priority(P)}(
-            none(state_t(P)), parser, default, _should_show_default(P, T)
+            WithDefaultState{state_t(P)}'.NotMatched, parser, default, _should_show_default(P, T)
         )
     end
 end
@@ -48,7 +51,10 @@ end
         prefix::Vector{String},
         rt::OverlayContext
     )::HelpDoc where {S, P <: AbstractParser{<:Any, <:Any, S}}
-    child_state = is_error(state(ctx)) ? p.parser.initialState : unwrap(state(ctx))
+    child_state = @cases state(ctx) begin
+        NotMatched => p.parser.initialState
+        Matched(st) => st
+    end
     child_ctx = widen_restate(S, ctx, child_state)
     # we don't reset the OverlayContext because the modifiers are sort of "behavioural overlays"
     # so they can't consume the node local informations.
@@ -64,7 +70,10 @@ end
     ) where {E, S, P <: AbstractParser{<:Any, <:Any, S}}
     WDS = WithDefaultState{S}
 
-    childstate = is_error(state(ctx)) ? p.parser.initialState : unwrap(state(ctx))
+    childstate = @cases state(ctx) begin
+        NotMatched => p.parser.initialState
+        Matched(st) => st
+    end
     childctx = with_state(ctx, childstate)
 
     result = parse(p.parser, childctx)
@@ -82,7 +91,7 @@ end
     parse_ok = unwrap(result)
     if res_nextstate(parse_ok) != childstate || res_num_consumed(parse_ok) == 0
         #=Inner parser actually consumed something or changed its state=#
-        newctx = restate(res_nextctx(parse_ok), some(res_nextstate(parse_ok)))
+        newctx = restate(res_nextctx(parse_ok), WDS'.Matched(res_nextstate(parse_ok)))
     else
         #=Inner parser returned success but nothing changed while consuming input. (i.e. "--")
         Treat as unmatched, but still propagate side effects.=#
@@ -95,25 +104,15 @@ end
 
 @autospecialize p function complete(
         p::ModWithDefault{T, E, WithDefaultState{S}, P},
-        maybestate::WithDefaultState{S}
+        st::WithDefaultState{S}
     ) where {T, E, S, P <: AbstractParser{<:Any, <:Any, S}}
 
-    # The state can be missing (none), in which case return the default.
-    if is_error(maybestate)
-        return ParseResult{T, E}(typedOk(T, p.default))
+    childstate = @cases st begin
+        NotMatched => return ParseResult{T, E}(typedOk(T, p.default))
+        Matched(childstate) => childstate
     end
-    state = unwrap(maybestate)
 
-
-    #=This approach would also work, but is less conceptually correct. We're assuming that a state is a Result.
-    This may lead to further headaches in the future. Instead we catch this case at parse time. (see if else on success)=#
-    # The state exists but is an error.
-    #state isa Result && is_error(state) && return ParseResult{T, E}(Ok(p.default))
-
-    #= Otherwise just ask the inner state to complete itself.
-    In case of validation errors from the value parser, we want to return an error instead of the default.
-    Given that the user explicitly passed a value, he likely does not want the default value.=#
-    result = complete(p.parser, state)
+    result = complete(p.parser, childstate)
     if is_error(result)
         return ParseResult{T, E}(typedErr(E, unwrap_error(result)))
     end
