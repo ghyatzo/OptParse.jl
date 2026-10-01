@@ -39,7 +39,7 @@
                         push!(allconsumed, res_consumed(parse_ok))
                         currctx = with_state(res_nextctx(parse_ok), state(currctx))
                     else
-                        new_innerstate = some(InnerOrState{$U}(OrBranchState{$i, $child_parser_state_t}(parse_ok)))
+                        new_innerstate = OrState{$U}'.Selected(InnerOrState{$U}(OrBranchState{$i, $child_parser_state_t}(parse_ok)))
                         newctx = widen_restate(OrState{$U}, res_nextctx(parse_ok), new_innerstate)
                         push!(allconsumed, res_consumed(parse_ok))
                         return _OrParseOutcome{OrState{$U}, $E}(

@@ -9,7 +9,10 @@ end
 branch_idx(::Type{OrBranchState{I, S}}) where {I, S} = I
 branch_state(::Type{OrBranchState{I, S}}) where {I, S} = S
 
-const OrState{U} = Option{InnerOrState{U}}
+@sum_type OrState{U} :hidden begin
+    NotMatched
+    Selected{U}(branch::InnerOrState{U})
+end
 
 _inner_state(::Type{<:OrState{U}}) where {U} = U
 
@@ -67,7 +70,7 @@ struct ConstrOr{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
             OrState{innerstate_U},
             typeof(parsers),
             mapreduce(p -> priority(p), max, parsers),
-        }(none(InnerOrState{innerstate_U}), parsers)
+        }(OrState{innerstate_U}'.NotMatched, parsers)
     end
 end
 
@@ -88,14 +91,15 @@ end
         prefix::Vector{String},
         rt::OverlayContext
     )::HelpDoc where {T, U}
-    is_error(state(ctx)) && return HelpDoc(
-        prefix,
-        usage(p),
-        helpinfo(rt),
-        helpentries(p, descend_child(rt))::Vector{HelpEntry}
-    )
-
-    selected = unwrap(state(ctx))
+    selected = @cases state(ctx) begin
+        NotMatched => return HelpDoc(
+            prefix,
+            usage(p),
+            helpinfo(rt),
+            helpentries(p, descend_child(rt))::Vector{HelpEntry}
+        )
+        Selected(branch) => branch
+    end
 
     return @static if juliac
         @unionsplit _focused_helpdoc_or(p, selected, prefix, rt)
@@ -135,18 +139,15 @@ end
     current_ctx = ctx
     allconsumed = Consumed[consumed_empty(ctx)]
 
-    innerstate = state(ctx)
-    has_selection = !is_error(innerstate)
-
-    if has_selection
-        selected = unwrap(innerstate)
-        outcome = @static if juliac
-            @unionsplit _parse_branch(p, selected, current_ctx, allconsumed, error)
-        else
-            _parse_branch(p, unwrapunion(selected), current_ctx, allconsumed, error)
+    outcome = @cases state(ctx) begin
+        NotMatched => _or_parse_impl(p.parsers, ctx, allconsumed, error)
+        Selected(branch) => begin
+            @static if juliac
+                @unionsplit _parse_branch(p, branch, current_ctx, allconsumed, error)
+            else
+                _parse_branch(p, unwrapunion(branch), current_ctx, allconsumed, error)
+            end
         end
-    else
-        outcome = _or_parse_impl(p.parsers, ctx, allconsumed, error)
     end
 
     if outcome.kind == OR_OUTCOME_BranchMatch
@@ -174,8 +175,8 @@ end
     if !is_error(result) && res_num_consumed(result) > 0
         parse_ok = unwrap(result)
 
-        new_innerstate = some(InnerOrState{_inner_state(U)}(OrBranchState{I, S}(parse_ok)))
-        newctx = widen_restate(OrState{_inner_state(U)}, res_nextctx(parse_ok), new_innerstate)
+        new_innerstate = U'.Selected(InnerOrState{_inner_state(U)}(OrBranchState{I, S}(parse_ok)))
+        newctx = widen_restate(U, res_nextctx(parse_ok), new_innerstate)
         push!(allconsumed, res_consumed(parse_ok))
 
         if !parse_ok.counts_as_match
@@ -203,10 +204,10 @@ end
 
 
 @autospecialize p orstate function complete(p::ConstrOr{T, E}, orstate::OrState{U}) where {T, E, U}
-    is_error(orstate) &&
-        return ParseResult{T, E}(typedErr(E, ConstrOrError(OR_NoMatch, "", "")))
-
-    selected = unwrap(orstate)
+    selected = @cases orstate begin
+        NotMatched => return ParseResult{T, E}(typedErr(E, ConstrOrError(OR_NoMatch, "", "")))
+        Selected(branch) => branch
+    end
     return @static if juliac
         @unionsplit _complete(p, selected)
     else

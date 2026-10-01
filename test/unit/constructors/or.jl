@@ -144,6 +144,64 @@ end
     @test !is_error(pres2)
 end
 
+@testset "should expose named branch selections" begin
+    parser = or(option("--number", integer()), option("--name", str()))
+    @test parser.initialState == state_t(parser)'.NotMatched
+    result = splitcomplete(parser, parser.initialState)
+    @test is_error(result)
+    @test unwrap_error(result).code == OptParse.OR_NoMatch
+
+    for (i, buffer, value) in ((1, ["--number", "42"], 42), (2, ["--name", "alice"], "alice"))
+        result = splitparse(parser, mkctx(buffer, parser.initialState))
+        @test !is_error(result)
+        st = res_nextstate(unwrap(result))
+        selected = OptParse.@cases st begin
+            NotMatched => error("Expected a selected branch")
+            Selected(branch) => unwrapunion(branch)
+        end
+        @test OptParse.branch_idx(typeof(selected)) == i
+        @test unwrap(splitcomplete(parser, st)) == value
+    end
+end
+
+@testset "should defer selected child value errors" begin
+    parser = or(option("--number", integer()), arg(str()))
+    result = splitparse(parser, mkctx(["--number", "invalid"], parser.initialState))
+    @test !is_error(result)
+    st = res_nextstate(unwrap(result))
+    result = splitcomplete(parser, st)
+    @test is_error(result)
+    @test unwrap_error(result).code == OptParse.INTEGER_Invalid
+end
+
+@testset "should preserve selection through control-only matches" begin
+    parser = or(option("--number", integer()), arg(str()))
+    result = splitparse(parser, mkctx(["--"], parser.initialState))
+    @test !is_error(result)
+    @test res_nextstate(unwrap(result)) == parser.initialState
+    @test options_terminated(res_nextctx(unwrap(result)))
+    @test !OptParse.res_matchcounts(unwrap(result))
+
+    result = splitparse(parser, mkctx(["--number", "42"], parser.initialState))
+    @test !is_error(result)
+    st = res_nextstate(unwrap(result))
+    result = splitparse(parser, mkctx(["--"], st))
+    @test !is_error(result)
+    ps = unwrap(result)
+    @test options_terminated(res_nextctx(ps))
+    @test !OptParse.res_matchcounts(ps)
+    @test unwrap(splitcomplete(parser, res_nextstate(ps))) == 42
+end
+
+@testset "should focus help on the selected branch" begin
+    parser = or(command("add", arg(str("FILE"))), command("remove", arg(str("TARGET"))))
+    @test length(OptParse.build_help_doc(parser, String[]).entries) == 2
+    doc = OptParse.build_help_doc(parser, ["remove"])
+    @test doc.prefix == ["remove"]
+    @test occursin("TARGET", OptParse.render_usage(doc.usage))
+    @test !occursin("FILE", OptParse.render_usage(doc.usage))
+end
+
 @testset "should be type stable" begin
     @test_opt or(
         record(; verbose = switch("-v")),

@@ -19,7 +19,7 @@ function _or_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Contex
                 currctx = with_state(res_nextctx(parse_ok), state(currctx))
             else
                 child_tstate = typeof(child_state)
-                new_innerstate = some(InnerOrState{U}(OrBranchState{i, child_tstate}(parse_ok)))
+                new_innerstate = OrState{U}'.Selected(InnerOrState{U}(OrBranchState{i, child_tstate}(parse_ok)))
                 newctx = widen_restate(OrState{U}, res_nextctx(parse_ok), new_innerstate)
                 push!(allconsumed, res_consumed(parse_ok))
 
