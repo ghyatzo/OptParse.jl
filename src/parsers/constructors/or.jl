@@ -3,7 +3,7 @@
 end
 
 struct OrBranchState{I, S}
-    success::InnerParseSuccess{S}
+    success::InnerSuccess{S}
 end
 
 branch_idx(::Type{OrBranchState{I, S}}) where {I, S} = I
@@ -125,13 +125,13 @@ struct _OrParseOutcome{S, E}
     kind::_OrParseOutcomeKind
     ctx::Context{S}
     allconsumed::Consumed
-    error::InnerParseFailure{E}
+    error::InnerFailure{E}
 end
 
 
 @autospecialize p ctx function parse(p::ConstrOr{T, E, S, PTup}, ctx::Context{S}) where {T, E, S <: OrState, PTup <: Tuple}
 
-    error = InnerParseFailure{E}(
+    error = InnerFailure{E}(
         0, hasnone(ctx) ?
             ConstrOrError(OR_EndOfInput, "", "") :
             ConstrOrError(OR_UnexpectedToken, peek(ctx), "")
@@ -165,7 +165,7 @@ end
 
 @autospecialize p selected currctx function _parse_branch(
         p::ConstrOr{T, E, U}, selected::OrBranchState{I, S}, currctx::Context{U},
-        allconsumed::Vector{Consumed}, error::InnerParseFailure
+        allconsumed::Vector{Consumed}, error::InnerFailure
     ) where {T, E, U <: OrState, I, S}
 
     child_state = res_nextstate(selected.success)
@@ -196,7 +196,7 @@ end
         end
     elseif is_error(result)
         #= the child parser has encountered an error, we should resurface that error instead of the generic =#
-        error = InnerParseFailure{E}(unwrap_error(result))
+        error = InnerFailure{E}(unwrap_error(result))
     end
 
     return _OrParseOutcome{U, E}(OR_OUTCOME_NoMatch, currctx, merge(allconsumed), error)

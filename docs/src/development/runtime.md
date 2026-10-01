@@ -99,11 +99,11 @@ parse(p::SomeParser{T, E, S}, ctx::Context{S})::InnerParseResult{S, E}
 
 The result can be:
 
-- `InnerParseSuccess{S}` with:
+- `InnerSuccess{S}` with:
   - a `Consumed` view of the consumed tokens
   - a next `Context{S}`
   - `counts_as_match::Bool`
-- `InnerParseFailure{E}` with:
+- `InnerFailure{E}` with:
   - an integer “consumed count” used for choosing better failures
   - an error of type `E`
 
@@ -361,17 +361,17 @@ Important helpers:
 - `as_vector(consumed)`
 - `as_tuple(consumed)`
 
-## `InnerParseSuccess` and `InnerParseFailure`
+## `InnerSuccess` and `InnerFailure`
 
 These also live in `src/core/parseresult.jl`.
 
-`InnerParseSuccess{S}` carries:
+`InnerSuccess{S}` carries:
 
 - `consumed::Consumed`
 - `next::Context{S}`
 - `counts_as_match::Bool`
 
-`InnerParseFailure{E}` carries:
+`InnerFailure{E}` carries:
 
 - `consumed::Int` (number of tokens consumed before failure)
 - `error::E` (the concrete error value)
@@ -379,7 +379,7 @@ These also live in `src/core/parseresult.jl`.
 Together they form:
 
 ```julia
-const InnerParseResult{S, E} = Result{InnerParseSuccess{S}, InnerParseFailure{E}}
+const InnerResult{S, E} = Result{InnerSuccess{S}, InnerFailure{E}}
 ```
 
 `counts_as_match` is subtle and important.

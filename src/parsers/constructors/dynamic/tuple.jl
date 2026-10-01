@@ -19,7 +19,7 @@ function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Conte
     while length(matched_parsers) < N
         found_match = false
 
-        error = InnerParseFailure{E}(
+        error = InnerFailure{E}(
             0,
             ConstrTupleError(
                 TUPLE_NoRemainingParser,
@@ -55,7 +55,7 @@ function _tup_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Conte
                 end
             elseif is_error(result) && res_num_consumed(error) < res_num_consumed(result)
                 parse_err = unwrap_error(result)
-                error = InnerParseFailure{E}(parse_err.consumed, parse_err.error)
+                error = InnerFailure{E}(parse_err.consumed, parse_err.error)
             end
         end
 

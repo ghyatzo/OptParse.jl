@@ -49,7 +49,7 @@
                 elseif is_error(result)
                     if res_num_consumed(error) < res_num_consumed(result)
                         parse_err = unwrap_error(result)
-                        error = InnerParseFailure{$E}(parse_err)
+                        error = InnerFailure{$E}(parse_err)
                     end
                 end
             end

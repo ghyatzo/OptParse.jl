@@ -39,7 +39,7 @@ OptParse.jl is a type-stable, composable CLI argument parser for Julia, designed
 ### Core Subsystems (`src/core/`)
 
 - **Context** (`context.jl`): `Context{S}` carries buffer, position, state accumulator, usage node, and optionsTerminated flag. Immutable — state transitions create new contexts via `with_state`, `restate`, `widen_state`.
-- **Parse results** (`parseresult.jl`): `ParseResult{T, E} = Result{T, E}`. Inner parsing uses `InnerParseResult{S, E} = Result{InnerParseSuccess{S}, InnerParseFailure{E}}` which carries consumed tokens and next context.
+- **Parse results** (`parseresult.jl`): `Result{T, E} = Result{T, E}`. Inner parsing uses `InnerResult{S, E} = Result{InnerSuccess{S}, InnerFailure{E}}` which carries consumed tokens and next context.
 - **Consumed** (`consumed.jl`): `Consumed <: AbstractVector{String}`, a lazy view of consumed tokens over the normalized argv buffer. Provides `consumed_empty`, `merge`, and `consume`.
 - **Errors** (`errors.jl`): `ParseError{E}` is a `@wrapped` union container. Each parser family defines its own `<: AbstractParseError` struct (e.g. `MainError`, `ConstrObjectError`, `ModMultipleError`, `StringValError`). Rendering dispatches via `render_error(io, err)` on concrete error types. `ParseException{P, E}` wraps a `ParseError{E}` with the parser and argv for `showerror`.
 - **Usage AST** (`usage/nodes.jl`): `UsageNode` with `UsageKind` enum (`USAGE_Flag`, `USAGE_Option`, `USAGE_Argument`, `USAGE_Command`, `USAGE_Object`, `USAGE_Tuple`, `USAGE_Alternative`, `USAGE_Optional`, `USAGE_Repeat`, `USAGE_Hidden`, `USAGE_Empty`). Constructors: `UsageFlag`, `UsageOption`, `UsageArgument`, etc.
@@ -112,7 +112,7 @@ Sum types remain named types.
 | `src/parsers/parser.jl` | `OverlayContext`, `validate`, public API constructors (all exported parser functions), `@parser` macro, then includes all parser subdirectories |
 | `src/parsers/constructors/constructors.jl` | Constructor includes, static/dynamic split, `_usage_children`, `_merge`, `_concat` |
 | `src/core/context.jl` | `Context{S}` struct and helpers |
-| `src/core/parseresult.jl` | `InnerParseSuccess{S}`, `InnerParseFailure{E}`, `InnerParseResult{S, E}`, result constructors |
+| `src/core/parseresult.jl` | `InnerSuccess{S}`, `InnerFailure{E}`, `InnerResult{S, E}`, result constructors |
 | `src/core/consumed.jl` | `Consumed` lazy consumed-token view, `consumed_empty` |
 | `src/core/sumresults.jl` | `SumResults` submodule: `Result`/`Option` errors-as-values container, ErrorTypes-compatible API backed by SumTypes |
 | `src/core/errors.jl` | `AbstractParseError`, `ParseError{E}` (@wrapped union), `MainError`, `ParseException`, `render_error` |

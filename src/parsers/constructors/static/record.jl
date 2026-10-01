@@ -19,7 +19,7 @@
                 if is_error(result)
                     parse_err = unwrap_error(result)
                     if res_num_consumed(error) < res_num_consumed(parse_err)
-                        error = InnerParseFailure{$E}(parse_err.consumed, parse_err.error)
+                        error = InnerFailure{$E}(parse_err.consumed, parse_err.error)
                     end
                 else
                     parse_ok = unwrap(result)
@@ -50,7 +50,7 @@
 
     return quote
         #= if nothing inside the record can match our token, then it's "unexpected" =#
-        error = InnerParseFailure{$E}(0,
+        error = InnerFailure{$E}(0,
                hasmore(ctx) ?
                    ConstrObjectError(OBJECT_UnexpectedToken, peek(ctx)) :
                    ConstrObjectError(OBJECT_EndOfInput, "")
@@ -73,7 +73,7 @@
         end
 
         if iter == maxiter
-            error = InnerParseFailure(0, ConstrObjectError(OBJECT_MaxIter, ""))
+            error = InnerFailure(0, ConstrObjectError(OBJECT_MaxIter, ""))
         end
 
         return current_ctx, error, allconsumed, anysuccess

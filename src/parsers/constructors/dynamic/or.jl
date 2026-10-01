@@ -30,7 +30,7 @@ function _or_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Contex
         elseif is_error(result)
             if res_num_consumed(error) < res_num_consumed(result)
                 parse_err = unwrap_error(result)
-                error = InnerParseFailure{E}(parse_err.consumed, parse_err.error)
+                error = InnerFailure{E}(parse_err.consumed, parse_err.error)
             end
         end
     end

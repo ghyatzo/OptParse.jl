@@ -187,7 +187,7 @@ end
         if is_error(mayberesult)
             if res_num_consumed(mayberesult) > 0
                 # real error — parser recognized something but couldn't handle it
-                err = unwrap_error(mayberesult)::InnerParseFailure{E}
+                err = unwrap_error(mayberesult)::InnerFailure{E}
                 return Result{RT, UE}'.Err(res_error(err))
             end
             # parser doesn't recognize this token — skip it
