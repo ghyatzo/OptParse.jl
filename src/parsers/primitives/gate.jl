@@ -28,7 +28,10 @@ function render_error(io::IO, err::ArgGateError)
     end
 end
 
-const GateState = ParseResult{Bool, ArgGateError}
+@sum_type GateState :hidden begin
+    NotMatched
+    Matched
+end
 
 # single boolean flags: -q --long
 struct ArgGate{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
@@ -49,7 +52,7 @@ struct ArgGate{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
 
         end
         new{Bool, ArgGateError, GateState, Nothing, 9}(
-            ParseResult{Bool, ArgGateError}(Err(ArgGateError(GATE_Missing, "", "$(names)"))),
+            GateState'.NotMatched,
             nothing,
             [names...]
         )
@@ -83,11 +86,12 @@ function parse(p::ArgGate{Bool, ArgGateError, S}, ctx::Context{S}) where {S <: G
 
     if tok in p.names
 
-        if !is_error(state(ctx))
-            return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_Duplicate, tok, ""); consumed = 1))
+        @cases state(ctx) begin
+            NotMatched => nothing
+            Matched => return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_Duplicate, tok, ""); consumed = 1))
         end
 
-        nextctx = with_state(ctx, ParseResult{Bool, ArgGateError}(Ok(true)))
+        nextctx = with_state(ctx, GateState'.Matched)
         return InnerParseResult{S, ArgGateError}(innerOk(nextctx, 1))
     end
 
@@ -95,5 +99,8 @@ function parse(p::ArgGate{Bool, ArgGateError, S}, ctx::Context{S}) where {S <: G
 end
 
 function complete(p::ArgGate, st::GateState)
-    return st
+    @cases st begin
+        NotMatched => return ParseResult{Bool, ArgGateError}(Err(ArgGateError(GATE_Missing, "", "$(Tuple(p.names))")))
+        Matched => return ParseResult{Bool, ArgGateError}(Ok(true))
+    end
 end

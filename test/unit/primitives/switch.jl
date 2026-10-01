@@ -10,6 +10,19 @@ end
     @test_throws ArgumentError switch("---aaa")
 end
 
+@testset "should complete named gate states" begin
+    parser = switch("-v", "--verbose")
+    @test parser.initialState == OptParse.GateState'.NotMatched
+    @test is_ok_and(==(true), splitcomplete(parser, OptParse.GateState'.Matched))
+
+    result = splitcomplete(parser, parser.initialState)
+    @test is_error(result)
+    err = unwrap_error(result)
+    @test err.code == OptParse.GATE_Missing
+    @test err.detail == "$(Tuple(parser.names))"
+    @test sprint(OptParse.render_error, err) == "Missing required flag(s): $(Tuple(parser.names))"
+end
+
 @testset "should parse single short switch" begin
     parser = switch("-v")
     context = mkctx(["-v"], parser.initialState)
@@ -18,7 +31,7 @@ end
 
     @test !is_error(result)
     succ = unwrap(result)
-    @test is_ok_and(==(true), state(res_nextctx(succ)))
+    @test state(res_nextctx(succ)) == OptParse.GateState'.Matched
     @test remaining(res_nextctx(succ)) == String[]
     @test as_tuple(res_consumed(succ)) == ("-v",)
 end
@@ -31,7 +44,7 @@ end
 
     @test !is_error(result)
     succ = unwrap(result)
-    @test is_ok_and(==(true), state(res_nextctx(succ)))
+    @test state(res_nextctx(succ)) == OptParse.GateState'.Matched
     @test remaining(res_nextctx(succ)) == String[]
     @test as_tuple(res_consumed(succ)) == ("--verbose",)
 end
@@ -44,7 +57,7 @@ end
 
 @testset "should fail when switch is already set" begin
     parser = switch("-v")
-    context = mkctx(["-v"], OptParse.ParseResult{Bool, OptParse.ArgGateError}(Ok(true)))
+    context = mkctx(["-v"], OptParse.GateState'.Matched)
 
     result = splitparse(parser, context)
 
@@ -95,6 +108,7 @@ end
     @test !is_error(result)
     succ = unwrap(result)
     @test options_terminated(res_nextctx(succ)) == true
+    @test state(res_nextctx(succ)) == OptParse.GateState'.NotMatched
     @test remaining(res_nextctx(succ)) == String[]
     @test as_tuple(res_consumed(succ)) == ("--",)
 end

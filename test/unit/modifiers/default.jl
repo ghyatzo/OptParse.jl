@@ -110,7 +110,7 @@ end
     @test !is_error(res_defaults)
     if !is_error(res_defaults)
         st = res_nextstate(unwrap(res_defaults))
-        @test (@? getfield(st, :verbose)) == true
+        @test getfield(st, :verbose) == OptParse.GateState'.Matched
         @test (@? getfield(st, :port)) == 8080
         @test (@? getfield(st, :host)) == "localhost"
     end
@@ -122,7 +122,7 @@ end
     @test !is_error(res_values)
     if !is_error(res_values)
         st = res_nextstate(unwrap(res_values))
-        @test (@? getfield(st, :verbose)) == true
+        @test getfield(st, :verbose) == OptParse.GateState'.Matched
         @test (@? getfield(st, :port)) == 3000
         @test (@? getfield(st, :host)) == "example.com"
     end

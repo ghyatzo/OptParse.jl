@@ -31,7 +31,7 @@ end
     st = res_nextstate(ps)
     @test haskey(Dict(propertynames(st) .=> getfield.(Ref(st), propertynames(st))), :verbose)
     @test haskey(Dict(propertynames(st) .=> getfield.(Ref(st), propertynames(st))), :port)
-    @test (@? getfield(st, :verbose)) == true
+    @test getfield(st, :verbose) == OptParse.GateState'.Matched
     @test (@? getfield(st, :port)) == 8080
 end
 
