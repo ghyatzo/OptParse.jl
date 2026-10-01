@@ -1,4 +1,8 @@
-const ArgumentState{X, E} = Option{ParseResult{X, E}}
+@sum_type ArgumentState{X, E} :hidden begin
+    NotMatched
+    Matched{X}(value::X)
+    Invalid{E}(error::E)
+end
 
 @enum ArgumentErrCode::UInt8 begin
     ARGUMENT_EndOfInput
@@ -38,7 +42,7 @@ struct ArgArgument{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
 
     function ArgArgument(valparser::AbstractValueParser{T, IE}) where {T, IE}
         UE = Union{ArgArgumentError, IE}
-        return new{T, UE, ArgumentState{T, IE}, typeof(valparser), 5}(none(ParseResult{T, IE}), valparser)
+        return new{T, UE, ArgumentState{T, IE}, typeof(valparser), 5}(ArgumentState{T, IE}'.NotMatched, valparser)
     end
 end
 
@@ -89,9 +93,14 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
         ))
     end
 
-    if !is_error(state(ctx))
-        #=The state is a some, so this parser matched already with something.
-        Add one to the consumed since we're technically consuming this duplicate=#
+    matched = @cases state(ctx) begin
+        NotMatched => false
+        Matched(_) => true
+        Invalid(_) => true
+    end
+
+    if matched
+        # The duplicate token counts as consumed, including any preceding terminator.
         return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
             ArgArgumentError(ARGUMENT_Duplicate, "", metavar(p.valparser));
             consumed = 1 + i
@@ -100,8 +109,10 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
 
     result = p.valparser(peek(ctx, 1 + i))
 
+    (; Matched, Invalid) = ArgumentState{S, IE}'
+    nextstate = is_error(result) ? Invalid(unwrap_error(result)) : Matched(unwrap(result))
     nextctx = with_options_terminated(ctx, optterm)
-    nextctx = with_state(nextctx, some(result))
+    nextctx = with_state(nextctx, nextstate)
 
     return InnerParseResult{ArgumentState{S, IE}, E}(
         innerOk(nextctx, 1+i)
@@ -109,18 +120,10 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
 
 end
 
-function complete(p::ArgArgument{T, E, S}, maybest::S) where {T, E, IE <: E, S <: ArgumentState{T, IE}}
-
-    #=The parser never matched anything.=#
-    is_error(maybest) && return ParseResult{T, E}(
-        typedErr(E, ArgArgumentError(ARGUMENT_TooFew, "", metavar(p.valparser)))
-    )
-
-    st = unwrap(maybest)
-    #=The parser matched but there was a parsing error.=#
-    is_error(st) && return ParseResult{T, E}(
-        typedErr(E, unwrap_error(st))
-    )
-
-    return ParseResult{T, E}(typedOk(T, unwrap(st)))
+function complete(p::ArgArgument{T, E, S}, st::S) where {T, E, IE <: E, S <: ArgumentState{T, IE}}
+    @cases st begin
+        NotMatched => return ParseResult{T, E}(typedErr(E, ArgArgumentError(ARGUMENT_TooFew, "", metavar(p.valparser))))
+        Matched(value) => return ParseResult{T, E}(typedOk(T, value))
+        Invalid(error) => return ParseResult{T, E}(typedErr(E, error))
+    end
 end
