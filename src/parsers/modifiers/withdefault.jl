@@ -81,10 +81,10 @@ end
     if is_error(result)
         #=the inner parser failed without consuming any input, which means that it wasn't matched.=#
         if res_num_consumed(result) == 0
-            return InnerParseResult{WDS, E}(innerOk(ctx, consumed_empty(ctx)))
+            return InnerResult{WDS, E}(innerOk(ctx, consumed_empty(ctx)))
         else
             #=otherwise the parser failed midway, and that we should propagate.=#
-            return InnerParseResult{WDS, E}(innerErr(E, result))
+            return InnerResult{WDS, E}(innerErr(E, result))
         end
     end
 
@@ -98,7 +98,7 @@ end
         newctx = restate(res_nextctx(parse_ok), state(ctx))
     end
 
-    return InnerParseResult{WDS, E}(innerOk(newctx, res_consumed(parse_ok)))
+    return InnerResult{WDS, E}(innerOk(newctx, res_consumed(parse_ok)))
 
 end
 
@@ -108,15 +108,15 @@ end
     ) where {T, E, S, P <: AbstractParser{<:Any, <:Any, S}}
 
     childstate = @cases st begin
-        NotMatched => return ParseResult{T, E}(typedOk(T, p.default))
+        NotMatched => return Result{T, E}(typedOk(T, p.default))
         Matched(childstate) => childstate
     end
 
     result = complete(p.parser, childstate)
     if is_error(result)
-        return ParseResult{T, E}(Err(unwrap_error(result)))
+        return Result{T, E}(Err(unwrap_error(result)))
     end
 
     # Rewrap as the widened output type of the modifier.
-    return ParseResult{T, E}(Ok(unwrap(result)))
+    return Result{T, E}(Ok(unwrap(result)))
 end

@@ -14,7 +14,7 @@
                 child_state = getproperty(state(current_ctx), $(QuoteNode(field)))
                 child_ctx = widen_restate(state_t(child_parser), current_ctx, child_state)
 
-                result = (parse(child_parser, child_ctx))::InnerParseResult{state_t(child_parser)}
+                result = (parse(child_parser, child_ctx))::InnerResult{state_t(child_parser)}
 
                 if is_error(result)
                     parse_err = unwrap_error(result)
@@ -117,14 +117,14 @@ end
                 child_state = state[$(QuoteNode(field))]::$S
                 child_parser = p[$(QuoteNode(field))]
                 $result_sym = complete(child_parser, child_state)
-                is_error($result_sym) && return ParseResult{$T, $E}(Err(unwrap_error($result_sym)))
+                is_error($result_sym) && return Result{$T, $E}(Err(unwrap_error($result_sym)))
             end
         )
     end
 
     # Phase 2: construct the NamedTuple from all successful results
     unwraps = [:(unwrap($(Symbol("result_", i)))::$(val_t(Ps[i]))) for i in eachindex(Ps)]
-    push!(ex.args, :(return ParseResult{$T, $E}(Ok($T(($(unwraps...),))))))
+    push!(ex.args, :(return Result{$T, $E}(Ok($T(($(unwraps...),))))))
 
     return ex
 end

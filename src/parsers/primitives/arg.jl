@@ -42,12 +42,19 @@ struct ArgArgument{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
 
     function ArgArgument(valparser::AbstractValueParser{T, IE}) where {T, IE}
         UE = Union{ArgArgumentError, IE}
-        return new{T, UE, ArgumentState{T, IE}, typeof(valparser), 5}(ArgumentState{T, IE}'.NotMatched, valparser)
+        return new{
+            T, UE, ArgumentState{T, IE}, typeof(valparser),5
+        }(ArgumentState{T, IE}'.NotMatched, valparser)
     end
 end
 
-usage(p::ArgArgument) = UsageArgument(metavar(p.valparser); annotations = usage_annotations(p.valparser))
+usage(p::ArgArgument) = UsageArgument(
+    metavar(p.valparser);
+    annotations = usage_annotations(p.valparser)
+)
+
 helpentries(p::ArgArgument, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(rt))]
+
 focused_helpdoc(
     p::ArgArgument{<:Any, <:Any, ArgumentState{S, E}},
     ::Context{ArgumentState{S, E}},
@@ -55,11 +62,13 @@ focused_helpdoc(
     rt::OverlayContext
 ) where {S, E} = HelpDoc(prefix, usage(p), helpinfo(rt), HelpEntry[])
 
-function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{ArgumentState{S, IE}}) where {T, E, S, IE <: E}
+function parse(
+    p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{ArgumentState{S, IE}}
+) where {T, E, S, IE <: E}
     optpattern = r"^--?[a-z0-9-]+$"i
 
     if hasnone(ctx)
-        return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
+        return InnerResult{ArgumentState{S, IE}, E}(innerErr(
             ArgArgumentError(ARGUMENT_EndOfInput, "", metavar(p.valparser)),
             consumed = 0
         ))
@@ -78,7 +87,7 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
             i += 1
         elseif !isnothing(match(optpattern, peek(ctx, 1 + i)))
             #=Otherwise, check that we are not matching an option.=#
-            return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
+            return InnerResult{ArgumentState{S, IE}, E}(innerErr(
                 ArgArgumentError(ARGUMENT_GotOption, peek(ctx, 1 + i), metavar(p.valparser));
                 consumed = i
             ))
@@ -87,7 +96,7 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
 
     if haslessthan(1 + i, ctx)
         #=Check again, in case we only had a "--" in the buffer.=#
-        return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
+        return InnerResult{ArgumentState{S, IE}, E}(innerErr(
             ArgArgumentError(ARGUMENT_EndOfInput, "", metavar(p.valparser));
             consumed = i
         ))
@@ -101,7 +110,7 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
 
     if matched
         # The duplicate token counts as consumed, including any preceding terminator.
-        return InnerParseResult{ArgumentState{S, IE}, E}(innerErr(
+        return InnerResult{ArgumentState{S, IE}, E}(innerErr(
             ArgArgumentError(ARGUMENT_Duplicate, "", metavar(p.valparser));
             consumed = 1 + i
         ))
@@ -114,16 +123,16 @@ function parse(p::ArgArgument{T, E, ArgumentState{S, IE}}, ctx::Context{Argument
     nextctx = with_options_terminated(ctx, optterm)
     nextctx = with_state(nextctx, nextstate)
 
-    return InnerParseResult{ArgumentState{S, IE}, E}(
-        innerOk(nextctx, 1+i)
-    )
+    return innerOk(nextctx, 1+i)
 
 end
 
-function complete(p::ArgArgument{T, E, S}, st::S) where {T, E, IE <: E, S <: ArgumentState{T, IE}}
+function complete(
+    p::ArgArgument{T, E, S}, st::S
+) where {T, E, IE <: E, S <: ArgumentState{T, IE}}
     @cases st begin
-        NotMatched => return ParseResult{T, E}(typedErr(E, ArgArgumentError(ARGUMENT_TooFew, "", metavar(p.valparser))))
-        Matched(value) => return ParseResult{T, E}(typedOk(T, value))
-        Invalid(error) => return ParseResult{T, E}(typedErr(E, error))
+        NotMatched => return Result{T, E}'.Err(ArgArgumentError(ARGUMENT_TooFew, "", metavar(p.valparser)))
+        Matched(value) => return Result{T, E}'.Ok{T}(value)
+        Invalid(error) => return Result{T, E}'.Err{E}(error)
     end
 end

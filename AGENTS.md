@@ -13,7 +13,7 @@ OptParse.jl is a type-stable, composable CLI argument parser for Julia, designed
 **`AbstractParser{T, E, S, P, R}`** — five type parameters:
 - `T`: output value type, `E`: error type (union of per-parser errors), `S`: internal state type, `P`: child parser types (for trimming reachability), `R`: priority/rank (Int, controls ordering in constructors).
 
-**`AbstractValueParser{T, E}`** — callable parsers that convert a single string token into `ParseResult{T, E}`.
+**`AbstractValueParser{T, E}`** — callable parsers that convert a single string token into `Result{T, E}`.
 
 **`AbstractLiftedParser`** — supertype automatically applied to all `@parser` structs. Enables type-based entrypoints (`optparse(MyType, argv)`, `lift(::Type{MyType})`).
 
@@ -27,7 +27,7 @@ OptParse.jl is a type-stable, composable CLI argument parser for Julia, designed
 
 ### Entrypoints (`src/entrypoints.jl` + `src/OptParse.jl`)
 
-- `tryoptparse(parser, argv)` → `ParseResult{T, Union{E, MainError}}` (non-throwing)
+- `tryoptparse(parser, argv)` → `Result{T, Union{E, MainError}}` (non-throwing)
 - `optparse(parser, argv)` → `T | nothing` (prints error to stderr)
 - `runparse(parser, argv; ...)` → application-level with built-in `--help` and help subcommands
 - `partial(parser)` → wraps parser for partial consumption; `tryoptparse(partial(p), argv)` returns `(value, remaining)`
@@ -92,7 +92,7 @@ Closed sum types per parser family (`@sum_type ... :hidden`):
 
 Use `@cases` to inspect sum states and `StateType'.Variant` to construct them.
 For options and arguments, `E` is the value-parser error type.
-`ParseResult` and `InnerParseResult` remain result containers.
+`Result` and `InnerResult` remain result containers.
 
 State aliases:
 - `ConstantState{X} = Val{X}`
@@ -152,15 +152,15 @@ Every concrete parser implements these methods (dispatch on concrete type):
 
 | Method | Signature | Purpose |
 |--------|-----------|---------|
-| `parse` | `(p, ctx::Context{S}) → InnerParseResult{S, E}` | Match tokens, update state |
-| `complete` | `(p, state::S) → ParseResult{T, E}` | Extract final value from state |
+| `parse` | `(p, ctx::Context{S}) → InnerResult{S, E}` | Match tokens, update state |
+| `complete` | `(p, state::S) → Result{T, E}` | Extract final value from state |
 | `usage` | `(p) → UsageNode` | Generate usage AST node |
 | `helpentries` | `(p, rt::OverlayContext) → Vector{HelpEntry}` | Generate help listing entries |
 | `focused_helpdoc` | `(p, ctx, prefix, rt) → HelpDoc` | Build scoped help document |
 
 Each parser also defines `show_children(p)` and optionally `printnode(io, p)` for display.
 
-Every concrete value parser is callable: `(v::AbstractValueParser{T, E})(input::String) → ParseResult{T, E}`.
+Every concrete value parser is callable: `(v::AbstractValueParser{T, E})(input::String) → Result{T, E}`.
 
 ### Error Pattern (per parser)
 

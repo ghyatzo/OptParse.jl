@@ -82,9 +82,9 @@ focused_helpdoc(
 function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <: OptionState{T, IE}}
 
     if options_terminated(ctx)
-        return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_NoMoreOptions, "", "")))
+        return InnerResult{S, E}(innerErr(ArgOptionError(OPTION_NoMoreOptions, "", "")))
     elseif hasnone(ctx)
-        return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_EndOfInput, "", "")))
+        return InnerResult{S, E}(innerErr(ArgOptionError(OPTION_EndOfInput, "", "")))
     end
 
     tok = peek(ctx)
@@ -92,7 +92,7 @@ function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <
     # When the input contains `--` is a signal to stop parsing options
     if (tok === "--")
         nextctx = with_options_terminated(ctx, true)
-        return InnerParseResult{S, E}(innerOk(nextctx, 1; counts_as_match = false))
+        return InnerResult{S, E}(innerOk(nextctx, 1; counts_as_match = false))
     end
 
     matched = @cases state(ctx) begin
@@ -106,23 +106,23 @@ function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <
     if tok in p.names
 
         if matched
-            return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_Duplicate, tok, ""); consumed = 1))
+            return InnerResult{S, E}(innerErr(ArgOptionError(OPTION_Duplicate, tok, ""); consumed = 1))
         end
 
         if haslessthan(2, ctx) || peek(ctx, 2) == "--"
-            return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_MissingValue, tok, ""); consumed = 1))
+            return InnerResult{S, E}(innerErr(ArgOptionError(OPTION_MissingValue, tok, ""); consumed = 1))
         end
 
         val = peek(ctx, 2)
         if occursin(r"^--?[a-zA-Z].*", val)
-            return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_AmbiguousValue, tok, val); consumed = 1))
+            return InnerResult{S, E}(innerErr(ArgOptionError(OPTION_AmbiguousValue, tok, val); consumed = 1))
         end
 
         result = p.valparser(val)
 
         nextstate = is_error(result) ? Invalid(unwrap_error(result)) : Matched(unwrap(result))
         nextctx = with_state(ctx, nextstate)
-        return InnerParseResult{S, E}(innerOk(nextctx, 2))
+        return InnerResult{S, E}(innerOk(nextctx, 2))
     end
 
     # when options are of the form `--option=value`
@@ -136,7 +136,7 @@ function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <
         startswith(tok, prefix) || continue
 
         if matched
-            return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_Duplicate, prefix[1:(end - 1)], ""); consumed = 1))
+            return InnerResult{S, E}(innerErr(ArgOptionError(OPTION_Duplicate, prefix[1:(end - 1)], ""); consumed = 1))
         end
 
         value = tok[(length(prefix) + 1):end]
@@ -144,17 +144,17 @@ function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <
 
         nextstate = is_error(result) ? Invalid(unwrap_error(result)) : Matched(unwrap(result))
         nextctx = with_state(ctx, nextstate)
-        return InnerParseResult{S, E}(innerOk(nextctx, 1))
+        return InnerResult{S, E}(innerOk(nextctx, 1))
 
     end
 
-    return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_NoMatch, tok, "")))
+    return InnerResult{S, E}(innerErr(ArgOptionError(OPTION_NoMatch, tok, "")))
 end
 
 function complete(p::ArgOption{T, E, S}, st::S) where {T, E, IE <: E, S <: OptionState{T, IE}}
     @cases st begin
-        NotMatched => return ParseResult{T, E}(typedErr(E, ArgOptionError(OPTION_Missing, "", _names_detail(p.names))))
-        Matched(value) => return ParseResult{T, E}(typedOk(T, value))
-        Invalid(error) => return ParseResult{T, E}(typedErr(E, error))
+        NotMatched => return Result{T, E}(typedErr(E, ArgOptionError(OPTION_Missing, "", _names_detail(p.names))))
+        Matched(value) => return Result{T, E}(typedOk(T, value))
+        Invalid(error) => return Result{T, E}(typedErr(E, error))
     end
 end

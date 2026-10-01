@@ -46,7 +46,7 @@ The parameters mean:
 
 - `T`
   - the final value type returned by `complete`
-  - equivalently, the success type of `ParseResult{T, E}`
+  - equivalently, the success type of `Result{T, E}`
 - `E`
   - the error type for this parser family
   - always a `Union` of per-parser error structs (all `<: AbstractParseError`)
@@ -94,7 +94,7 @@ tokens and updating parser-local state.
 Each parser family implements a method shaped like:
 
 ```julia
-parse(p::SomeParser{T, E, S}, ctx::Context{S})::InnerParseResult{S, E}
+parse(p::SomeParser{T, E, S}, ctx::Context{S})::InnerResult{S, E}
 ```
 
 The result can be:
@@ -112,7 +112,7 @@ The result can be:
 The `complete` phase collapses the final parser state into the returned value:
 
 ```julia
-complete(p::SomeParser{T, E, S}, state::S)::ParseResult{T, E}
+complete(p::SomeParser{T, E, S}, state::S)::Result{T, E}
 ```
 
 Typical `complete` responsibilities:
@@ -200,7 +200,7 @@ const ObjectState{L, P} = NamedTuple{L, P}
 ```
 
 Sequences store child states in a tuple. Transparent wrappers use their child's state type.
-`ParseResult` and `InnerParseResult` remain result containers, separate from parser-local state.
+`Result` and `InnerResult` remain result containers, separate from parser-local state.
 
 ## Concrete Parser Trees And Why State Signatures Matter
 
@@ -249,7 +249,7 @@ like:
 function parse(
     p::ModHelp{T, E, S, P, _R},
     ctx::Context{S},
-)::InnerParseResult{S, E} where {T, E, S, _R, P <: AbstractParser{<:Any, <:Any, S}}
+)::InnerResult{S, E} where {T, E, S, _R, P <: AbstractParser{<:Any, <:Any, S}}
 ```
 
 The important part is:
@@ -267,7 +267,7 @@ inner state instead:
 function parse(
     p::ModWithDefault{T, E, WithDefaultState{S}, P, _R},
     ctx::Context{WithDefaultState{S}},
-)::InnerParseResult{WithDefaultState{S}, E} where {T, E, S, _R, P <: AbstractParser{<:Any, <:Any, S}}
+)::InnerResult{WithDefaultState{S}, E} where {T, E, S, _R, P <: AbstractParser{<:Any, <:Any, S}}
 ```
 
 Here the wrapper state is `WithDefaultState{S}`, but the wrapped parser operates

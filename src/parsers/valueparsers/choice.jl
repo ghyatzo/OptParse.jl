@@ -41,11 +41,11 @@ end
     norminput = c.case_insensitive ? uppercase(input) : input
     index = findfirst(==(norminput), c.values)
 
-    isnothing(index) && return ParseResult{T, ChoiceValError}(
+    isnothing(index) && return Result{T, ChoiceValError}(
         Err(ChoiceValError(CHOICE_Invalid, c.values, input))
     )
 
-    return ParseResult{T, ChoiceValError}(Ok(c.outputs[index]))
+    return Result{T, ChoiceValError}(Ok(c.outputs[index]))
 
 end
 

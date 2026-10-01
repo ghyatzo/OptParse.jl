@@ -71,9 +71,9 @@ focused_helpdoc(
 function parse(p::ArgGate{Bool, ArgGateError, S}, ctx::Context{S}) where {S <: GateState}
 
     if options_terminated(ctx)
-        return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_NoMoreOptions, "", "")))
+        return InnerResult{S, ArgGateError}(innerErr(ArgGateError(GATE_NoMoreOptions, "", "")))
     elseif hasnone(ctx)
-        return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_EndOfInput, "", "")))
+        return InnerResult{S, ArgGateError}(innerErr(ArgGateError(GATE_EndOfInput, "", "")))
     end
 
     tok = peek(ctx)
@@ -81,26 +81,26 @@ function parse(p::ArgGate{Bool, ArgGateError, S}, ctx::Context{S}) where {S <: G
     #= When the input contains `--` stop parsing options =#
     if (tok === "--")
         nextctx = with_options_terminated(ctx, true)
-        return InnerParseResult{S, ArgGateError}(innerOk(nextctx, 1; counts_as_match = false))
+        return InnerResult{S, ArgGateError}(innerOk(nextctx, 1; counts_as_match = false))
     end
 
     if tok in p.names
 
         @cases state(ctx) begin
             NotMatched => nothing
-            Matched => return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_Duplicate, tok, ""); consumed = 1))
+            Matched => return InnerResult{S, ArgGateError}(innerErr(ArgGateError(GATE_Duplicate, tok, ""); consumed = 1))
         end
 
         nextctx = with_state(ctx, GateState'.Matched)
-        return InnerParseResult{S, ArgGateError}(innerOk(nextctx, 1))
+        return InnerResult{S, ArgGateError}(innerOk(nextctx, 1))
     end
 
-    return InnerParseResult{S, ArgGateError}(innerErr(ArgGateError(GATE_NoMatch, tok, "")))
+    return InnerResult{S, ArgGateError}(innerErr(ArgGateError(GATE_NoMatch, tok, "")))
 end
 
 function complete(p::ArgGate, st::GateState)
     @cases st begin
-        NotMatched => return ParseResult{Bool, ArgGateError}(Err(ArgGateError(GATE_Missing, "", _names_detail(p.names))))
-        Matched => return ParseResult{Bool, ArgGateError}(Ok(true))
+        NotMatched => return Result{Bool, ArgGateError}'.Err(ArgGateError(GATE_Missing, "", _names_detail(p.names)))
+        Matched => return Result{Bool, ArgGateError}'.Ok(true)
     end
 end

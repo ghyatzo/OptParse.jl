@@ -32,11 +32,11 @@ end
 (iv::IntegerVal{T})(input::String) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
-        return ParseResult{T, IntegerValError}(Err(IntegerValError(INTEGER_Invalid, input, "")))
+        return Result{T, IntegerValError}(Err(IntegerValError(INTEGER_Invalid, input, "")))
     end
 
-    (!isnothing(iv.min) && val < iv.min) && return ParseResult{T, IntegerValError}(Err(IntegerValError(INTEGER_BelowMin, input, string(iv.min))))
-    (!isnothing(iv.max) && val > iv.max) && return ParseResult{T, IntegerValError}(Err(IntegerValError(INTEGER_AboveMax, input, string(iv.max))))
+    (!isnothing(iv.min) && val < iv.min) && return Result{T, IntegerValError}(Err(IntegerValError(INTEGER_BelowMin, input, string(iv.min))))
+    (!isnothing(iv.max) && val > iv.max) && return Result{T, IntegerValError}(Err(IntegerValError(INTEGER_AboveMax, input, string(iv.max))))
 
-    return ParseResult{T, IntegerValError}(Ok(val))
+    return Result{T, IntegerValError}(Ok(val))
 end

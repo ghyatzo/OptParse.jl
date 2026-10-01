@@ -20,14 +20,14 @@ descend_child(ctx::OverlayContext) =
 # Interface validation
 #
 # AbstractParser subtypes must implement:
-#   parse(p, ctx::Context{S}) → InnerParseResult{S}
-#   complete(p, state::S) → ParseResult{T, E}
+#   parse(p, ctx::Context{S}) → InnerResult{S}
+#   complete(p, state::S) → Result{T, E}
 #   usage(p) → UsageNode
 #   helpentries(p, rt::OverlayContext) → Vector{HelpEntry}
 #   focused_helpdoc(p, ctx::Context, prefix::Vector{String}, rt::OverlayContext) → HelpDoc
 #
 # AbstractValueParser subtypes must implement:
-#   (v)(input::String) → ParseResult{T, E}
+#   (v)(input::String) → Result{T, E}
 #
 # AbstractParseError subtypes must implement:
 #   render_error(io::IO, err) → Nothing

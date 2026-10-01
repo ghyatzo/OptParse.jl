@@ -26,11 +26,11 @@ end
 
 (p::PathVal)(input::String) = let
     # TODO, finish this up properly.
-    !isfile(input) && return ParseResult{String, PathValError}(Err(PathValError(PATH_NotFound, input)))
+    !isfile(input) && return Result{String, PathValError}(Err(PathValError(PATH_NotFound, input)))
 
     if p.absolute && !isabspath(input)
-        return ParseResult{String, PathValError}(Err(PathValError(PATH_NotAbsolute, input)))
+        return Result{String, PathValError}(Err(PathValError(PATH_NotAbsolute, input)))
     end
 
-    return ParseResult{String, PathValError}(Ok(input))
+    return Result{String, PathValError}(Ok(input))
 end

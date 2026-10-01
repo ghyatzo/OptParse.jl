@@ -24,7 +24,7 @@
                     child_state = state(current_ctx)[$(perm[i])]::$child_parser_state_t
                     child_ctx = with_state(current_ctx, child_state)
 
-                    result = parse(parser, child_ctx)::InnerParseResult{$child_parser_state_t}
+                    result = parse(parser, child_ctx)::InnerResult{$child_parser_state_t}
 
                     if !is_error(result) && length(unwrap(result).consumed) > 0
                         parse_ok = unwrap(result)
@@ -64,7 +64,7 @@
                     child_state = state(current_ctx)[$(perm[i])]::$child_parser_state_t
                     child_ctx = with_state(current_ctx, child_state)
 
-                    result = parse(parser, child_ctx)::InnerParseResult{state_t(parser)}
+                    result = parse(parser, child_ctx)::InnerResult{state_t(parser)}
 
                     if !is_error(result) && length(unwrap(result).consumed) < 1
                         #=parser succeded without consuming - match it as success=#

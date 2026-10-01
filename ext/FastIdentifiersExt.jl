@@ -3,7 +3,7 @@ module FastIdentifiersExt
 using OptParse
 using OptParse.SumResults: Ok, Err
 
-using OptParse: AbstractParseError, AbstractValueParser, ParseResult
+using OptParse: AbstractParseError, AbstractValueParser, Result
 using FastIdentifiers
 
 @enum IdentifierValErrCode::UInt8 begin
@@ -74,17 +74,17 @@ end
 	catch e
 
 		if e isa FastIdentifiers.MalformedIdentifier{T, String}
-			return ParseResult{T, IdentifierValError}(Err(IdentifierValError(e)))
+			return Result{T, IdentifierValError}(Err(IdentifierValError(e)))
 		elseif e isa FastIdentifiers.ChecksumViolation{T, String}
-			return ParseResult{T, IdentifierValError}(Err(IdentifierValError(e)))
+			return Result{T, IdentifierValError}(Err(IdentifierValError(e)))
 		else
-			return ParseResult{T, IdentifierValError}(
+			return Result{T, IdentifierValError}(
 				Err(IdentifierValError(IDENTIFIER_OtherError, ""))
 			)
 		end
 	end
 
-	return ParseResult{T, IdentifierValError}(Ok(maybeid))
+	return Result{T, IdentifierValError}(Ok(maybeid))
 
 end
 

@@ -75,12 +75,12 @@ end
 
     outctx, error, allconsumed, found_match = _tup_parse_impl(p.parsers, ctx)
     if found_match
-        return InnerParseResult{S, E}(innerOk(outctx, allconsumed))
+        return InnerResult{S, E}(innerOk(outctx, allconsumed))
     else
-        return InnerParseResult{S, E}(Err(error))
+        return InnerResult{S, E}(Err(error))
     end
 end
 
 @autospecialize p function complete(p::ConstrTuple{T, E, state_t}, st::state_t) where {T, E, state_t <: Tuple}
-    return _tuple_complete_impl(p.parsers, st)::ParseResult{T, E}
+    return _tuple_complete_impl(p.parsers, st)::Result{T, E}
 end

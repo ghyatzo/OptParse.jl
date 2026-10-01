@@ -98,14 +98,14 @@ end
             end
 
             nextctx = widen_restate(MultipleState{IS}, res_nextctx(parse_ok), nextst)
-            return InnerParseResult{S, E}(innerOk(nextctx, merge(allconsumed)))
+            return InnerResult{S, E}(innerOk(nextctx, merge(allconsumed)))
         else
             current_ctx = with_state(res_nextctx(parse_ok), state(current_ctx))
         end
     elseif !has_active
         hasconsumed = !iszero(res_num_consumed(result))
         return hasconsumed ?
-            InnerParseResult{S, E}(innerErr(E, result)) : InnerParseResult{S, E}(innerOk(current_ctx, consumed_empty(current_ctx); counts_as_match = false))
+            InnerResult{S, E}(innerErr(E, result)) : InnerResult{S, E}(innerOk(current_ctx, consumed_empty(current_ctx); counts_as_match = false))
     end
 
     if has_active && length(state(ctx)) < p.max
@@ -114,9 +114,9 @@ end
 
         if is_error(retry)
             if !isempty(allconsumed)
-                return InnerParseResult{S, E}(innerOk(current_ctx, merge(allconsumed); counts_as_match = false))
+                return InnerResult{S, E}(innerOk(current_ctx, merge(allconsumed); counts_as_match = false))
             end
-            return InnerParseResult{S, E}(innerErr(E, retry))
+            return InnerResult{S, E}(innerErr(E, retry))
         end
 
         parse_ok = unwrap(retry)
@@ -127,15 +127,15 @@ end
             push!(nextst, res_nextstate(parse_ok))
 
             nextctx = widen_restate(MultipleState{IS}, res_nextctx(parse_ok), nextst)
-            return InnerParseResult{S, E}(innerOk(nextctx, merge(allconsumed)))
+            return InnerResult{S, E}(innerOk(nextctx, merge(allconsumed)))
         else
             current_ctx = with_state(res_nextctx(parse_ok), state(current_ctx))
-            return InnerParseResult{S, E}(innerOk(current_ctx, merge(allconsumed); counts_as_match = false))
+            return InnerResult{S, E}(innerOk(current_ctx, merge(allconsumed); counts_as_match = false))
         end
     end
 
     consumed = isempty(allconsumed) ? consumed_empty(current_ctx) : merge(allconsumed)
-    return InnerParseResult{S, E}(innerOk(current_ctx, consumed; counts_as_match = false))
+    return InnerResult{S, E}(innerOk(current_ctx, consumed; counts_as_match = false))
 
 end
 
@@ -147,22 +147,22 @@ end
     for s in state
         val = complete(p.parser, s)
         if is_error(val)
-            return ParseResult{T, E}(Err(unwrap_error(val)))
+            return Result{T, E}(Err(unwrap_error(val)))
         end
         val = unwrap(val)
         push!(result, val)
     end
 
     if length(result) < p.min
-        return ParseResult{T, E}(Err(
+        return Result{T, E}(Err(
             ModMultipleError(MULTIPLE_TooFew, p.min, length(result))
         ))
     elseif length(result) > p.max
-        return ParseResult{T, E}(Err(
+        return Result{T, E}(Err(
             ModMultipleError(MULTIPLE_TooMany, p.max, length(result))
         ))
     end
 
-    return ParseResult{T, E}(Ok(result))
+    return Result{T, E}(Ok(result))
 
 end

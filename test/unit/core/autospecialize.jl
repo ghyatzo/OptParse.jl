@@ -21,8 +21,8 @@ end
     @test _strip_type_params(:(Foo{T, S}), owned) === nothing
     # Partial: keep non-owned params
     @test _strip_type_params(:(Foo{T, B}), owned) == :(Foo{B})
-    # Nested: Vector{ParseResult{T}} → Vector{ParseResult} → nothing (cascading empty)
-    @test _strip_type_params(:(Vector{ParseResult{T}}), owned) === nothing
+    # Nested: Vector{Result{T}} → Vector{Result} → nothing (cascading empty)
+    @test _strip_type_params(:(Vector{Result{T}}), owned) === nothing
     # No owned params → unchanged
     @test _strip_type_params(:(Foo{A, B}), owned) == :(Foo{A, B})
     # Plain symbol not in owned → unchanged
@@ -46,7 +46,7 @@ end
     !OptParse.juliac && @testset "Full despecialize — two params from one arg" begin
         ex = @macroexpand @autospecialize pp function tryoptparse(
                 pp::AbstractParser{T, S}, args::Vector{String}
-            )::ParseResult{T} where {T, S}
+            )::Result{T} where {T, S}
             return T, S
         end
 
@@ -69,7 +69,7 @@ end
     !OptParse.juliac && @testset "Multiple targets" begin
         ex = @macroexpand @autospecialize pp ctx function parse(
                 pp::AbstractParser{T, S}, ctx::Context{S}
-            )::InnerParseResult{S} where {T, S}
+            )::InnerResult{S} where {T, S}
             return nothing
         end
 

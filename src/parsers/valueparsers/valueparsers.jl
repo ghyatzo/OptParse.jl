@@ -4,7 +4,7 @@
 # 	# ... custom vars
 # end
 
-# function parse end # String -> ParseResult{T}
+# function parse end # String -> Result{T}
 # function format end # T -> String
 
 abstract type AbstractValueParser{T, E} end

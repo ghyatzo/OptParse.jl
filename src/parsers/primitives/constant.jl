@@ -26,9 +26,9 @@ focused_helpdoc(
 ) where {val} = HelpDoc(prefix, usage(p), helpinfo(rt), HelpEntry[])
 
 function parse(::ArgConstant{Val{val}, <:Any, ConstantState{val}}, ctx::Context{ConstantState{val}}) where {val}
-    return InnerParseResult{ConstantState{val}, Uninit}(innerOk(ctx, consumed_empty(ctx)))
+    return InnerResult{ConstantState{val}, Uninit}(innerOk(ctx, consumed_empty(ctx)))
 end
 
 function complete(::ArgConstant{Val{val}, <:Any, ConstantState{val}}, st::ConstantState{val}) where {val}
-    return ParseResult{Val{val}, Uninit}(Ok(st))
+    return Result{Val{val}, Uninit}(Ok(st))
 end

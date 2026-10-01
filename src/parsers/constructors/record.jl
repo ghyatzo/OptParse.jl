@@ -111,20 +111,20 @@ end
     mergedcons = merge(allconsumed)
 
     if anysuccess
-        return InnerParseResult{S, E}(innerOk(outctx, mergedcons))
+        return InnerResult{S, E}(innerOk(outctx, mergedcons))
     end
 
     if hasnone(ctx)
         if _object_can_complete(p.parsers, state(ctx))
-            return InnerParseResult{S, E}(innerOk(ctx, consumed_empty(ctx)))
+            return InnerResult{S, E}(innerOk(ctx, consumed_empty(ctx)))
         end
     end
 
-    return InnerParseResult{S, E}(Err(error))
+    return InnerResult{S, E}(Err(error))
 end
 
 @autospecialize p function complete(p::ConstrObject{T, E}, st::ObjectState) where {T, E}
-    return _object_complete_impl(p.parsers, st)::ParseResult{T, E}
+    return _object_complete_impl(p.parsers, st)::Result{T, E}
 end
 
 

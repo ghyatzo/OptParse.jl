@@ -89,7 +89,7 @@ Prefer:
 function parse(
     p::ModHelp{T, E, S, P, _R},
     ctx::Context{S},
-)::InnerParseResult{S, E} where {T, E, S, _R, P <: AbstractParser{<:Any, <:Any, S}}
+)::InnerResult{S, E} where {T, E, S, _R, P <: AbstractParser{<:Any, <:Any, S}}
 ```
 
 For wrappers with nested child state, bind `P` to the inner state:
@@ -98,7 +98,7 @@ For wrappers with nested child state, bind `P` to the inner state:
 function complete(
     p::ModWithDefault{T, E, WithDefaultState{S}, P, _R},
     state::WithDefaultState{S},
-)::ParseResult{T, E} where {T, E, S, _R, P <: AbstractParser{<:Any, <:Any, S}}
+)::Result{T, E} where {T, E, S, _R, P <: AbstractParser{<:Any, <:Any, S}}
 ```
 
 This invariant was exposed by the help information modifier wrapping `default`.

@@ -23,7 +23,7 @@
                 child_state = parser.initialState::$child_parser_state_t
                 child_ctx = with_state(currctx, child_state)
 
-                result = parse(parser, child_ctx)::InnerParseResult{$child_parser_state_t, $child_parser_err_t}
+                result = parse(parser, child_ctx)::InnerResult{$child_parser_state_t, $child_parser_err_t}
                 if !is_error(result) && res_num_consumed(result) > 0
                     parse_ok = unwrap(result)
 

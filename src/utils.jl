@@ -51,7 +51,7 @@ function _strip_type_params(ex, owned::Set{Symbol})
 end
 
 # Recursively collect all symbols referenced in a type expression.
-# Foo{T, S} → Set([:T, :S]),  Vector{ParseResult{T}} → Set([:T])
+# Foo{T, S} → Set([:T, :S]),  Vector{Result{T}} → Set([:T])
 # Also handles <:Bound (e.g., <:OrState{U} → Set([:U]))
 function _collect_type_symbols(ex, out::Set{Symbol} = Set{Symbol}())
     if ex isa Symbol
@@ -97,7 +97,7 @@ appear in the `where` clause are stripped and extracted at runtime via
 ```julia
 @autospecialize pp function tryoptparse(
         pp::AbstractParser{T, S}, args::Vector{String}
-    )::ParseResult{T} where {T, S}
+    )::Result{T} where {T, S}
     ...
 end
 ```

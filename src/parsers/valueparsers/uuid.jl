@@ -33,17 +33,17 @@ end
         nothing
     end
     if isnothing(maybeuuid)
-        return ParseResult{UUID, UUIDValError}(Err(
+        return Result{UUID, UUIDValError}(Err(
             UUIDValError(UUID_Invalid, input, "")
         ))
     end
 
     version = uuid_version(maybeuuid)
     if isempty(u.allowed_versions) || version ∈ u.allowed_versions
-        return ParseResult{UUID, UUIDValError}(Ok(maybeuuid))
+        return Result{UUID, UUIDValError}(Ok(maybeuuid))
     end
 
-    return ParseResult{UUID, UUIDValError}(Err(
+    return Result{UUID, UUIDValError}(Err(
         UUIDValError(UUID_WrongVersion, string(version), join(u.allowed_versions, ','))
     ))
 end

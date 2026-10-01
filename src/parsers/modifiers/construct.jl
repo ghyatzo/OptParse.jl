@@ -154,10 +154,10 @@ end
     focused_helpdoc(p.parser, ctx, prefix, rt)
 
 @inline @autospecialize p ctx parse(p::ModConstruct{T, E, S, P}, ctx::Context{S}) where {T, E, S, P <: AbstractParser{<:Any, <:E, S}} =
-    InnerParseResult{S, E}(parse(p.parser, ctx))
+    InnerResult{S, E}(parse(p.parser, ctx))
 
 @inline @autospecialize p ctx parse(p::ModConstructExact{T, E, S, P}, ctx::Context{S}) where {T, E, S, P <: AbstractParser{<:Any, <:Any, S}} =
-    InnerParseResult{S, E}(parse(p.parser, ctx))
+    InnerResult{S, E}(parse(p.parser, ctx))
 
 @autospecialize p function complete(
         p::ModConstruct{T, E, S, P},
@@ -166,14 +166,14 @@ end
 
     child_res = complete(p.parser, st)
     if is_error(child_res)
-        return ParseResult{T, E}(Err(unwrap_error(child_res)))
+        return Result{T, E}(Err(unwrap_error(child_res)))
     else
         val = unwrap(child_res)
         try
-            return ParseResult{T, E}(Ok(StructUtils.make(T, val)))
+            return Result{T, E}(Ok(StructUtils.make(T, val)))
         catch err
             err isa InterruptException && rethrow()
-            return ParseResult{T, E}(Err(
+            return Result{T, E}(Err(
                 ModConstructError(
                     CONSTRUCT_MakeFailed,
                     construct_type_name(T),
@@ -191,14 +191,14 @@ end
 
     child_res = complete(p.parser, st)
     if is_error(child_res)
-        return ParseResult{T, E}(Err(unwrap_error(child_res)))
+        return Result{T, E}(Err(unwrap_error(child_res)))
     else
         val = unwrap(child_res)
         try
-            return ParseResult{T, E}(Ok(_make_exact(T, val)))
+            return Result{T, E}(Ok(_make_exact(T, val)))
         catch err
             err isa InterruptException && rethrow()
-            return ParseResult{T, E}(Err(
+            return Result{T, E}(Err(
                 ModConstructError(
                     CONSTRUCT_MakeFailed,
                     construct_type_name(T),

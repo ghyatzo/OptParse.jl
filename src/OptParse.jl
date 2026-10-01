@@ -231,7 +231,7 @@ end
     ctx = Context{S}(buffer = canonical_argv, state = pp.initialState, usage = usage(pp))
 
     while true
-        mayberesult = parse(pp, ctx)::InnerParseResult{S, E}
+        mayberesult = parse(pp, ctx)::InnerResult{S, E}
 
         if is_error(mayberesult)
             return ctx

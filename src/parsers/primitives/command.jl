@@ -71,7 +71,7 @@ helpentries(p::ArgCommand, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(r
             helpentries(p.parser, descend_child(rt))::Vector{HelpEntry}
         )
 
-        MatchedEmpty => p.parser.initialState)
+        MatchedEmpty => p.parser.initialState
         Matched(st) => st
     end
 
@@ -81,7 +81,9 @@ helpentries(p::ArgCommand, rt::OverlayContext) = [HelpEntry(usage(p), helpinfo(r
     return focused_helpdoc(p.parser, child_ctx, child_prefix, descend_child(rt))::HelpDoc
 end
 
-@autospecialize p ctx function parse(p::ArgCommand{<:Any, E, S}, ctx::Context{S}) where {E, S <: CommandState}
+@autospecialize p ctx function parse(
+    p::ArgCommand{<:Any, E, S}, ctx::Context{S}
+) where {E, S <: CommandState}
 
     IS = state_t(typeof(p.parser))
 
@@ -93,14 +95,14 @@ end
             if hasnone(ctx) || peek(ctx) ∉ p.names
                 actual = hasnone(ctx) ? nothing : peek(ctx)
                 if actual === nothing
-                    return InnerParseResult{S, E}(innerErr(ArgCommandError(COMMAND_EndOfInput, "", p.names[1])))
+                    return InnerResult{S, E}(innerErr(ArgCommandError(COMMAND_EndOfInput, "", p.names[1])))
                 end
 
-                return InnerParseResult{S, E}(innerErr(ArgCommandError(COMMAND_WrongName, actual, p.names[1])))
+                return InnerResult{S, E}(innerErr(ArgCommandError(COMMAND_WrongName, actual, p.names[1])))
             end
 
             nextctx = with_state(ctx, MatchedEmpty)
-            return InnerParseResult{S, E}(innerOk(nextctx, 1))
+            return InnerResult{S, E}(innerOk(nextctx, 1))
         end
 
         MatchedEmpty => widen_restate(IS, ctx, p.parser.initialState)
@@ -109,7 +111,7 @@ end
     end
 
     result = parse(p.parser, childctx)
-    is_error(result) && return InnerParseResult{S, E}(innerErr(E, result))
+    is_error(result) && return InnerResult{S, E}(innerErr(E, result))
 
     parse_ok = unwrap(result)
     newctx = widen_restate(
@@ -117,13 +119,13 @@ end
         res_nextctx(parse_ok),
         Matched(res_nextstate(parse_ok))
     )
-    return InnerParseResult{S, E}(innerOk(newctx, res_consumed(parse_ok)))
+    return InnerResult{S, E}(innerOk(newctx, res_consumed(parse_ok)))
 end
 
 @autospecialize p function complete(p::ArgCommand{T, E, S}, cmdst::S) where {T, E, S <: CommandState}
 
     result = @cases cmdst begin
-        NotMatched => return ParseResult{T, E}(typedErr(E, ArgCommandError(COMMAND_NotMatched, "", p.names[1])))
+        NotMatched => return Result{T, E}(typedErr(E, ArgCommandError(COMMAND_NotMatched, "", p.names[1])))
 
         MatchedEmpty => complete(p.parser, p.parser.initialState)
 
@@ -131,8 +133,8 @@ end
     end
 
     if is_error(result)
-        return ParseResult{T, E}(typedErr(E, unwrap_error(result)))
+        return Result{T, E}(typedErr(E, unwrap_error(result)))
     else
-        return ParseResult{T, E}(typedOk(T, unwrap(result)))
+        return Result{T, E}(typedOk(T, unwrap(result)))
     end
 end

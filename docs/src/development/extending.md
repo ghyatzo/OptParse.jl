@@ -11,7 +11,7 @@ The shortest path is:
 2. define a concrete error struct `<: AbstractParseError` with an `@enum` code field
 3. define `render_error(io::IO, err::YourError)` for the error type
 4. define the concrete value parser struct `<: AbstractValueParser{T, E}`
-5. define its call overload `(::YourValueParser)(input::String)::ParseResult{T, E}`
+5. define its call overload `(::YourValueParser)(input::String)::Result{T, E}`
 6. include it from `src/parsers/valueparsers/valueparsers.jl`
 7. add exported constructor functions and docstrings in `src/parsers/parser.jl`
 8. add display support in `src/display/parser_show.jl` if needed
@@ -47,7 +47,7 @@ struct MyVal{T} <: AbstractValueParser{T, MyValError}
     ...
 end
 
-function (p::MyVal{T})(input::String)::ParseResult{T, MyValError} where {T}
+function (p::MyVal{T})(input::String)::Result{T, MyValError} where {T}
     ...
 end
 ```
@@ -82,7 +82,7 @@ examples should prefer the positional form.
 
 Before considering a value parser done, verify:
 
-- parse returns `ParseResult{T, E}`
+- parse returns `Result{T, E}`
 - a concrete error struct `<: AbstractParseError` exists for the family
 - `render_error(io, err)` renders it correctly
 - the public constructor is exported if intended to be public
@@ -129,7 +129,7 @@ end
 
 Use `@cases` to inspect these states.
 Construct a variant with `GateState'.NotMatched` or `OptionState{T, E}'.Matched(value)`.
-`ParseResult` and `InnerParseResult` describe operation results, not parser-local states.
+`Result` and `InnerResult` describe operation results, not parser-local states.
 
 Collection states can use aliases, such as `const MultipleState{S} = Vector{S}`.
 
@@ -138,7 +138,7 @@ Collection states can use aliases, such as `const MultipleState{S} = Vector{S}`.
 Use the family state type in method signatures:
 
 ```julia
-function parse(p::ArgGate{Bool, ArgGateError, GateState}, ctx::Context{GateState})::InnerParseResult{GateState, ArgGateError}
+function parse(p::ArgGate{Bool, ArgGateError, GateState}, ctx::Context{GateState})::InnerResult{GateState, ArgGateError}
 ```
 
 Do not leave parser family methods broadly typed unless there is a very strong reason.

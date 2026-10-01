@@ -151,11 +151,11 @@ end
     end
 
     if outcome.kind == OR_OUTCOME_BranchMatch
-        return InnerParseResult{S, E}(innerOk(outcome.ctx, outcome.allconsumed))
+        return InnerResult{S, E}(innerOk(outcome.ctx, outcome.allconsumed))
     elseif outcome.kind == OR_OUTCOME_Propagate
-        return InnerParseResult{S, E}(innerOk(outcome.ctx, outcome.allconsumed; counts_as_match = false))
+        return InnerResult{S, E}(innerOk(outcome.ctx, outcome.allconsumed; counts_as_match = false))
     elseif outcome.kind == OR_OUTCOME_NoMatch
-        return InnerParseResult{S, E}(Err(outcome.error))
+        return InnerResult{S, E}(Err(outcome.error))
     else
         error("unreachable")
     end
@@ -205,11 +205,11 @@ end
 
 @autospecialize p orstate function complete(p::ConstrOr{T, E}, orstate::OrState{U}) where {T, E, U}
     selected = @cases orstate begin
-        NotMatched => return ParseResult{T, E}(typedErr(E, ConstrOrError(OR_NoMatch, "", "")))
+        NotMatched => return Result{T, E}(typedErr(E, ConstrOrError(OR_NoMatch, "", "")))
         Selected(branch) => branch
     end
     return @static if juliac
-        @unionsplit _complete(p, selected)::ParseResult{T, E}
+        @unionsplit _complete(p, selected)::Result{T, E}
     else
         _complete(p, unwrapunion(selected))
     end
@@ -223,8 +223,8 @@ end
 
     child_result = complete(p.parsers[I], res_nextstate(selected.success))
     if is_error(child_result)
-        return ParseResult{T, E}(Err(unwrap_error(child_result)))
+        return Result{T, E}(Err(unwrap_error(child_result)))
     end
 
-    return ParseResult{T, E}(Ok(unwrap(child_result)))
+    return Result{T, E}(Ok(unwrap(child_result)))
 end
