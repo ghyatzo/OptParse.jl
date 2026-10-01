@@ -141,7 +141,7 @@ Parser state is intentionally a parser-family implementation detail.
 A parser family should only ever interact with *its own* state shape. For example:
 
 - `ArgGate` works with `GateState`
-- `ArgOption` works with `OptionState{T}`
+- `ArgOption` works with `OptionState{T, E}`
 - `ArgCommand` works with `CommandState{PState}`
 - `ModMultiple` works with `MultipleState{S}`
 
@@ -151,10 +151,9 @@ the rule that a parser family only operates on its own state.
 In practice, state shape should usually mirror the macro-state the parser can be in.
 Typical examples:
 
-- a switch or required flag has states like:
+- a switch or required flag has two states:
   - not matched yet
   - matched successfully
-  - failed to complete because it never matched
 - a command has states like:
   - command token not matched yet
   - command matched, inner parser not started yet
@@ -163,26 +162,45 @@ Typical examples:
   - zero repetitions matched
   - one or more repetitions matched, each with its own child state snapshot
 
-This does not mean every parser needs an explicit enum for those macro-states.
-It means the chosen state representation should make those states obvious and easy
-to reason about.
+Completion reports a missing-flag error for an unmatched gate.
+Parsers with distinct named states use closed sum types from SumTypes.jl:
 
-Good examples already in the codebase are:
+| State type | Variants |
+| --- | --- |
+| `GateState` | `NotMatched`, `Matched` |
+| `OptionState{T, E}` | `NotMatched`, `Matched(value)`, `Invalid(error)` |
+| `ArgumentState{T, E}` | `NotMatched`, `Matched(value)`, `Invalid(error)` |
+| `CommandState{S}` | `NotMatched`, `MatchedEmpty`, `Matched(child_state)` |
+| `WithDefaultState{S}` | `NotMatched`, `Matched(child_state)` |
+| `OrState{U}` | `NotMatched`, `Selected(branch)` |
+
+For options and arguments, `E` is the value-parser error type.
+Their `Invalid` variants store value errors until completion.
+The `Selected` variant contains an `InnerOrState{U}` wrapper for typed branch dispatch.
+
+Use `@cases` to inspect these states. For example:
 
 ```julia
-const GateState = ParseResult{Bool, ArgGateError}
-const OptionState{T, E} = ParseResult{T, E}
-const ArgumentState{T, E} = Option{ParseResult{T, E}}
-const ConstantState{X} = Val{X}
-const CommandState{S} = Option{Option{S}}
-const MultipleState{S} = Vector{S}
-const WithDefaultState{S} = Option{S}
-const ObjectState{L, P} = NamedTuple{L, P}
-const OrState{U} = Option{InnerOrState{U}}
+@cases st begin
+    NotMatched => ...
+    Matched(value) => ...
+    Invalid(error) => ...
+end
 ```
 
-Those are implementation details, but they encode the parser family’s conceptual
-state machine.
+The `NotMatched` and `Matched` gate variants have no payload.
+Constructors use `GateState'.NotMatched` or `OptionState{T, E}'.Matched(value)` to select a variant.
+
+Collection and constant states use aliases:
+
+```julia
+const ConstantState{X} = Val{X}
+const MultipleState{S} = Vector{S}
+const ObjectState{L, P} = NamedTuple{L, P}
+```
+
+Sequences store child states in a tuple. Transparent wrappers use their child's state type.
+`ParseResult` and `InnerParseResult` remain result containers, separate from parser-local state.
 
 ## Concrete Parser Trees And Why State Signatures Matter
 
@@ -196,7 +214,10 @@ One important consequence is that parser families must still constrain their
 For example:
 
 ```julia
-function parse(p::ArgOption{T, E, OptionState{T, E}}, ctx::Context{OptionState{T, E}})::InnerParseResult{OptionState{T, E}, E} where {T, E}
+function parse(
+    p::ArgOption{T, E, S},
+    ctx::Context{S},
+) where {T, E, IE <: E, S <: OptionState{T, IE}}
 ```
 
 is better than a looser:

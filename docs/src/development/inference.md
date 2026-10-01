@@ -48,7 +48,10 @@ out early.
 This is why a family-specific method like:
 
 ```julia
-function parse(p::ArgOption{T, E, OptionState{T, E}}, ctx::Context{OptionState{T, E}})::InnerParseResult{OptionState{T, E}, E} where {T, E}
+function parse(
+    p::ArgOption{T, E, S},
+    ctx::Context{S},
+) where {T, E, IE <: E, S <: OptionState{T, IE}}
 ```
 
 is much better than:

@@ -97,7 +97,7 @@ The shortest path is:
 
 1. decide whether it is a primitive, constructor, or modifier
 2. add the concrete family file under the appropriate `src/parsers/...` subdirectory
-3. define a family-specific state alias
+3. define a family-specific state type or alias
 4. define an error struct `<: AbstractParseError` with `@enum` codes and a `render_error` method
 5. define the concrete parser struct `<: AbstractParser{T, E, S, P, R}`
 6. implement `parse`
@@ -109,24 +109,33 @@ The shortest path is:
 12. add tests
 13. add docs, reference entries, and examples if public
 
-### Start from a state alias
+### Start from a state type
 
-Always define a parser-family-specific state alias first.
-
-Examples:
+Define the parser-family state before its parsing methods.
+Use a closed sum type for distinct named states:
 
 ```julia
-const GateState = ParseResult{Bool, ArgGateError}
-const OptionState{T, E} = ParseResult{T, E}
-const CommandState{S} = Option{Option{S}}
-const MultipleState{S} = Vector{S}
+@sum_type GateState :hidden begin
+    NotMatched
+    Matched
+end
+
+@sum_type OptionState{T, E} :hidden begin
+    NotMatched
+    Matched{T}(value::T)
+    Invalid{E}(error::E)
+end
 ```
 
-This usually clarifies the rest of the implementation immediately.
+Use `@cases` to inspect these states.
+Construct a variant with `GateState'.NotMatched` or `OptionState{T, E}'.Matched(value)`.
+`ParseResult` and `InnerParseResult` describe operation results, not parser-local states.
+
+Collection states can use aliases, such as `const MultipleState{S} = Vector{S}`.
 
 ### Tight signatures
 
-Use the family alias in method signatures:
+Use the family state type in method signatures:
 
 ```julia
 function parse(p::ArgGate{Bool, ArgGateError, GateState}, ctx::Context{GateState})::InnerParseResult{GateState, ArgGateError}
@@ -148,7 +157,7 @@ That file is the user-facing API layer for parser families:
 
 Before considering a parser family done, verify:
 
-- the state alias is explicit
+- the state type or alias is explicit
 - `parse` and `complete` signatures reflect the real invariant state type
 - family-specific errors render correctly
 - child parser fields stay concrete and parametric

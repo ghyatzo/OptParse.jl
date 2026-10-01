@@ -80,20 +80,27 @@ Defined in `src/utils.jl`. Wraps function definitions to conditionally despecial
 
 Usage: `@autospecialize target_arg function f(target_arg::SomeType{T}, other_arg) where {T} ... end`
 
-### Type Aliases
+### State Types
 
-State aliases per parser family:
-- `GateState = ParseResult{Bool, ArgGateError}`
-- `OptionState{X, E} = ParseResult{X, E}`
-- `ArgumentState{X, E} = Option{ParseResult{X, E}}`
+Closed sum types per parser family (`@sum_type ... :hidden`):
+- `GateState`: `NotMatched`, `Matched`
+- `OptionState{X, E}`: `NotMatched`, `Matched(value)`, `Invalid(error)`
+- `ArgumentState{X, E}`: `NotMatched`, `Matched(value)`, `Invalid(error)`
+- `CommandState{X}`: `NotMatched`, `MatchedEmpty`, `Matched(child_state)`
+- `OrState{U}`: `NotMatched`, `Selected(branch::InnerOrState{U})`
+- `WithDefaultState{X}`: `NotMatched`, `Matched(child_state)`
+
+Use `@cases` to inspect sum states and `StateType'.Variant` to construct them.
+For options and arguments, `E` is the value-parser error type.
+`ParseResult` and `InnerParseResult` remain result containers.
+
+State aliases:
 - `ConstantState{X} = Val{X}`
-- `CommandState{X} = Option{Option{X}}`
 - `ObjectState{L, P} = NamedTuple{L, P}`
-- `OrState{U} = Option{InnerOrState{U}}`
 - `MultipleState{X} = Vector{X}`
-- `WithDefaultState{X} = Option{X}`
 
-These are transparent at runtime (Julia expands them), so `typeof(x).parameters[1]` gives the expanded form, not the alias.
+Aliases expand at runtime. Their runtime type parameters can differ from alias parameters.
+Sum types remain named types.
 
 ## Key Files
 
