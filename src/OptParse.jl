@@ -10,6 +10,8 @@ using WrappedUnions: @unionsplit, @wrapped,
     unwrap as unwrapunion
 using SumTypes
 
+include("core/sumresults.jl")
+
 using ErrorTypes: @?, Err, ErrorTypes, Ok, Option, Result, ResultConstructor, base, is_error,
     none, some, unwrap, unwrap_error
 
