@@ -155,7 +155,7 @@ end
     elseif outcome.kind == OR_OUTCOME_Propagate
         return InnerResult{S, E}(innerOk(outcome.ctx, outcome.allconsumed; counts_as_match = false))
     elseif outcome.kind == OR_OUTCOME_NoMatch
-        return InnerResult{S, E}(Err(outcome.error))
+        return InnerResult{S, E}'.innerErr(outcome.error)
     else
         error("unreachable")
     end
@@ -196,7 +196,7 @@ end
         end
     elseif is_error(result)
         #= the child parser has encountered an error, we should resurface that error instead of the generic =#
-        error = InnerFailure{E}(unwrap_error(result))
+        error = convert(InnerFailure{E}, unwrap_error(result))
     end
 
     return _OrParseOutcome{U, E}(OR_OUTCOME_NoMatch, currctx, merge(allconsumed), error)
@@ -205,7 +205,7 @@ end
 
 @autospecialize p orstate function complete(p::ConstrOr{T, E}, orstate::OrState{U}) where {T, E, U}
     selected = @cases orstate begin
-        NotMatched => return Result{T, E}(typedErr(E, ConstrOrError(OR_NoMatch, "", "")))
+        NotMatched => return Result{T, E}'.Err(ConstrOrError(OR_NoMatch, "", ""))
         Selected(branch) => branch
     end
     return @static if juliac
@@ -223,8 +223,8 @@ end
 
     child_result = complete(p.parsers[I], res_nextstate(selected.success))
     if is_error(child_result)
-        return Result{T, E}(Err(unwrap_error(child_result)))
+        return Result{T, E}'.Err(unwrap_error(child_result))
     end
 
-    return Result{T, E}(Ok(unwrap(child_result)))
+    return Result{T, E}'.Ok(unwrap(child_result))
 end

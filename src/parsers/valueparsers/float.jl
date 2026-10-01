@@ -40,20 +40,20 @@ end
 (f::FloatVal{T})(input::String) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
-        return Result{T, FloatValError}(Err(FloatValError(FLOAT_Invalid, input, "")))
+        return Result{T, FloatValError}'.Err(FloatValError(FLOAT_Invalid, input, ""))
     end
 
     if isinf(val) && !f.allow_infinity
-        return Result{T, FloatValError}(Err(FloatValError(FLOAT_NoInf, input, "")))
+        return Result{T, FloatValError}'.Err(FloatValError(FLOAT_NoInf, input, ""))
     end
 
     if isnan(val) && !f.allow_nan
-        return Result{T, FloatValError}(Err(FloatValError(FLOAT_NoNaN, input, "")))
+        return Result{T, FloatValError}'.Err(FloatValError(FLOAT_NoNaN, input, ""))
     end
 
-    (!isnothing(f.min) && val < f.min) && return Result{T, FloatValError}(Err(FloatValError(FLOAT_BelowMin, input, string(f.min))))
-    (!isnothing(f.max) && val > f.max) && return Result{T, FloatValError}(Err(FloatValError(FLOAT_AboveMax, input, string(f.max))))
+    (!isnothing(f.min) && val < f.min) && return Result{T, FloatValError}'.Err(FloatValError(FLOAT_BelowMin, input, string(f.min)))
+    (!isnothing(f.max) && val > f.max) && return Result{T, FloatValError}'.Err(FloatValError(FLOAT_AboveMax, input, string(f.max)))
 
 
-    return Result{T, FloatValError}(Ok(val))
+    return Result{T, FloatValError}'.Ok(val)
 end

@@ -87,12 +87,12 @@ function _object_complete_impl(@nospecialize(parsers::NamedTuple), @nospecialize
 
         result = complete(child_parser, child_state)
         if is_error(result)
-            return Result{T, E}(Err(unwrap_error(result)))
+            return Result{T, E}'.Err(unwrap_error(result))
         end
         results[i] = unwrap(result)
     end
 
-    return Result{T, E}(Ok(T(Tuple(results))))
+    return Result{T, E}'.Ok(T(Tuple(results)))
 end
 
 function _object_helpentries_impl(@nospecialize(parsers::NamedTuple), rt::OverlayContext)

@@ -27,14 +27,14 @@ end
 
 (s::StringVal)(input::String) = let
     m = match(s.pattern, input)
-    isnothing(m) && return Result{String, StringValError}(Err(
+    isnothing(m) && return Result{String, StringValError}'.Err(
         StringValError(STRING_InvalidPattern, input, string(s.pattern))
-    ))
+    )
 
     if isempty(input) && !s.allow_empty
-        return Result{String, StringValError}(Err(
+        return Result{String, StringValError}'.Err(
             StringValError(STRING_IsEmpty, "", "")
-        ))
+        )
     end
-    return Result{String, StringValError}(Ok(input))
+    return Result{String, StringValError}'.Ok(input)
 end

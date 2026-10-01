@@ -166,20 +166,20 @@ end
 
     child_res = complete(p.parser, st)
     if is_error(child_res)
-        return Result{T, E}(Err(unwrap_error(child_res)))
+        return Result{T, E}'.Err(unwrap_error(child_res))
     else
         val = unwrap(child_res)
         try
-            return Result{T, E}(Ok(StructUtils.make(T, val)))
+            return Result{T, E}'.Ok(StructUtils.make(T, val))
         catch err
             err isa InterruptException && rethrow()
-            return Result{T, E}(Err(
+            return Result{T, E}'.Err(
                 ModConstructError(
                     CONSTRUCT_MakeFailed,
                     construct_type_name(T),
                     "Check that field names and types match and that the target constructor accepts the provided values."
                 )
-            ))
+            )
         end
     end
 end
@@ -191,20 +191,20 @@ end
 
     child_res = complete(p.parser, st)
     if is_error(child_res)
-        return Result{T, E}(Err(unwrap_error(child_res)))
+        return Result{T, E}'.Err(unwrap_error(child_res))
     else
         val = unwrap(child_res)
         try
-            return Result{T, E}(Ok(_make_exact(T, val)))
+            return Result{T, E}'.Ok(_make_exact(T, val))
         catch err
             err isa InterruptException && rethrow()
-            return Result{T, E}(Err(
+            return Result{T, E}'.Err(
                 ModConstructError(
                     CONSTRUCT_MakeFailed,
                     construct_type_name(T),
                     "Check that field names, field order, and types match the exact constructor."
                 )
-            ))
+            )
         end
     end
 end

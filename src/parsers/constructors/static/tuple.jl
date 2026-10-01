@@ -150,14 +150,14 @@ end
                 child_state = state[$i]::$S
                 child_parser = p[$i]
                 $result_sym = complete(child_parser, child_state)
-                is_error($result_sym) && return Result{$T, $E}(Err(unwrap_error($result_sym)))
+                is_error($result_sym) && return Result{$T, $E}'.Err(unwrap_error($result_sym))
             end
         )
     end
 
     # Phase 2: construct the Tuple from all successful results
     unwraps = [:(unwrap($(Symbol("result_", i)))::$(val_t(Ps[i]))) for i in eachindex(Ps)]
-    push!(ex.args, :(return Result{$T, $E}(Ok(($(unwraps...),)::$T))))
+    push!(ex.args, :(return Result{$T, $E}'.Ok(($(unwraps...),)::$T)))
 
     return ex
 end

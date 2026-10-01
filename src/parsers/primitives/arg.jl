@@ -123,7 +123,7 @@ function parse(
     nextctx = with_options_terminated(ctx, optterm)
     nextctx = with_state(nextctx, nextstate)
 
-    return innerOk(nextctx, 1+i)
+    return InnerResult{ArgumentState{S, IE}, E}(innerOk(nextctx, 1 + i))
 
 end
 
@@ -132,7 +132,7 @@ function complete(
 ) where {T, E, IE <: E, S <: ArgumentState{T, IE}}
     @cases st begin
         NotMatched => return Result{T, E}'.Err(ArgArgumentError(ARGUMENT_TooFew, "", metavar(p.valparser)))
-        Matched(value) => return Result{T, E}'.Ok{T}(value)
-        Invalid(error) => return Result{T, E}'.Err{E}(error)
+        Matched(value) => return Result{T, E}'.Ok(value)
+        Invalid(error) => return Result{T, E}'.Err(error)
     end
 end

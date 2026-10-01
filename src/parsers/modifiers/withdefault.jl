@@ -84,7 +84,7 @@ end
             return InnerResult{WDS, E}(innerOk(ctx, consumed_empty(ctx)))
         else
             #=otherwise the parser failed midway, and that we should propagate.=#
-            return InnerResult{WDS, E}(innerErr(E, result))
+            return InnerResult{WDS, E}(innerErr{E}(result))
         end
     end
 
@@ -108,15 +108,15 @@ end
     ) where {T, E, S, P <: AbstractParser{<:Any, <:Any, S}}
 
     childstate = @cases st begin
-        NotMatched => return Result{T, E}(typedOk(T, p.default))
+        NotMatched => return Result{T, E}'.Ok(p.default)
         Matched(childstate) => childstate
     end
 
     result = complete(p.parser, childstate)
     if is_error(result)
-        return Result{T, E}(Err(unwrap_error(result)))
+        return Result{T, E}'.Err(unwrap_error(result))
     end
 
     # Rewrap as the widened output type of the modifier.
-    return Result{T, E}(Ok(unwrap(result)))
+    return Result{T, E}'.Ok(unwrap(result))
 end

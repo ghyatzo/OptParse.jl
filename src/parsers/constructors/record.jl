@@ -120,7 +120,7 @@ end
         end
     end
 
-    return InnerResult{S, E}(Err(error))
+    return InnerResult{S, E}'.innerErr(error)
 end
 
 @autospecialize p function complete(p::ConstrObject{T, E}, st::ObjectState) where {T, E}

@@ -29,8 +29,8 @@ function tryoptparse(
             # Pin the variant's error parameter: inferring it from the payload
             # splits it per concrete error, and the join of those widens to a
             # `Result{Uninit}` UnionAll, which then dispatches at runtime.
-            Err(x) => return Err{UE}(res_error(x))
-            Ok(x) => x
+            innerErr(x) => return Err{UE}(res_error(x))
+            innerOk(x) => x
         end
 
         previous_buffer = remaining(ctx)
@@ -216,7 +216,7 @@ end
     if is_error(res)
         return Result{RT, UE}'.Err(unwrap_error(res))
     else
-        return Result{RT, UE}(Ok((unwrap(res), leftover)))
+        return Result{RT, UE}'.Ok((unwrap(res), leftover))
     end
 end
 

@@ -77,7 +77,7 @@ end
     if found_match
         return InnerResult{S, E}(innerOk(outctx, allconsumed))
     else
-        return InnerResult{S, E}(Err(error))
+        return InnerResult{S, E}'.innerErr(error)
     end
 end
 

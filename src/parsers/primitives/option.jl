@@ -153,8 +153,8 @@ end
 
 function complete(p::ArgOption{T, E, S}, st::S) where {T, E, IE <: E, S <: OptionState{T, IE}}
     @cases st begin
-        NotMatched => return Result{T, E}(typedErr(E, ArgOptionError(OPTION_Missing, "", _names_detail(p.names))))
-        Matched(value) => return Result{T, E}(typedOk(T, value))
-        Invalid(error) => return Result{T, E}(typedErr(E, error))
+        NotMatched => return Result{T, E}'.Err(ArgOptionError(OPTION_Missing, "", _names_detail(p.names)))
+        Matched(value) => return Result{T, E}'.Ok(value)
+        Invalid(error) => return Result{T, E}'.Err(error)
     end
 end

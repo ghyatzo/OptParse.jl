@@ -30,5 +30,5 @@ function parse(::ArgConstant{Val{val}, <:Any, ConstantState{val}}, ctx::Context{
 end
 
 function complete(::ArgConstant{Val{val}, <:Any, ConstantState{val}}, st::ConstantState{val}) where {val}
-    return Result{Val{val}, Uninit}(Ok(st))
+    return Result{Val{val}, Uninit}'.Ok(st)
 end

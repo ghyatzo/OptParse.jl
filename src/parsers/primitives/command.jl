@@ -111,30 +111,29 @@ end
     end
 
     result = parse(p.parser, childctx)
-    is_error(result) && return InnerResult{S, E}(innerErr(E, result))
-
-    parse_ok = unwrap(result)
-    newctx = widen_restate(
-        S,
-        res_nextctx(parse_ok),
-        Matched(res_nextstate(parse_ok))
-    )
-    return InnerResult{S, E}(innerOk(newctx, res_consumed(parse_ok)))
+    return @cases result begin
+        innerErr(fail) =>
+            InnerResult{S, E}'.innerErr(convert(InnerFailure{E}, fail))
+        innerOk(parse_ok) => begin
+            newctx = widen_restate(
+                S,
+                res_nextctx(parse_ok),
+                Matched(res_nextstate(parse_ok))
+            )
+            InnerResult{S, E}(innerOk(newctx, res_consumed(parse_ok)))
+        end
+    end
 end
 
 @autospecialize p function complete(p::ArgCommand{T, E, S}, cmdst::S) where {T, E, S <: CommandState}
 
     result = @cases cmdst begin
-        NotMatched => return Result{T, E}(typedErr(E, ArgCommandError(COMMAND_NotMatched, "", p.names[1])))
+        NotMatched => return Result{T, E}'.Err(ArgCommandError(COMMAND_NotMatched, "", p.names[1]))
 
         MatchedEmpty => complete(p.parser, p.parser.initialState)
 
         Matched(st) => complete(p.parser, st)
     end
 
-    if is_error(result)
-        return Result{T, E}(typedErr(E, unwrap_error(result)))
-    else
-        return Result{T, E}(typedOk(T, unwrap(result)))
-    end
+    return Result{T, E}(result)
 end

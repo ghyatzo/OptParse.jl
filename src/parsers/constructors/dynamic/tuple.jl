@@ -105,12 +105,12 @@ function _tuple_complete_impl(@nospecialize(parsers::Tuple), @nospecialize(state
 
         result = complete(child_parser, child_state)
         if is_error(result)
-            return Result{T, E}(Err(unwrap_error(result)))
+            return Result{T, E}'.Err(unwrap_error(result))
         end
         results[i] = unwrap(result)
     end
 
-    return Result{T, E}(Ok(T(Tuple(results))))
+    return Result{T, E}'.Ok(T(Tuple(results)))
 end
 
 function _tuple_helpentries_impl(@nospecialize(parsers::Tuple), rt::OverlayContext)

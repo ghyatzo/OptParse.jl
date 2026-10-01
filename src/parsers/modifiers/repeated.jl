@@ -105,7 +105,7 @@ end
     elseif !has_active
         hasconsumed = !iszero(res_num_consumed(result))
         return hasconsumed ?
-            InnerResult{S, E}(innerErr(E, result)) : InnerResult{S, E}(innerOk(current_ctx, consumed_empty(current_ctx); counts_as_match = false))
+            InnerResult{S, E}(innerErr{E}(result)) : InnerResult{S, E}(innerOk(current_ctx, consumed_empty(current_ctx); counts_as_match = false))
     end
 
     if has_active && length(state(ctx)) < p.max
@@ -116,7 +116,7 @@ end
             if !isempty(allconsumed)
                 return InnerResult{S, E}(innerOk(current_ctx, merge(allconsumed); counts_as_match = false))
             end
-            return InnerResult{S, E}(innerErr(E, retry))
+            return InnerResult{S, E}(innerErr{E}(retry))
         end
 
         parse_ok = unwrap(retry)
@@ -147,22 +147,22 @@ end
     for s in state
         val = complete(p.parser, s)
         if is_error(val)
-            return Result{T, E}(Err(unwrap_error(val)))
+            return Result{T, E}'.Err(unwrap_error(val))
         end
         val = unwrap(val)
         push!(result, val)
     end
 
     if length(result) < p.min
-        return Result{T, E}(Err(
+        return Result{T, E}'.Err(
             ModMultipleError(MULTIPLE_TooFew, p.min, length(result))
-        ))
+        )
     elseif length(result) > p.max
-        return Result{T, E}(Err(
+        return Result{T, E}'.Err(
             ModMultipleError(MULTIPLE_TooMany, p.max, length(result))
-        ))
+        )
     end
 
-    return Result{T, E}(Ok(result))
+    return Result{T, E}'.Ok(result)
 
 end

@@ -176,3 +176,31 @@ Each parser file defines: a concrete struct `<: AbstractParseError` with an `@en
 - When adding dynamic-path code that intentionally uses runtime dispatch, do NOT add `@test_opt` for it — or put it in `unit/typestability.jl` (juliac-only).
 - Sort closures capturing tuple types cause specialization. Extract values into `Vector` first.
 - `@static if juliac` blocks select code paths at compile time — not `if juliac` (which is runtime).
+
+<!-- gortex:communities:start -->
+## Community Skills
+
+| Area | Description | Explore |
+|------|-------------|---------|
+| Parsers Valueparsers 4 Dirs | 61 symbols | `analyze(operation:"communities", id:"community-42")` |
+| Parsers Primitives 3 Dirs | 55 symbols | `analyze(operation:"communities", id:"community-38")` |
+| Src 1 Dirs | 28 symbols | `analyze(operation:"communities", id:"community-31")` |
+| Parsers Valueparsers Choiceval | 28 symbols | `analyze(operation:"communities", id:"community-58")` |
+| Core Usage Render Usage | 25 symbols | `analyze(operation:"communities", id:"community-23")` |
+| Core Sumresults | 19 symbols | `analyze(operation:"communities", id:"community-21")` |
+| Parsers Valueparsers Integer | 17 symbols | `analyze(operation:"communities", id:"community-60")` |
+| Display Show Parser Show 16 | 16 symbols | `analyze(operation:"communities", id:"community-26")` |
+| Ext | 13 symbols | `analyze(operation:"communities", id:"community-1")` |
+| Trimmability Src | 12 symbols | `analyze(operation:"communities", id:"community-64")` |
+| Parsers Parser Macro Expand | 12 symbols | `analyze(operation:"communities", id:"community-49")` |
+| Src Variants Clonecmd | 11 symbols | `analyze(operation:"communities", id:"community-68")` |
+| Src Variants Pushcmd | 10 symbols | `analyze(operation:"communities", id:"community-70")` |
+| Core Help Help Entry Label | 9 symbols | `analyze(operation:"communities", id:"community-15")` |
+| Src Variants Commitcmd | 9 symbols | `analyze(operation:"communities", id:"community-69")` |
+| Src Variants Addcmd | 9 symbols | `analyze(operation:"communities", id:"community-67")` |
+| Parsers Constructors Focused Helpdoc | 8 symbols | `analyze(operation:"communities", id:"community-41")` |
+| Helloworld Src | 8 symbols | `analyze(operation:"communities", id:"community-0")` |
+| Core Usage Usagenode | 8 symbols | `analyze(operation:"communities", id:"community-22")` |
+| Src Variants Statuscmd | 8 symbols | `analyze(operation:"communities", id:"community-77")` |
+
+<!-- gortex:communities:end -->
