@@ -224,7 +224,7 @@ end
     repeatedParser = many(baseParser)
 
 
-    mockStates = OptParse.ParseResult{Int, Union{OptParse.ArgOptionError, OptParse.IntegerValError}}[Ok(42), Ok(100), Ok(7)]
+    mockStates = [state_t(baseParser)'.Matched(value) for value in (42, 100, 7)]
     comp = splitcomplete(repeatedParser, mockStates)
     @test !is_error(comp)
     @test unwrap(comp) == [42, 100, 7]
@@ -234,7 +234,8 @@ end
     baseParser = option("-n", "--number", integer())
     repeatedParser = many(baseParser)
 
-    mockStates = OptParse.ParseResult{Int, Union{OptParse.ArgOptionError, OptParse.IntegerValError}}[Ok(42), Err(OptParse.IntegerValError(OptParse.INTEGER_Invalid, "", "")), Ok(7)]
+    (; Matched, Invalid) = state_t(baseParser)'
+    mockStates = [Matched(42), Invalid(OptParse.IntegerValError(OptParse.INTEGER_Invalid, "", "")), Matched(7)]
     comp = splitcomplete(repeatedParser, mockStates)
     @test is_error(comp)
     err = unwrap_error(comp)
@@ -245,7 +246,7 @@ end
     baseParser = option(("-l", "--locale"), str())
     repeatedParser = many1(baseParser)
 
-    comp = splitcomplete(repeatedParser, OptParse.ParseResult{String, Union{OptParse.ArgOptionError, OptParse.StringValError}}[])
+    comp = splitcomplete(repeatedParser, state_t(baseParser)[])
     @test is_error(comp)
     err = unwrap_error(comp)
     @test err isa OptParse.ModMultipleError
@@ -256,7 +257,7 @@ end
     baseParser = option(("-l", "--locale"), str())
     repeatedParser = repeated(baseParser; max = 2)
 
-    mockStates = OptParse.ParseResult{String, Union{OptParse.ArgOptionError, OptParse.StringValError}}[Ok("en"), Ok("fr"), Ok("de")]
+    mockStates = [state_t(baseParser)'.Matched(value) for value in ("en", "fr", "de")]
     comp = splitcomplete(repeatedParser, mockStates)
     @test is_error(comp)
     err = unwrap_error(comp)

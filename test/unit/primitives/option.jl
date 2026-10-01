@@ -18,9 +18,7 @@ end
     @test !is_error(res)
     ps = unwrap(res)
 
-    # next.state should itself be a successful value (Result/Option)
-    @test !is_error(res_nextstate(ps))
-    @test unwrap(res_nextstate(ps)) == 8080
+    @test res_nextstate(ps) == OptParse.OptionState{Int, OptParse.IntegerValError}'.Matched(8080)
 
     # buffer consumed
     @test remaining(res_nextctx(ps)) == String[]
@@ -37,8 +35,7 @@ end
     @test !is_error(res)
     ps = unwrap(res)
 
-    @test !is_error(res_nextstate(ps))
-    @test unwrap(res_nextstate(ps)) == 8080
+    @test res_nextstate(ps) == OptParse.OptionState{Int, OptParse.IntegerValError}'.Matched(8080)
 
     @test remaining(res_nextctx(ps)) == String[]
     @test as_tuple(res_consumed(ps)) == ("--port=8080",)
@@ -97,8 +94,7 @@ end
     @test !is_error(res)
     ps = unwrap(res)
 
-    @test !is_error(res_nextstate(ps))
-    @test unwrap(res_nextstate(ps)) == "Alice"
+    @test res_nextstate(ps) == OptParse.OptionState{String, OptParse.StringValError}'.Matched("Alice")
 end
 
 @testset "should fail on ambiguous flaglike string values" begin
@@ -120,20 +116,61 @@ end
 
 @testset "should propagate value parser failures" begin
     parser = option("--port", integer(; min = 1, max = 0xffff))
-    context = mkctx(["--port", "invalid"], parser.initialState)
+    for buffer in (["--port", "invalid"], ["--port=invalid"])
+        res = splitparse(parser, mkctx(buffer, parser.initialState))
+        @test !is_error(res)
+        ps = unwrap(res)
+        st = res_nextstate(ps)
+        completed = splitcomplete(parser, st)
+        @test is_error(completed)
+        err = unwrap_error(completed)
+        @test st == OptParse.OptionState{Int, OptParse.IntegerValError}'.Invalid(err)
+        @test err.code == OptParse.INTEGER_Invalid
+        @test err.token == "invalid"
+        @test remaining(res_nextctx(ps)) == String[]
+        @test as_tuple(res_consumed(ps)) == Tuple(buffer)
+    end
+end
 
-    res = splitparse(parser, context)
+@testset "should complete an unmatched option with a missing error" begin
+    parser = option(("-p", "--port"), integer())
+    @test parser.initialState == OptParse.OptionState{Int, OptParse.IntegerValError}'.NotMatched
+    result = splitcomplete(parser, parser.initialState)
+    @test is_error(result)
+    err = unwrap_error(result)
+    @test err.code == OptParse.OPTION_Missing
+    @test sprint(OptParse.render_error, err) == "Missing required option(s): $(Tuple(parser.names))"
 
-    # Option itself matched, so overall parse succeeds...
-    @test !is_error(res)
-    ps = unwrap(res)
+    result = splitparse(parser, mkctx(["--"], parser.initialState))
+    @test !is_error(result)
+    next = res_nextctx(unwrap(result))
+    @test state(next) == parser.initialState
+    @test options_terminated(next)
+end
 
-    # ...but the inner value parser failed (carry failure in state)
-    @test is_error(res_nextstate(ps))
-    err = unwrap_error(res_nextstate(ps))
-    @test err isa OptParse.IntegerValError
-    @test err.code == OptParse.INTEGER_Invalid
-    @test err.token == "invalid"
+@testset "should reject duplicates after valid input and allow replacement after invalid input" begin
+    parser = option("--port", integer())
+    for value in ("8080", "invalid"), first_equals in (false, true), second_equals in (false, true)
+        first_buffer = first_equals ? ["--port=$value"] : ["--port", value]
+        first_result = splitparse(parser, mkctx(first_buffer, parser.initialState))
+        @test !is_error(first_result)
+        st = res_nextstate(unwrap(first_result))
+        second_buffer = second_equals ? ["--port=42"] : ["--port", "42"]
+        result = splitparse(parser, mkctx(second_buffer, st))
+        if value == "8080"
+            @test is_error(result)
+            err = unwrap_error(result)
+            @test err.error.code == OptParse.OPTION_Duplicate
+            @test err.error.token == "--port"
+            @test res_num_consumed(err) == 1
+        else
+            @test !is_error(result)
+            ps = unwrap(result)
+            @test res_nextstate(ps) == OptParse.OptionState{Int, OptParse.IntegerValError}'.Matched(42)
+            @test unwrap(splitcomplete(parser, res_nextstate(ps))) == 42
+            @test as_tuple(res_consumed(ps)) == Tuple(second_buffer)
+        end
+    end
 end
 
 @testset "should fail on unmatched option" begin

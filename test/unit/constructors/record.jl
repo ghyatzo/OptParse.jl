@@ -32,7 +32,7 @@ end
     @test haskey(Dict(propertynames(st) .=> getfield.(Ref(st), propertynames(st))), :verbose)
     @test haskey(Dict(propertynames(st) .=> getfield.(Ref(st), propertynames(st))), :port)
     @test getfield(st, :verbose) == OptParse.GateState'.Matched
-    @test (@? getfield(st, :port)) == 8080
+    @test getfield(st, :port) == OptParse.OptionState{Int, OptParse.IntegerValError}'.Matched(8080)
 end
 
 @testset "should work with labeled records" begin

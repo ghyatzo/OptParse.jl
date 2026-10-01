@@ -111,8 +111,8 @@ end
     if !is_error(res_defaults)
         st = res_nextstate(unwrap(res_defaults))
         @test getfield(st, :verbose) == OptParse.GateState'.Matched
-        @test (@? getfield(st, :port)) == 8080
-        @test (@? getfield(st, :host)) == "localhost"
+        @test unwrap(splitcomplete(parser.parsers.port, st.port)) == 8080
+        @test unwrap(splitcomplete(parser.parsers.host, st.host)) == "localhost"
     end
 
     # Provided values case
@@ -123,8 +123,8 @@ end
     if !is_error(res_values)
         st = res_nextstate(unwrap(res_values))
         @test getfield(st, :verbose) == OptParse.GateState'.Matched
-        @test (@? getfield(st, :port)) == 3000
-        @test (@? getfield(st, :host)) == "example.com"
+        @test unwrap(splitcomplete(parser.parsers.port, st.port)) == 3000
+        @test unwrap(splitcomplete(parser.parsers.host, st.host)) == "example.com"
     end
 end
 
@@ -197,7 +197,7 @@ end
     ps = unwrap(parseResult)
     st = res_nextstate(ps)
     @test !is_error(st)
-    @test unwrap(unwrap(st)) == "test"
+    @test unwrap(st) == OptParse.OptionState{String, OptParse.StringValError}'.Matched("test")
 end
 
 @testset "should work with argument parsers in record context" begin

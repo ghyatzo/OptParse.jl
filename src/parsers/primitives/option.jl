@@ -1,4 +1,8 @@
-const OptionState{X, E} = ParseResult{X, E}
+@sum_type OptionState{X, E} :hidden begin
+    NotMatched
+    Matched{X}(value::X)
+    Invalid{E}(error::E)
+end
 
 @enum OptionErrCode::UInt8 begin
     OPTION_NoMoreOptions
@@ -55,8 +59,8 @@ struct ArgOption{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
         end
 
         UE = Union{ArgOptionError, IE}
-        new{T, UE, OptionState{T, UE}, typeof(valparser), 10}(
-            ParseResult{T, UE}(Err(ArgOptionError(OPTION_Missing, "", "$(names)"))),
+        new{T, UE, OptionState{T, IE}, typeof(valparser), 10}(
+            OptionState{T, IE}'.NotMatched,
             valparser,
             [names...]
         )
@@ -91,11 +95,17 @@ function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <
         return InnerParseResult{S, E}(innerOk(nextctx, 1; counts_as_match = false))
     end
 
+    matched = @cases state(ctx) begin
+        NotMatched => false
+        Matched(_) => true
+        Invalid(_) => false
+    end
+    (; Matched, Invalid) = S'
+
     # when options are of the form `--option value`
     if tok in p.names
 
-        # st = @? ctx.state
-        if !is_error(state(ctx)) && unwrap(state(ctx)) isa T
+        if matched
             return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_Duplicate, tok, ""); consumed = 1))
         end
 
@@ -110,7 +120,8 @@ function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <
 
         result = p.valparser(val)
 
-        nextctx = widen_restate(S, ctx, result)
+        nextstate = is_error(result) ? Invalid(unwrap_error(result)) : Matched(unwrap(result))
+        nextctx = with_state(ctx, nextstate)
         return InnerParseResult{S, E}(innerOk(nextctx, 2))
     end
 
@@ -124,15 +135,15 @@ function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <
     for prefix in prefixes
         startswith(tok, prefix) || continue
 
-        if !is_error(state(ctx))
-
+        if matched
             return InnerParseResult{S, E}(innerErr(ArgOptionError(OPTION_Duplicate, prefix[1:(end - 1)], ""); consumed = 1))
         end
 
         value = tok[(length(prefix) + 1):end]
         result = p.valparser(value)
 
-        nextctx = widen_restate(S, ctx, result)
+        nextstate = is_error(result) ? Invalid(unwrap_error(result)) : Matched(unwrap(result))
+        nextctx = with_state(ctx, nextstate)
         return InnerParseResult{S, E}(innerOk(nextctx, 1))
 
     end
@@ -141,5 +152,9 @@ function parse(p::ArgOption{T, E, S}, ctx::Context{S}) where {T, E, IE <: E, S <
 end
 
 function complete(p::ArgOption{T, E, S}, st::S) where {T, E, IE <: E, S <: OptionState{T, IE}}
-    return !is_error(st) ? ParseResult{T, E}(typedOk(T, unwrap(st))) : ParseResult{T, E}(typedErr(E, unwrap_error(st)))
+    @cases st begin
+        NotMatched => return ParseResult{T, E}(typedErr(E, ArgOptionError(OPTION_Missing, "", "$(Tuple(p.names))")))
+        Matched(value) => return ParseResult{T, E}(typedOk(T, value))
+        Invalid(error) => return ParseResult{T, E}(typedErr(E, error))
+    end
 end
