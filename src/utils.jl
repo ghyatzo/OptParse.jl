@@ -1,5 +1,7 @@
 using ExprTools: splitdef, combinedef
 
+_names_detail(names) = string("(", join(repr.(names), ", "), length(names) == 1 ? ",)" : ")")
+
 # --- @autospecialize helpers (used at macro expansion time) ---
 
 # Extract the name from a where-parameter (handles both :T and :(T <: Bound))

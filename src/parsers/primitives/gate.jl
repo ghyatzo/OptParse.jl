@@ -100,7 +100,7 @@ end
 
 function complete(p::ArgGate, st::GateState)
     @cases st begin
-        NotMatched => return ParseResult{Bool, ArgGateError}(Err(ArgGateError(GATE_Missing, "", "$(Tuple(p.names))")))
+        NotMatched => return ParseResult{Bool, ArgGateError}(Err(ArgGateError(GATE_Missing, "", _names_detail(p.names))))
         Matched => return ParseResult{Bool, ArgGateError}(Ok(true))
     end
 end

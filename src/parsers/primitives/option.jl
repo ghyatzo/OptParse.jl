@@ -153,7 +153,7 @@ end
 
 function complete(p::ArgOption{T, E, S}, st::S) where {T, E, IE <: E, S <: OptionState{T, IE}}
     @cases st begin
-        NotMatched => return ParseResult{T, E}(typedErr(E, ArgOptionError(OPTION_Missing, "", "$(Tuple(p.names))")))
+        NotMatched => return ParseResult{T, E}(typedErr(E, ArgOptionError(OPTION_Missing, "", _names_detail(p.names))))
         Matched(value) => return ParseResult{T, E}(typedOk(T, value))
         Invalid(error) => return ParseResult{T, E}(typedErr(E, error))
     end

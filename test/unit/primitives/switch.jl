@@ -10,6 +10,12 @@ end
     @test_throws ArgumentError switch("---aaa")
 end
 
+@testset "should format missing names like a tuple" begin
+    for names in (String[], ["-v"], ["-v", "--verbose"], ["--a\"b", "--c\\d"])
+        @test OptParse._names_detail(names) == string(Tuple(names))
+    end
+end
+
 @testset "should complete named gate states" begin
     parser = switch("-v", "--verbose")
     @test parser.initialState == OptParse.GateState'.NotMatched
