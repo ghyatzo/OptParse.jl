@@ -1,0 +1,22 @@
+# https://docs.github.com/code-security/dependabot/dependabot-options-reference
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+  - package-ecosystem: "julia"
+    directories:
+      - "/"
+      - "/docs"
+      - "/test"
+    schedule:
+      interval: "monthly"
+    groups:
+      julia-dependencies:
+        patterns:
+          - "*"
