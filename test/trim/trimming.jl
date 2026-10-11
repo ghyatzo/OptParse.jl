@@ -9,6 +9,7 @@ const TRIM_CASES = (
     (name = "record_repeated", file = joinpath(TRIM_VARIANTS_DIR, "record_repeated.jl"), project = TRIM_PROJ),
     (name = "construct_parser", file = joinpath(TRIM_VARIANTS_DIR, "construct_parser.jl"), project = TRIM_PROJ),
     (name = "nested_constructors", file = joinpath(TRIM_VARIANTS_DIR, "nested_constructors.jl"), project = TRIM_PROJ),
+    (name = "toggle", file = joinpath(TRIM_VARIANTS_DIR, "toggle.jl"), project = TRIM_PROJ),
     (name = "git like", file = joinpath(TRIM_VARIANTS_DIR, "gitlike.jl"), project = TRIM_PROJ),
 )
 
