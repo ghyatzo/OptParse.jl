@@ -962,6 +962,43 @@ function flag end
 
 flag(names...) = default(ArgGate(names), false)
 
+## Toggle
+
+"""
+    toggle(name)
+
+Tri-valued flag pair `--[no-]x` returning `true`, `false`, or `nothing`.
+
+`toggle` derives the negative spelling from the positive long name:
+`toggle("--tags")` matches `--tags` and `--no-tags`. It returns `true` for
+the positive spelling, `false` for the negative one, and `nothing` when
+neither spelling is present. Using the same spelling twice is an error,
+and so is using both spellings.
+
+# Arguments
+- `name`: The positive long flag name (e.g. `"--tags"`). The negative
+  spelling `"--no-tags"` is derived automatically.
+
+# Returns
+A parser that returns `Union{Bool, Nothing}`.
+
+# Examples
+```julia
+tags = toggle("--tags")
+
+optparse(tags, String[])        # nothing
+optparse(tags, ["--tags"])      # true
+optparse(tags, ["--no-tags"])   # false
+```
+
+# See Also
+- [`flag`](@ref): Optional flag that defaults to `false`
+- [`switch`](@ref): Required flag that fails if absent
+"""
+function toggle end
+
+toggle(name) = default(ArgToggle(name), nothing)
+
 ## Constant
 
 """

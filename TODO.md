@@ -4,13 +4,13 @@ design and implementation notes for upcoming parser work.
 
 ## Tri-Valued Flag
 
-- [ ] Add a parser for option pairs like `--[no-]tags`, producing `nothing`, `true`, or `false`.
-- [ ] Use `nothing` when neither spelling is present.
-- [ ] Use `true` for the positive spelling, for example `--tags`.
-- [ ] Use `false` for the negative spelling, for example `--no-tags`.
-- [ ] Decide whether the public name should be `tri_flag`, `toggle`, `option_flag`, or something else.
-- [ ] Define duplicate/conflict behavior when both positive and negative spellings are present.
-- [ ] Ensure generated usage/help can render both forms compactly.
+- [x] Add a parser for option pairs like `--[no-]tags`, producing `nothing`, `true`, or `false`.
+- [x] Use `nothing` when neither spelling is present.
+- [x] Use `true` for the positive spelling, for example `--tags`.
+- [x] Use `false` for the negative spelling, for example `--no-tags`.
+- [x] Decide whether the public name should be `tri_flag`, `toggle`, `option_flag`, or something else.
+- [x] Define duplicate/conflict behavior when both positive and negative spellings are present.
+- [x] Ensure generated usage/help can render both forms compactly.
 
 Likely behavior:
 

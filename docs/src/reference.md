@@ -44,6 +44,7 @@ OptParse.SumResults.@?
 option
 flag
 switch
+toggle
 arg
 command
 helpcommand

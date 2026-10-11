@@ -38,6 +38,7 @@ export
     flt32,
     flt64,
     switch,
+    toggle,
     generate_help,
     help,
     helpcommand,

@@ -27,6 +27,10 @@ end
         include("unit/primitives/switch.jl")
     end
 
+    @testset "Toggle parser" begin
+        include("unit/primitives/toggle.jl")
+    end
+
     @testset "Option parser" begin
         include("unit/primitives/option.jl")
     end
