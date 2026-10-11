@@ -4,15 +4,15 @@ port = option(&quot;-p&quot;, &quot;--port&quot;, integer(&quot;PORT&quot;))
 
 result = optparse(port, [&quot;--port=8080&quot;])  # Long form with =
 result = optparse(port, [&quot;-p&quot;, &quot;8080&quot;])   # Short form</code></pre><h3 id="Bundled-Flags"><a class="docs-heading-anchor" href="#Bundled-Flags">Bundled Flags</a><a id="Bundled-Flags-1"></a><a class="docs-heading-anchor-permalink" href="#Bundled-Flags" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Flags can be bundled
-parser = record((
+parser = record(;
     all = flag(&quot;-a&quot;),
     long = flag(&quot;-l&quot;),
     human = flag(&quot;-h&quot;)
-))
+)
 
 result = optparse(parser, [&quot;-alh&quot;])  # Equivalent to [&quot;-a&quot;, &quot;-l&quot;, &quot;-h&quot;]</code></pre><h3 id="Options-Terminator"><a class="docs-heading-anchor" href="#Options-Terminator">Options Terminator</a><a id="Options-Terminator-1"></a><a class="docs-heading-anchor-permalink" href="#Options-Terminator" title="Permalink"></a></h3><pre><code class="language-julia hljs"># After `--`, flags and options stop being recognized
 parser = or(
-    command(&quot;test&quot;, record((opt = option(&quot;-v&quot;, integer(&quot;LEVEL&quot;)),))),
+    command(&quot;test&quot;, record(; opt = option(&quot;-v&quot;, integer(&quot;LEVEL&quot;)))),
     arg(str(&quot;ARG&quot;))
 )
 
@@ -39,22 +39,22 @@ packages = many(arg(str(&quot;PACKAGE&quot;)))  # pkg add Package1 Package2 Pack
 verbosity = many(flag(&quot;-v&quot;))  # -v -v -v or -vvv
 
 # One or more values
-files = many1(arg(str(&quot;FILE&quot;)))</code></pre><h3 id="Record-Composition"><a class="docs-heading-anchor" href="#Record-Composition">Record Composition</a><a id="Record-Composition-1"></a><a class="docs-heading-anchor-permalink" href="#Record-Composition" title="Permalink"></a></h3><pre><code class="language-julia hljs">parser = record((
+files = many1(arg(str(&quot;FILE&quot;)))</code></pre><h3 id="Record-Composition"><a class="docs-heading-anchor" href="#Record-Composition">Record Composition</a><a id="Record-Composition-1"></a><a class="docs-heading-anchor-permalink" href="#Record-Composition" title="Permalink"></a></h3><pre><code class="language-julia hljs">parser = record(;
     input = arg(str(&quot;INPUT&quot;)),
     output = option(&quot;-o&quot;, &quot;--output&quot;, str(&quot;OUTPUT&quot;)),
     force = flag(&quot;-f&quot;, &quot;--force&quot;)
-))
+)
 
 result = optparse(parser, [&quot;input.txt&quot;, &quot;-o&quot;, &quot;output.txt&quot;, &quot;-f&quot;])</code></pre><h3 id="Subcommands-with-or"><a class="docs-heading-anchor" href="#Subcommands-with-or">Subcommands with or</a><a id="Subcommands-with-or-1"></a><a class="docs-heading-anchor-permalink" href="#Subcommands-with-or" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Define commands
-addCmd = command(&quot;add&quot;, record((
+addCmd = command(&quot;add&quot;, record(;
     action = @constant(:add),
     packages = many(arg(str(&quot;PACKAGE&quot;)))
-)))
+))
 
-removeCmd = command(&quot;remove&quot;, record((
+removeCmd = command(&quot;remove&quot;, record(;
     action = @constant(:remove),
     packages = many(arg(str(&quot;PACKAGE&quot;)))
-)))
+))
 
 # Combine with or
 pkgParser = or(addCmd, removeCmd)
@@ -77,4 +77,4 @@ result = optparse(Config, [&quot;--name&quot;, &quot;Alice&quot;, &quot;-v&quot;
 println(&quot;Hello, $(result.name)&quot;)  # &quot;Hello, Alice&quot;
 
 # Or use lift to get the parser
-parser = lift(Config)</code></pre><h3 id="Running-an-Application"><a class="docs-heading-anchor" href="#Running-an-Application">Running an Application</a><a id="Running-an-Application-1"></a><a class="docs-heading-anchor-permalink" href="#Running-an-Application" title="Permalink"></a></h3><p>For a full CLI application with <code>--help</code> and subcommands, see <a href="https://github.com/anomalyco/OptParse.jl/tree/main/examples/HelloWorld"><code>examples/HelloWorld/</code></a>. ```</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../migration/">« Migration Guide</a><a class="docs-footer-nextpage" href="../reference/">API Docstrings »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Sunday 6 September 2026 21:51">Sunday 6 September 2026</span>. Using Julia version 1.12.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+parser = lift(Config)</code></pre><h3 id="Running-an-Application"><a class="docs-heading-anchor" href="#Running-an-Application">Running an Application</a><a id="Running-an-Application-1"></a><a class="docs-heading-anchor-permalink" href="#Running-an-Application" title="Permalink"></a></h3><p>For a full CLI application with <code>--help</code> and subcommands, see <a href="https://github.com/ghyatzo/OptParse.jl/tree/main/examples/HelloWorld"><code>examples/HelloWorld/</code></a>.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../migration/">« Migration Guide</a><a class="docs-footer-nextpage" href="../reference/">API Docstrings »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Sunday 11 October 2026 19:34">Sunday 11 October 2026</span>. Using Julia version 1.12.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
