@@ -16,6 +16,21 @@ end
 
 _inner_state(::Type{<:OrState{U}}) where {U} = U
 
+struct OrOutcomePayload{S, E}
+    ctx::Context{S}
+    allconsumed::Consumed
+    error::InnerFailure{E}
+end
+
+# Variants carry a single payload so they can be built as
+# `OrParseOutcome{U, E}'.Kind(payload)`: the `T'.Variant(...)` constructor goes
+# through SumTypes.Converter, which accepts a single argument only. The
+# `OrParseOutcome{U, E}'.` prefix pins the type parameters at construction.
+@sum_type OrParseOutcome{S, E} :hidden begin
+    BranchMatch{S, E}(::OrOutcomePayload{S, E})
+    Propagate{S, E}(::OrOutcomePayload{S, E})
+    NoMatch{S, E}(::OrOutcomePayload{S, E})
+end
 
 @enum OrErrCode::UInt8 begin
     OR_EndOfInput
@@ -115,20 +130,6 @@ end
 end
 
 
-@enum _OrParseOutcomeKind begin
-    OR_OUTCOME_BranchMatch
-    OR_OUTCOME_Propagate
-    OR_OUTCOME_NoMatch
-end
-
-struct _OrParseOutcome{S, E}
-    kind::_OrParseOutcomeKind
-    ctx::Context{S}
-    allconsumed::Consumed
-    error::InnerFailure{E}
-end
-
-
 @autospecialize p ctx function parse(p::ConstrOr{T, E, S, PTup}, ctx::Context{S}) where {T, E, S <: OrState, PTup <: Tuple}
 
     error = InnerFailure{E}(
@@ -150,14 +151,10 @@ end
         end
     end
 
-    if outcome.kind == OR_OUTCOME_BranchMatch
-        return InnerResult{S, E}(innerOk(outcome.ctx, outcome.allconsumed))
-    elseif outcome.kind == OR_OUTCOME_Propagate
-        return InnerResult{S, E}(innerOk(outcome.ctx, outcome.allconsumed; counts_as_match = false))
-    elseif outcome.kind == OR_OUTCOME_NoMatch
-        return InnerResult{S, E}'.innerErr(outcome.error)
-    else
-        error("unreachable")
+    return @cases outcome begin
+        BranchMatch(payload) => InnerResult{S, E}(innerOk(payload.ctx, payload.allconsumed))
+        Propagate(payload) => InnerResult{S, E}(innerOk(payload.ctx, payload.allconsumed; counts_as_match = false))
+        NoMatch(payload) => InnerResult{S, E}(innerErr(payload.error))
     end
 end
 
@@ -187,19 +184,19 @@ end
             #=We are already inside this same branch. Preserve that
             selection while surfacing the control-side-effect.=#
             if newctx != currctx
-                return _OrParseOutcome{U, E}(OR_OUTCOME_Propagate, newctx, merge(allconsumed), error)
+                return OrParseOutcome{U, E}'.Propagate(OrOutcomePayload(newctx, merge(allconsumed), error))
             else
-                return _OrParseOutcome{U, E}(OR_OUTCOME_NoMatch, newctx, merge(allconsumed), error)
+                return OrParseOutcome{U, E}'.NoMatch(OrOutcomePayload(newctx, merge(allconsumed), error))
             end
         else
-            return _OrParseOutcome{U, E}(OR_OUTCOME_BranchMatch, newctx, merge(allconsumed), error)
+            return OrParseOutcome{U, E}'.BranchMatch(OrOutcomePayload(newctx, merge(allconsumed), error))
         end
     elseif is_error(result)
         #= the child parser has encountered an error, we should resurface that error instead of the generic =#
         error = convert(InnerFailure{E}, unwrap_error(result))
     end
 
-    return _OrParseOutcome{U, E}(OR_OUTCOME_NoMatch, currctx, merge(allconsumed), error)
+    return OrParseOutcome{U, E}'.NoMatch(OrOutcomePayload(currctx, merge(allconsumed), error))
 end
 
 

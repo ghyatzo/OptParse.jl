@@ -23,22 +23,21 @@ function _or_parse_impl(@nospecialize(parsers::Tuple), @nospecialize(ctx::Contex
                 newctx = widen_restate(OrState{U}, res_nextctx(parse_ok), new_innerstate)
                 push!(allconsumed, res_consumed(parse_ok))
 
-                return _OrParseOutcome{OrState{U}, E}(
-                    OR_OUTCOME_BranchMatch, newctx, merge(allconsumed), error
+                return OrParseOutcome{OrState{U}, E}'.BranchMatch(
+                    OrOutcomePayload(newctx, merge(allconsumed), error)
                 )
             end
         elseif is_error(result)
             if res_num_consumed(error) < res_num_consumed(result)
-                parse_err = unwrap_error(result)
-                error = InnerFailure{E}(parse_err.consumed, parse_err.error)
+                error = convert(InnerFailure{E}, unwrap_error(result))
             end
         end
     end
 
     if currctx != ctx
-        return _OrParseOutcome{OrState{U}, E}(OR_OUTCOME_Propagate, currctx, merge(allconsumed), error)
+        return OrParseOutcome{OrState{U}, E}'.Propagate(OrOutcomePayload(currctx, merge(allconsumed), error))
     end
-    return _OrParseOutcome{OrState{U}, E}(OR_OUTCOME_NoMatch, currctx, merge(allconsumed), error)
+    return OrParseOutcome{OrState{U}, E}'.NoMatch(OrOutcomePayload(currctx, merge(allconsumed), error))
 end
 
 function _or_helpentries_impl(@nospecialize(parsers::Tuple), rt::OverlayContext)
