@@ -29,6 +29,13 @@ export Result, Option, Ok, Err, some, none,
 # for `T === Union{}` ("Tuple field type cannot be Union{}"), but
 # `Result{T, Union{}}` is a real type here (parsers that cannot fail, e.g.
 # `@constant`). The typed accessors narrow the payloads back to `T` / `E`.
+"""
+    Result{T, E}
+
+Errors-as-values result: `Ok(value::T)` for success, `Err(error::E)` for
+failure. Construct with `Ok(x)` / `Err(e)`; typed boundaries complete the
+unset type parameter (see the `SumResults` module docs).
+"""
 @sum_type Result{T,E} begin
     Ok{T}(::T)
     Err{E}(::E)

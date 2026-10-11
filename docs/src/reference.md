@@ -22,6 +22,22 @@ print_help
 HelpRequest
 ```
 
+### Result Containers (`OptParse.SumResults`)
+
+```@docs
+OptParse.SumResults
+OptParse.SumResults.Result
+OptParse.SumResults.Option
+OptParse.SumResults.some
+OptParse.SumResults.none
+OptParse.SumResults.base
+OptParse.SumResults.is_error
+OptParse.SumResults.is_ok_and
+OptParse.SumResults.unwrap
+OptParse.SumResults.unwrap_error
+OptParse.SumResults.@?
+```
+
 ### Primitives
 
 ```@docs
