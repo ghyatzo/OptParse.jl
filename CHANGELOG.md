@@ -1,5 +1,50 @@
 # Changelog
 
+## [0.4.2](https://github.com/ghyatzo/OptParse.jl/compare/v0.4.1...v0.4.2) (2026-10-12)
+
+
+### Features
+
+* add format-based date value parsers ([54591d8](https://github.com/ghyatzo/OptParse.jl/commit/54591d82016a26fd820e7540a1dc64014e8ce72a))
+* add SumTypes-backed result containers ([36a91d9](https://github.com/ghyatzo/OptParse.jl/commit/36a91d98a3aedd80746df8530285e8f36583178c))
+* add tri-valued toggle flag parser ([26b7b20](https://github.com/ghyatzo/OptParse.jl/commit/26b7b2073c2f4f9c9f4ddd76c4be971feb6439c9))
+
+
+### Bug Fixes
+
+* avoid debundling negative numbers. short flags can only be letters. ([fb22177](https://github.com/ghyatzo/OptParse.jl/commit/fb2217723add35313552400728b5fe59de2ef0f6))
+* correct docs examples and pin Documenter ([d7b9c42](https://github.com/ghyatzo/OptParse.jl/commit/d7b9c42a9309767a42cec94b7a423ea8f84ca36c))
+* don't allow options to have values that can be misinterpreted as ([8666a9c](https://github.com/ghyatzo/OptParse.jl/commit/8666a9c8248445a961f19701b9426b4ecaaf9b3e))
+* include entrypoint errors in diagnostics ([d1e069a](https://github.com/ghyatzo/OptParse.jl/commit/d1e069a42493bae271ca917efe33d84dea61f726))
+* **parser:** make missing-error formatting trim-safe ([4e37d3b](https://github.com/ghyatzo/OptParse.jl/commit/4e37d3b67bf05cabd2825d1a0caefeafa7f305d9))
+* partial error propagation and raise test coverage ([6f22f65](https://github.com/ghyatzo/OptParse.jl/commit/6f22f6506c5473920152a9d0da11817f5030b823))
+
+
+### Refactors
+
+* **arg:** use named sum states ([05ca71f](https://github.com/ghyatzo/OptParse.jl/commit/05ca71f30bb3890d19b4069bf6f56cfd1c782f57))
+* **command:** use sumtypes instead of ErrorTypes for the state ([e338e96](https://github.com/ghyatzo/OptParse.jl/commit/e338e96346512ee4ab91ed186047c60675c655ca))
+* **default:** use named sum states ([bfab958](https://github.com/ghyatzo/OptParse.jl/commit/bfab95869b3c88324ed5f5ad6e08a450b38ba492))
+* extract consumed-token bookkeeping ([d88788b](https://github.com/ghyatzo/OptParse.jl/commit/d88788b2ae258d35473c1d0194f8baca191597fe))
+* finish refactor to SumTypes ([87260a5](https://github.com/ghyatzo/OptParse.jl/commit/87260a53da758bb66b6cc910f52aa2d719cb3f31))
+* **gate:** use named sum states ([c6bab22](https://github.com/ghyatzo/OptParse.jl/commit/c6bab223bbf4adce3ff89af629820b9f2a2a9a13))
+* **inner-results:** give a separate result type to innerParseResult ([969b120](https://github.com/ghyatzo/OptParse.jl/commit/969b120ff912b107c1197697803243fb6680209f))
+* migrate parsing results to SumResults ([c06d94e](https://github.com/ghyatzo/OptParse.jl/commit/c06d94ec5cb65c00bed34ee4a850b4d13d06c304))
+* **option:** use named sum states ([74ac9b8](https://github.com/ghyatzo/OptParse.jl/commit/74ac9b8162b52d4a4d3e58b8fbfd0e01e8b071f4))
+* **or:** use a sumtype also for the ParseOutcome ([1b7db8c](https://github.com/ghyatzo/OptParse.jl/commit/1b7db8c92eb6451b58a2c8fd875b14e4b2f73b35))
+* **or:** use named selection states ([63c07e9](https://github.com/ghyatzo/OptParse.jl/commit/63c07e911e0256c4379504ceef5961ef616929f4))
+* plain accessors for context and results ([bb6045d](https://github.com/ghyatzo/OptParse.jl/commit/bb6045d516338b1d876121596538701f3d3bf496))
+* rename ParseResult to just Result ([c73772a](https://github.com/ghyatzo/OptParse.jl/commit/c73772afe482037de0e3f4e7dd8fad9856223f1b))
+
+
+### Documentation
+
+* convert record calls to keyword form ([8470eea](https://github.com/ghyatzo/OptParse.jl/commit/8470eeae694fb83299dbf139a2e719c891c8fd8c))
+* document the SumResults API in the manual ([47ec44a](https://github.com/ghyatzo/OptParse.jl/commit/47ec44a2d2361d35857bf930bdeed1b39cb183e2))
+* **parser:** document named sum states ([a2e321c](https://github.com/ghyatzo/OptParse.jl/commit/a2e321cabcedcabff8264d4542f7e386f1f52b59))
+* refresh and simplify docs ([a1fc674](https://github.com/ghyatzo/OptParse.jl/commit/a1fc674414d76344e02a624d06aeaced0e6c7dc1))
+* remove instability note ([ab507da](https://github.com/ghyatzo/OptParse.jl/commit/ab507dabdb36aaef58acaf5e2c203345b64a44d1))
+
 ## [0.4.1](https://github.com/ghyatzo/OptParse.jl/compare/v0.4.0...v0.4.1) (2026-06-29)
 
 
