@@ -1,80 +1,108 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Examples · OptParse.jl Documentation</title><meta name="title" content="Examples · OptParse.jl Documentation"/><meta property="og:title" content="Examples · OptParse.jl Documentation"/><meta property="twitter:title" content="Examples · OptParse.jl Documentation"/><meta name="description" content="Documentation for OptParse.jl Documentation."/><meta property="og:description" content="Documentation for OptParse.jl Documentation."/><meta property="twitter:description" content="Documentation for OptParse.jl Documentation."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img src="../assets/logo.svg" alt="OptParse.jl Documentation logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">OptParse.jl Documentation</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">OptParse.jl</a></li><li><a class="tocitem" href="../migration/">Migration Guide</a></li><li class="is-active"><a class="tocitem" href>Examples</a><ul class="internal"><li><a class="tocitem" href="#Examples"><span>Examples</span></a></li></ul></li><li><a class="tocitem" href="../reference/">API Docstrings</a></li><li><span class="tocitem">Development</span><ul><li><a class="tocitem" href="../development/">Overview</a></li><li><a class="tocitem" href="../development/runtime/">Runtime Model</a></li><li><a class="tocitem" href="../development/parsers/">Parser Semantics</a></li><li><a class="tocitem" href="../development/extending/">Extending OptParse</a></li><li><a class="tocitem" href="../development/inference/">Inference And Trimming</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Examples</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Examples</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/ghyatzo/OptParse.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/ghyatzo/OptParse.jl/blob/main/docs/src/examples.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h2 id="Examples"><a class="docs-heading-anchor" href="#Examples">Examples</a><a id="Examples-1"></a><a class="docs-heading-anchor-permalink" href="#Examples" title="Permalink"></a></h2><h3 id="Basic-Option-Parsing"><a class="docs-heading-anchor" href="#Basic-Option-Parsing">Basic Option Parsing</a><a id="Basic-Option-Parsing-1"></a><a class="docs-heading-anchor-permalink" href="#Basic-Option-Parsing" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Options with different styles
-port = option(&quot;-p&quot;, &quot;--port&quot;, integer(&quot;PORT&quot;))
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Examples · OptParse.jl Documentation</title><meta name="title" content="Examples · OptParse.jl Documentation"/><meta property="og:title" content="Examples · OptParse.jl Documentation"/><meta property="twitter:title" content="Examples · OptParse.jl Documentation"/><meta name="description" content="Documentation for OptParse.jl Documentation."/><meta property="og:description" content="Documentation for OptParse.jl Documentation."/><meta property="twitter:description" content="Documentation for OptParse.jl Documentation."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img src="../assets/logo.svg" alt="OptParse.jl Documentation logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">OptParse.jl Documentation</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Getting started</a></li><li><a class="tocitem" href="../guide/">User guide</a></li><li class="is-active"><a class="tocitem" href>Examples</a><ul class="internal"><li><a class="tocitem" href="#Typed-configuration-and-help"><span>Typed configuration and help</span></a></li><li><a class="tocitem" href="#Shared-options"><span>Shared options</span></a></li><li><a class="tocitem" href="#Option-spellings-and-bundled-flags"><span>Option spellings and bundled flags</span></a></li><li><a class="tocitem" href="#Positive-and-negative-flags"><span>Positive and negative flags</span></a></li><li><a class="tocitem" href="#Constrained-values"><span>Constrained values</span></a></li><li><a class="tocitem" href="#Dates-and-times"><span>Dates and times</span></a></li><li><a class="tocitem" href="#Option-terminator"><span>Option terminator</span></a></li><li><a class="tocitem" href="#Complete-application"><span>Complete application</span></a></li></ul></li><li><a class="tocitem" href="../reference/">API reference</a></li><li><a class="tocitem" href="../migration/">Migration guide</a></li><li><span class="tocitem">Development</span><ul><li><a class="tocitem" href="../development/">Overview</a></li><li><a class="tocitem" href="../development/runtime/">Runtime Model</a></li><li><a class="tocitem" href="../development/parsers/">Parser Semantics</a></li><li><a class="tocitem" href="../development/extending/">Extending OptParse</a></li><li><a class="tocitem" href="../development/inference/">Inference And Trimming</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Examples</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Examples</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/ghyatzo/OptParse.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/ghyatzo/OptParse.jl/blob/main/docs/src/examples.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Examples"><a class="docs-heading-anchor" href="#Examples">Examples</a><a id="Examples-1"></a><a class="docs-heading-anchor-permalink" href="#Examples" title="Permalink"></a></h1><p>These recipes use the same field parsers inside <a href="../reference/#OptParse.@parser"><code>@parser</code></a> and <a href="../reference/#OptParse.record"><code>record</code></a>. See the <a href="../guide/">user guide</a> for their composition rules.</p><h2 id="Typed-configuration-and-help"><a class="docs-heading-anchor" href="#Typed-configuration-and-help">Typed configuration and help</a><a id="Typed-configuration-and-help-1"></a><a class="docs-heading-anchor-permalink" href="#Typed-configuration-and-help" title="Permalink"></a></h2><pre><code class="language-julia-repl hljs">julia&gt; using OptParse
 
-result = optparse(port, [&quot;--port=8080&quot;])  # Long form with =
-result = optparse(port, [&quot;-p&quot;, &quot;8080&quot;])   # Short form</code></pre><h3 id="Bundled-Flags"><a class="docs-heading-anchor" href="#Bundled-Flags">Bundled Flags</a><a id="Bundled-Flags-1"></a><a class="docs-heading-anchor-permalink" href="#Bundled-Flags" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Flags can be bundled
-parser = record(;
-    all = flag(&quot;-a&quot;),
-    long = flag(&quot;-l&quot;),
-    human = flag(&quot;-h&quot;)
-)
+julia&gt; @parser struct Config
+           @description &quot;Greeting application&quot;
+           &quot;Your name&quot;
+           name = option(&quot;-n&quot;, &quot;--name&quot;, str(&quot;NAME&quot;))
+           &quot;Enable verbose output&quot;
+           verbose = flag(&quot;-v&quot;, &quot;--verbose&quot;)
+           @footer &quot;Pass --help for more information.&quot;
+       end;
 
-result = optparse(parser, [&quot;-alh&quot;])  # Equivalent to [&quot;-a&quot;, &quot;-l&quot;, &quot;-h&quot;]</code></pre><h3 id="Options-Terminator"><a class="docs-heading-anchor" href="#Options-Terminator">Options Terminator</a><a id="Options-Terminator-1"></a><a class="docs-heading-anchor-permalink" href="#Options-Terminator" title="Permalink"></a></h3><pre><code class="language-julia hljs"># After `--`, flags and options stop being recognized
-parser = or(
-    command(&quot;test&quot;, record(; opt = option(&quot;-v&quot;, integer(&quot;LEVEL&quot;)))),
-    arg(str(&quot;ARG&quot;))
-)
+julia&gt; result = optparse(Config, [&quot;--name&quot;, &quot;Alice&quot;, &quot;-v&quot;]);
 
-result = optparse(parser, [&quot;--&quot;, &quot;test&quot;])  # &quot;test&quot;</code></pre><h3 id="Type-Constraints"><a class="docs-heading-anchor" href="#Type-Constraints">Type Constraints</a><a id="Type-Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Type-Constraints" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Type-safe parsing with constraints
-port = option(&quot;-p&quot;, integer(&quot;PORT&quot;; min=1000, max=65535))
-level = option(&quot;-l&quot;, choice(&quot;LEVEL&quot;, [&quot;debug&quot;, &quot;info&quot;, &quot;warn&quot;, &quot;error&quot;]))
-config = option(&quot;-c&quot;, str(&quot;FILE&quot;; pattern=r&quot;.*\.toml$&quot;))
+julia&gt; (result isa Config, result.name, result.verbose)
+(true, &quot;Alice&quot;, true)
 
-@enum Mode begin
-    Debug
-    Release
-end
+julia&gt; text = generate_help(lift(Config), String[]; progname=&quot;greet&quot;);
 
-mode = option(&quot;--mode&quot;, choice(&quot;MODE&quot;, Mode))</code></pre><h3 id="Optional-and-Default-Values"><a class="docs-heading-anchor" href="#Optional-and-Default-Values">Optional and Default Values</a><a id="Optional-and-Default-Values-1"></a><a class="docs-heading-anchor-permalink" href="#Optional-and-Default-Values" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Optional values (`optional(p)` is equivalent to `default(p, nothing)`)
-email = optional(option(&quot;-e&quot;, &quot;--email&quot;, str(&quot;EMAIL&quot;)))
+julia&gt; all(phrase -&gt; occursin(phrase, text), [&quot;Greeting application&quot;, &quot;Your name&quot;, &quot;Pass --help&quot;])
+true</code></pre><p>For application arguments, use <code>runparse(Config, ARGS; progname=&quot;greet&quot;)</code>. Handle <code>nothing</code> before using the returned configuration.</p><h2 id="Shared-options"><a class="docs-heading-anchor" href="#Shared-options">Shared options</a><a id="Shared-options-1"></a><a class="docs-heading-anchor-permalink" href="#Shared-options" title="Permalink"></a></h2><p>Use <code>combine</code> to reuse field parsers across commands. The field names in the combined records must be distinct.</p><pre><code class="language-julia-repl hljs">julia&gt; using OptParse
 
-# With defaults
-port = default(option(&quot;-p&quot;, integer(&quot;PORT&quot;)), 8080)
+julia&gt; common = record(; verbose=flag(&quot;-v&quot;, &quot;--verbose&quot;));
 
-# Repeated values
-packages = many(arg(str(&quot;PACKAGE&quot;)))  # pkg add Package1 Package2 Package3
+julia&gt; add = command(&quot;add&quot;, combine(
+           common,
+           record(; packages=many1(arg(str(&quot;PACKAGE&quot;)))),
+       ));
 
-# Verbosity levels
-verbosity = many(flag(&quot;-v&quot;))  # -v -v -v or -vvv
+julia&gt; remove = command(&quot;remove&quot;, &quot;rm&quot;, combine(
+           common,
+           record(; packages=many1(arg(str(&quot;PACKAGE&quot;)))),
+       ));
 
-# One or more values
-files = many1(arg(str(&quot;FILE&quot;)))</code></pre><h3 id="Record-Composition"><a class="docs-heading-anchor" href="#Record-Composition">Record Composition</a><a id="Record-Composition-1"></a><a class="docs-heading-anchor-permalink" href="#Record-Composition" title="Permalink"></a></h3><pre><code class="language-julia hljs">parser = record(;
-    input = arg(str(&quot;INPUT&quot;)),
-    output = option(&quot;-o&quot;, &quot;--output&quot;, str(&quot;OUTPUT&quot;)),
-    force = flag(&quot;-f&quot;, &quot;--force&quot;)
-)
+julia&gt; cli = or(add, remove);
 
-result = optparse(parser, [&quot;input.txt&quot;, &quot;-o&quot;, &quot;output.txt&quot;, &quot;-f&quot;])</code></pre><h3 id="Subcommands-with-or"><a class="docs-heading-anchor" href="#Subcommands-with-or">Subcommands with or</a><a id="Subcommands-with-or-1"></a><a class="docs-heading-anchor-permalink" href="#Subcommands-with-or" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Define commands
-addCmd = command(&quot;add&quot;, record(;
-    action = @constant(:add),
-    packages = many(arg(str(&quot;PACKAGE&quot;)))
-))
+julia&gt; optparse(cli, [&quot;add&quot;, &quot;DataFrames&quot;, &quot;Plots&quot;, &quot;-v&quot;])
+(verbose = true, packages = [&quot;DataFrames&quot;, &quot;Plots&quot;])
 
-removeCmd = command(&quot;remove&quot;, record(;
-    action = @constant(:remove),
-    packages = many(arg(str(&quot;PACKAGE&quot;)))
-))
+julia&gt; optparse(cli, [&quot;rm&quot;, &quot;Plots&quot;])
+(verbose = false, packages = [&quot;Plots&quot;])</code></pre><p>For command-specific result types and method dispatch, see <a href="../guide/#Typed-subcommands">typed subcommands</a>.</p><h2 id="Option-spellings-and-bundled-flags"><a class="docs-heading-anchor" href="#Option-spellings-and-bundled-flags">Option spellings and bundled flags</a><a id="Option-spellings-and-bundled-flags-1"></a><a class="docs-heading-anchor-permalink" href="#Option-spellings-and-bundled-flags" title="Permalink"></a></h2><pre><code class="language-julia-repl hljs">julia&gt; using OptParse
 
-# Combine with or
-pkgParser = or(addCmd, removeCmd)
+julia&gt; port = option(&quot;-p&quot;, &quot;--port&quot;, integer(&quot;PORT&quot;));
 
-# Parse
-result = optparse(pkgParser, [&quot;add&quot;, &quot;DataFrames&quot;, &quot;Plots&quot;])
-@assert result.action == Val(:add)
-@assert result.packages == [&quot;DataFrames&quot;, &quot;Plots&quot;]</code></pre><h3 id="Typed-Parsers-with-@parser"><a class="docs-heading-anchor" href="#Typed-Parsers-with-@parser">Typed Parsers with <code>@parser</code></a><a id="Typed-Parsers-with-@parser-1"></a><a class="docs-heading-anchor-permalink" href="#Typed-Parsers-with-@parser" title="Permalink"></a></h3><pre><code class="language-julia hljs">using OptParse
+julia&gt; optparse(port, [&quot;--port=8080&quot;]) == optparse(port, [&quot;-p&quot;, &quot;8080&quot;]) == 8080
+true
 
-@parser struct Config
-    @description &quot;My application&quot;
+julia&gt; flags = record(;
+           all = flag(&quot;-a&quot;),
+           long = flag(&quot;-l&quot;),
+           human = flag(&quot;-h&quot;),
+       );
 
-    verbose = flag(&quot;-v&quot;, &quot;--verbose&quot;) |&gt; help(&quot;Verbose&quot;, &quot;Enable verbose output&quot;)
-    name = option(&quot;-n&quot;, &quot;--name&quot;, str(&quot;NAME&quot;)) |&gt; help(&quot;Name&quot;, &quot;Your name&quot;)
-    @footer &quot;Pass --help for more information.&quot;
-end
+julia&gt; optparse(flags, [&quot;-alh&quot;])
+(all = true, long = true, human = true)
 
-# Type-based entrypoints — no binding needed
-result = optparse(Config, [&quot;--name&quot;, &quot;Alice&quot;, &quot;-v&quot;])
-println(&quot;Hello, $(result.name)&quot;)  # &quot;Hello, Alice&quot;
+julia&gt; length(optparse(many(switch(&quot;-v&quot;)), [&quot;-vvv&quot;]))
+3</code></pre><h2 id="Positive-and-negative-flags"><a class="docs-heading-anchor" href="#Positive-and-negative-flags">Positive and negative flags</a><a id="Positive-and-negative-flags-1"></a><a class="docs-heading-anchor-permalink" href="#Positive-and-negative-flags" title="Permalink"></a></h2><p><a href="../reference/#OptParse.toggle"><code>toggle</code></a> distinguishes an omitted flag from an explicit positive or negative choice. Use a surrounding record when <code>nothing</code> also needs to be distinguished from a failed <code>optparse</code> call.</p><pre><code class="language-julia-repl hljs">julia&gt; using OptParse
 
-# Or use lift to get the parser
-parser = lift(Config)</code></pre><h3 id="Running-an-Application"><a class="docs-heading-anchor" href="#Running-an-Application">Running an Application</a><a id="Running-an-Application-1"></a><a class="docs-heading-anchor-permalink" href="#Running-an-Application" title="Permalink"></a></h3><p>For a full CLI application with <code>--help</code> and subcommands, see <a href="https://github.com/ghyatzo/OptParse.jl/tree/main/examples/HelloWorld"><code>examples/HelloWorld/</code></a>.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../migration/">« Migration Guide</a><a class="docs-footer-nextpage" href="../reference/">API Docstrings »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Sunday 11 October 2026 23:10">Sunday 11 October 2026</span>. Using Julia version 1.12.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+julia&gt; parser = record(; tags=toggle(&quot;--tags&quot;));
+
+julia&gt; optparse(parser, String[]).tags === nothing
+true
+
+julia&gt; optparse(parser, [&quot;--tags&quot;]).tags
+true
+
+julia&gt; optparse(parser, [&quot;--no-tags&quot;]).tags
+false
+
+julia&gt; using OptParse.SumResults: is_error
+
+julia&gt; is_error(tryoptparse(parser, [&quot;--tags&quot;, &quot;--no-tags&quot;]))
+true</code></pre><h2 id="Constrained-values"><a class="docs-heading-anchor" href="#Constrained-values">Constrained values</a><a id="Constrained-values-1"></a><a class="docs-heading-anchor-permalink" href="#Constrained-values" title="Permalink"></a></h2><pre><code class="language-julia-repl hljs">julia&gt; using OptParse
+
+julia&gt; @enum Mode Debug Release
+
+julia&gt; parser = record(;
+           port = option(&quot;-p&quot;, integer(&quot;PORT&quot;; min=1000, max=65535)),
+           mode = option(&quot;--mode&quot;, choice(&quot;MODE&quot;, Mode)),
+           config = option(&quot;-c&quot;, str(&quot;FILE&quot;; pattern=r&quot;.*\.toml$&quot;)),
+       );
+
+julia&gt; optparse(parser, [&quot;-p&quot;, &quot;8080&quot;, &quot;--mode&quot;, &quot;Debug&quot;, &quot;-c&quot;, &quot;server.toml&quot;])
+(port = 8080, mode = Debug, config = &quot;server.toml&quot;)</code></pre><h2 id="Dates-and-times"><a class="docs-heading-anchor" href="#Dates-and-times">Dates and times</a><a id="Dates-and-times-1"></a><a class="docs-heading-anchor-permalink" href="#Dates-and-times" title="Permalink"></a></h2><div class="admonition is-warning" id="Trimming-limitation-61c37698bdf46007"><header class="admonition-header">Trimming limitation<a class="admonition-anchor" href="#Trimming-limitation-61c37698bdf46007" title="Permalink"></a></header><div class="admonition-body"><p><code>dateformat</code>, <code>isodate</code>, and <code>isodatetime</code> do not support <code>juliac</code> trimming. Their underlying date/time parsing mechanism contains type instabilities. These parsers work in normal Julia applications.</p></div></div><p>Date parsers use <code>Dates.DateFormat</code> syntax and return <code>Date</code> or <code>DateTime</code> values. The <code>after</code> and <code>before</code> bounds are inclusive. ISO defaults do not enforce fixed field widths or require every trailing field. The supplied format defines the grammar.</p><pre><code class="language-julia-repl hljs">julia&gt; using OptParse, Dates
+
+julia&gt; parser = record(;
+           day = option(&quot;--day&quot;, isodate(&quot;DATE&quot;; after=Date(2026, 1, 1))),
+           at = option(&quot;--at&quot;, isodatetime(&quot;TIME&quot;)),
+           report = option(&quot;--report&quot;, dateformat(&quot;REPORT&quot;, Date, &quot;dd/mm/yyyy&quot;)),
+       );
+
+julia&gt; config = optparse(parser, [
+           &quot;--day&quot;, &quot;2026-04-15&quot;,
+           &quot;--at&quot;, &quot;2026-04-15T09:30:00&quot;,
+           &quot;--report&quot;, &quot;15/04/2026&quot;,
+       ]);
+
+julia&gt; (config.day == Date(2026, 4, 15), config.at == DateTime(2026, 4, 15, 9, 30), config.report == config.day)
+(true, true, true)</code></pre><h2 id="Option-terminator"><a class="docs-heading-anchor" href="#Option-terminator">Option terminator</a><a id="Option-terminator-1"></a><a class="docs-heading-anchor-permalink" href="#Option-terminator" title="Permalink"></a></h2><p>After <code>--</code>, tokens that look like options or commands can be positional values.</p><pre><code class="language-julia-repl hljs">julia&gt; using OptParse
+
+julia&gt; parser = or(
+           command(&quot;test&quot;, record(; level=option(&quot;-v&quot;, integer(&quot;LEVEL&quot;)))),
+           arg(str(&quot;ARG&quot;)),
+       );
+
+julia&gt; optparse(parser, [&quot;--&quot;, &quot;test&quot;])
+&quot;test&quot;</code></pre><h2 id="Complete-application"><a class="docs-heading-anchor" href="#Complete-application">Complete application</a><a id="Complete-application-1"></a><a class="docs-heading-anchor-permalink" href="#Complete-application" title="Permalink"></a></h2><p>For a CLI application with automatic help and subcommands, see <a href="https://github.com/ghyatzo/OptParse.jl/tree/main/examples/HelloWorld"><code>examples/HelloWorld/</code></a>.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../guide/">« User guide</a><a class="docs-footer-nextpage" href="../reference/">API reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Monday 12 October 2026 13:43">Monday 12 October 2026</span>. Using Julia version 1.12.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
