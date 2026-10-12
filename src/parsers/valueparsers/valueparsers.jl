@@ -52,6 +52,7 @@ include("integer.jl")
 include("float.jl")
 include("uuid.jl")
 include("path.jl")
+include("date.jl")
 
 """
     str(; kw...)
@@ -365,6 +366,113 @@ true
 """
 path(; kw...) = PathVal{String}(; kw...)
 path(metavar::AbstractString; kw...) = PathVal{String}(; metavar = String(metavar), kw...)
+
+"""
+    dateformat(::Type{T}, format; kw...) where {T}
+    dateformat(metavar::AbstractString, ::Type{T}, format; kw...) where {T}
+
+Date and date-time value parser with a caller-supplied format.
+
+Parses one value with `parse(T, input, format)` into a `T` (typically
+`Dates.Date` or `Dates.DateTime`). The format is the grammar: extra trailing input is
+rejected, field widths may be unpadded, and missing trailing fields take
+their earliest values.
+
+# Arguments
+- `format`: a `Dates.DateFormat`, or a format string such as `"yyyy-mm-dd"`
+
+# Keywords
+- `after`: earliest accepted value (inclusive)
+- `before`: latest accepted value (inclusive)
+- `metavar::String`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse, Dates
+
+julia> iso = dateformat(Date, dateformat"yyyy-mm-dd");
+
+julia> optparse(arg(iso), ["2024-01-31"])
+2024-01-31
+```
+
+# See Also
+- [`isodate`](@ref): ISO 8601 date parser
+- [`isodatetime`](@ref): ISO 8601 date-time parser
+- [`arg`](@ref): consume a positional value using this parser
+- [`option`](@ref): consume an option value using this parser
+"""
+dateformat(::Type{T}, format; kw...) where {T} =
+    DateVal{T}(; format = _as_format(format), kw...)
+dateformat(metavar::AbstractString, ::Type{T}, format; kw...) where {T} =
+    DateVal{T}(; metavar = String(metavar), format = _as_format(format), kw...)
+
+"""
+    isodate(; kw...)
+    isodate(metavar::AbstractString; kw...)
+
+ISO 8601 date value parser.
+
+Parses a `yyyy-mm-dd` date into a `Dates.Date`, based on [`dateformat`](@ref)
+with the format `dateformat"yyyy-mm-dd"`. Field widths may be unpadded.
+
+# Keywords
+- `after`: earliest accepted date (inclusive)
+- `before`: latest accepted date (inclusive)
+- `metavar::String`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse, Dates
+
+julia> day = isodate("DATE");
+
+julia> optparse(arg(day), ["2024-01-31"])
+2024-01-31
+```
+
+# See Also
+- [`dateformat`](@ref): parser with a caller-supplied format
+- [`isodatetime`](@ref): ISO 8601 date-time parser
+"""
+isodate(; kw...) = dateformat(Date, ISODateFormat; kw...)
+isodate(metavar::AbstractString; kw...) =
+    dateformat(metavar, Date, ISODateFormat; kw...)
+
+"""
+    isodatetime(; kw...)
+    isodatetime(metavar::AbstractString; kw...)
+
+ISO 8601 date-time value parser.
+
+Parses a date-time into a `Dates.DateTime`, based on [`dateformat`](@ref)
+with the format `dateformat"yyyy-mm-ddTHH:MM:SS.s"`. Missing trailing
+fields take their earliest values, so a bare date parses as midnight. The
+separator is `T`.
+
+# Keywords
+- `after`: earliest accepted date-time (inclusive)
+- `before`: latest accepted date-time (inclusive)
+- `metavar::String`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse, Dates
+
+julia> stamp = isodatetime("DATETIME");
+
+julia> optparse(arg(stamp), ["2024-01-31T10:30"])
+2024-01-31T10:30:00
+```
+
+# See Also
+- [`dateformat`](@ref): parser with a caller-supplied format
+- [`isodate`](@ref): ISO 8601 date parser
+"""
+isodatetime(; kw...) =
+    dateformat(DateTime, ISODateTimeFormat; metavar = "DATETIME", kw...)
+isodatetime(metavar::AbstractString; kw...) =
+    dateformat(metavar, DateTime, ISODateTimeFormat; kw...)
 
 
 #### Extention stubs

@@ -70,6 +70,9 @@ flt32
 flt64
 uuid
 path
+dateformat
+isodate
+isodatetime
 ```
 
 ### Modifiers

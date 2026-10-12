@@ -10,6 +10,7 @@ include("helpers.jl")
     include("unit/valueparsers/float.jl")
     include("unit/valueparsers/uuid.jl")
     include("unit/valueparsers/path.jl")
+    include("unit/valueparsers/date.jl")
 
 end
 

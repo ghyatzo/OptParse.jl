@@ -14,6 +14,7 @@ include("core/sumresults.jl")
 using .SumResults: @?, Err, Ok, Option, Result, base, is_error, is_ok_and,
     none, some, unwrap, unwrap_error
 
+using Dates: Date, DateTime, DateFormat, ISODateFormat, ISODateTimeFormat, ISOTimeFormat, format
 using UUIDs: UUID, uuid_version
 
 using StructUtils
@@ -32,6 +33,9 @@ export
     construct,
     construct_exact,
     command,
+    dateformat,
+    isodate,
+    isodatetime,
     default,
     flag,
     flt,
