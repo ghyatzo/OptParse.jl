@@ -11,6 +11,7 @@ Primitive parsers are the leaves of the structural parser tree.
 Current primitives:
 
 - `switch`
+- `toggle`
 - `flag`
 - `option`
 - `arg`
@@ -50,7 +51,7 @@ Current modifiers:
 
 ## Priority
 
-Every parser carries a compile-time priority parameter `p`.
+Every parser carries a compile-time priority parameter `R`.
 
 This is not user-facing API, but it is an important implementation detail because
 several constructors rely on it to decide which child parser gets first shot at
@@ -59,7 +60,7 @@ the current input.
 You can inspect it via:
 
 ```julia
-priority(parser_or_type)
+OptParse.priority(parser_or_type)
 ```
 
 ### What priority is for
@@ -94,7 +95,7 @@ The current built-in parser families use these priorities:
 | --- | ---: | --- |
 | `command` | `15` | Highest built-in primitive priority; command tokens should win early. |
 | `option` | `10` | Explicit option syntax with attached value. |
-| `switch` | `9` | Required presence flag. |
+| `switch` / `toggle` | `9` | Required presence flag or positive/negative flag pair. |
 | `arg` | `5` | Positional parser; lower than explicit option, flag, or command syntax. |
 | `@constant` | `0` | Non-consuming marker parser. |
 
@@ -114,7 +115,7 @@ Wrappers and constructors currently behave as follows:
 So the effective current ordering is roughly:
 
 ```text
-command > option > switch/flag > arg > @constant
+command > option > switch/toggle/flag > arg > @constant
 ```
 
 ### Guidance for new parser families
@@ -135,7 +136,8 @@ As a rough mental model:
 
 ### `record`
 
-Implementation: `src/parsers/constructors/record.jl`
+Implementation: `src/parsers/constructors/record.jl`, with mode-specific
+implementations in `static/record.jl` and `dynamic/record.jl`.
 
 `record` is an unordered greedy scope:
 
@@ -150,7 +152,8 @@ Important implications:
 
 ### `or`
 
-Implementation: `src/parsers/constructors/or.jl`
+Implementation: `src/parsers/constructors/or.jl`, with mode-specific
+implementations in `static/or.jl` and `dynamic/or.jl`.
 
 `or` is the “first semantic branch wins” combinator.
 
@@ -164,7 +167,8 @@ Unlike `record` and `sequence`, `or` is defined primarily by source order, not b
 
 ### `sequence`
 
-Implementation: `src/parsers/constructors/tuple.jl`
+Implementation: `src/parsers/constructors/tuple.jl`, with mode-specific
+implementations in `static/tuple.jl` and `dynamic/tuple.jl`.
 
 `sequence` enforces ordered fulfillment of parser slots:
 
@@ -187,11 +191,11 @@ Implementation: `src/parsers/primitives/command.jl`
 - before command selection, it expects the command token itself
 - after selection, it delegates to the inner parser and stores inner state
 
-Its state is `Option{Option{PState}}`, which distinguishes:
+Its state is the closed sum type `CommandState{PState}`:
 
-- command never matched
-- command matched but inner parser has not started
-- command matched and inner parser has started
+- `NotMatched`: the command token has not matched
+- `MatchedEmpty`: the command matched but the child parser has not started
+- `Matched(child_state)`: the command matched and stores child state
 
 ### `repeated`
 

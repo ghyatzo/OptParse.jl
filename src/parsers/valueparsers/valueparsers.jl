@@ -103,7 +103,9 @@ str(meta::AbstractString; kw...) = StringVal{String}(; metavar = String(meta), k
 Enumerated-choice value parser.
 
 Parses one value from a fixed set of accepted strings, or from the string names of
-an enum type. Matching is case-insensitive by default.
+an enum type. Matching is case-insensitive by default. String choices return
+uppercase strings in this mode; enum choices return the corresponding enum value.
+Use `case_insensitive=false` to preserve listed string spelling and require exact case.
 
 # Keywords
 - `case_insensitive::Bool = true`: whether matching should ignore case
@@ -373,6 +375,11 @@ path(metavar::AbstractString; kw...) = PathVal{String}(; metavar = String(metava
 
 Date and date-time value parser with a caller-supplied format.
 
+!!! warning "Trimming limitation"
+    This parser does not support `juliac` trimming because the underlying
+    date/time parsing mechanism contains type instabilities.
+    It works in normal Julia applications.
+
 Parses one value with `parse(T, input, format)` into a `T` (typically
 `Dates.Date` or `Dates.DateTime`). The format is the grammar: extra trailing input is
 rejected, field widths may be unpadded, and missing trailing fields take
@@ -413,6 +420,11 @@ dateformat(metavar::AbstractString, ::Type{T}, format; kw...) where {T} =
 
 ISO 8601 date value parser.
 
+!!! warning "Trimming limitation"
+    This parser does not support `juliac` trimming because the underlying
+    date/time parsing mechanism contains type instabilities.
+    It works in normal Julia applications.
+
 Parses a `yyyy-mm-dd` date into a `Dates.Date`, based on [`dateformat`](@ref)
 with the format `dateformat"yyyy-mm-dd"`. Field widths may be unpadded.
 
@@ -444,6 +456,11 @@ isodate(metavar::AbstractString; kw...) =
     isodatetime(metavar::AbstractString; kw...)
 
 ISO 8601 date-time value parser.
+
+!!! warning "Trimming limitation"
+    This parser does not support `juliac` trimming because the underlying
+    date/time parsing mechanism contains type instabilities.
+    It works in normal Julia applications.
 
 Parses a date-time into a `Dates.DateTime`, based on [`dateformat`](@ref)
 with the format `dateformat"yyyy-mm-ddTHH:MM:SS.s"`. Missing trailing

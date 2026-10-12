@@ -11,9 +11,10 @@ It is intended for:
 
 For the user-facing API, see:
 
-- [Overview](../index.md)
+- [Getting started](../index.md)
+- [User guide](../guide.md)
 - [Examples](../examples.md)
-- [API Docstrings](../reference.md)
+- [API reference](../reference.md)
 
 ## Guide Structure
 
@@ -32,6 +33,7 @@ For the user-facing API, see:
   - how to add a parser family
   - public API / docs / test checklist
 - [Inference And Trimming](inference.md)
+  - static and dynamic specialization paths
   - concrete parser trees
   - tight state signatures
   - common inference traps
@@ -41,7 +43,7 @@ For the user-facing API, see:
 
 If you only need the shortest version:
 
-- start from a parser-family-specific state alias
+- start from a parser-family-specific state type or alias
 - keep `parse` and `complete` signatures tight
 - interact with `Context` through the helper API
 - add family-specific errors and a renderer

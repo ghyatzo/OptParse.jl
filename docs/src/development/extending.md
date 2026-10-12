@@ -13,7 +13,7 @@ The shortest path is:
 4. define the concrete value parser struct `<: AbstractValueParser{T, E}`
 5. define its call overload `(::YourValueParser)(input::String)::Result{T, E}`
 6. include it from `src/parsers/valueparsers/valueparsers.jl`
-7. add exported constructor functions and docstrings in `src/parsers/parser.jl`
+7. add constructor functions and docstrings in `src/parsers/valueparsers/valueparsers.jl`, and exports in `src/OptParse.jl`
 8. add display support in `src/display/parser_show.jl` if needed
 9. add unit tests
 10. add it to `docs/src/reference.md` if it is public
@@ -54,10 +54,10 @@ end
 
 ### Constructor placement
 
-Public constructor functions belong in `src/parsers/parser.jl`,
-not in the leaf file.
+Public value-parser constructors belong in `src/parsers/valueparsers/valueparsers.jl`,
+not in the concrete parser file.
 
-That file is the public API layer for value parsers and should contain:
+The public API layer contains:
 
 - the public constructor names
 - positional `metavar` overloads when appropriate
@@ -164,7 +164,9 @@ Before considering a parser family done, verify:
 - the public constructor exists and is exported if public
 - `show` output is useful
 - docs/examples/reference mention the new parser if public
-- tests cover both behavior and inference
+- functional tests cover both `juliac` modes
+- inference tests for complex parser operations run only in `juliac` mode
+- see [inference and trimming](inference.md) for test placement
 
 ## Display And Docstring Conventions
 
@@ -187,10 +189,10 @@ Likewise:
 - `switch(...)` should display as `switch(...)`
 - `sequence(...)` should display as `sequence(...)`
 
-One subtle exception exists right now:
+The display code handles this wrapper shape:
 
 - `flag(...)` is implemented as `default(switch(...), false)`
-- the pretty-printer special-cases this shape so public `flag(...)` still displays as `flag(...)`
+- the pretty-printer displays this shape as `flag(...)`
 
 ### Reference docs must mention exported bindings explicitly
 
@@ -199,6 +201,6 @@ Documenter will complain if:
 - an exported name has a docstring
 - but the reference page does not include it in an `@docs` block
 
-So when adding a public constructor, always update:
-
-- `docs/src/reference.md`
+When adding a public constructor, update `docs/src/reference.md`.
+Use deterministic `jldoctest` examples for public behavior. Keep incomplete
+implementation sketches in ordinary `julia` blocks.

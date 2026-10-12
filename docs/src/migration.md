@@ -81,7 +81,7 @@ parser behavior the same.
 
 | Old API | Use | Notes |
 | --- | --- | --- |
-| `argparse(parser, argv)` | `optparse(parser, argv)` | High-level throwing parse entrypoint. |
+| `argparse(parser, argv)` | `optparse(parser, argv)` | High-level parsing entrypoint. See current [error handling](guide.md#Parsing-and-errors). |
 | `tryargparse(parser, argv)` | `tryoptparse(parser, argv)` | Lower-level non-throwing parse entrypoint. |
 | `resulttype(parser)` | `valuetype(parser)` | Output-type introspection helper. |
 | `gate(...)` | `switch(...)` | Required presence parser. |

@@ -3,12 +3,14 @@ using OptParse
 
 makedocs(
     sitename = "OptParse.jl Documentation",
+    format = Documenter.HTML(; edit_link = "main"),
     checkdocs = :exports,
     pages = [
-        "index.md",
-        "Migration Guide" => "migration.md",
+        "Getting started" => "index.md",
+        "User guide" => "guide.md",
         "Examples" => "examples.md",
-        "API Docstrings" => "reference.md",
+        "API reference" => "reference.md",
+        "Migration guide" => "migration.md",
         "Development" => [
             "Overview" => "development/index.md",
             "Runtime Model" => "development/runtime.md",

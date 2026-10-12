@@ -16,7 +16,7 @@ The high-level split in the source tree is:
 - `src/parsers/valueparsers/`
   - string-to-value parsers such as `str`, `integer`, `choice`, `flt`, `uuid`, `path`
 - `src/parsers/primitives/`
-  - leaf parser families such as `switch`, `flag`, `option`, `arg`, `command`
+  - primitive parser families such as `switch`, `toggle`, `option`, `arg`, `command`
 - `src/parsers/constructors/`
   - combinators that combine child parsers such as `record`, `or`, `sequence`, `concat`, `combine`
 - `src/parsers/modifiers/`
@@ -168,6 +168,7 @@ Parsers with distinct named states use closed sum types from SumTypes.jl:
 | State type | Variants |
 | --- | --- |
 | `GateState` | `NotMatched`, `Matched` |
+| `ToggleState` | `NotMatched`, `Matched(value::Bool)` |
 | `OptionState{T, E}` | `NotMatched`, `Matched(value)`, `Invalid(error)` |
 | `ArgumentState{T, E}` | `NotMatched`, `Matched(value)`, `Invalid(error)` |
 | `CommandState{S}` | `NotMatched`, `MatchedEmpty`, `Matched(child_state)` |
@@ -204,12 +205,12 @@ Sequences store child states in a tuple. Transparent wrappers use their child's 
 
 ## Concrete Parser Trees And Why State Signatures Matter
 
-The parser tree is now made of concrete `AbstractParser` family nodes. Internal
-parser fields should stay parametric and concrete, rather than erasing children
-to abstract parser types.
+The parser tree consists of concrete `AbstractParser` family nodes. Keep child
+parser fields parametric and concrete instead of storing abstract parser types.
 
-One important consequence is that parser families must still constrain their
-`parse` and `complete` signatures to their real state invariants.
+Parser families must constrain their `parse` and `complete` signatures to their
+state invariants. The [specialization mode](inference.md#Specialization-modes)
+controls how much of this type information the runtime uses.
 
 For example:
 
@@ -273,7 +274,7 @@ function parse(
 Here the wrapper state is `WithDefaultState{S}`, but the wrapped parser operates
 on `S`. The signature must make that distinction explicit.
 
-This applies to `parse`, `complete`, `usage`, `focused_usage`, and any other
+This applies to `parse`, `complete`, `usage`, `focused_helpdoc`, and any other
 method that delegates to the child parser while relying on a particular child
 state shape.
 
@@ -340,7 +341,7 @@ As a rule of thumb:
 
 ## `Consumed`
 
-`Consumed` lives in `src/core/parseresult.jl`.
+`Consumed` lives in `src/core/consumed.jl`.
 
 It is a cheap view of consumed tokens:
 
@@ -420,8 +421,8 @@ The core pieces are:
   - `ArgGateError`, `ArgOptionError`, `ArgArgumentError`, `ArgCommandError` — primitive errors
   - `StringValError`, `IntegerValError`, `FloatValError`, etc. — value parser errors
 - `ParseException{P, E}`
-  - thrown by `optparse` in non-juliac runtime mode
-  - wraps parser, argv, and `ParseError{E}`
+  - wraps parser, argv, and `ParseError{E}` for `showerror`
+  - `optparse` prints the diagnostic to `stderr` and returns `nothing` in both modes
 
 Every parser family or value parser family should define:
 

@@ -59,7 +59,9 @@ Base.string(err::AbstractParseError) = string(ParseError(err))
 """
     ParseException
 
-Exception thrown by [`optparse`](@ref) when parsing fails.
+Parser, arguments, and structured error used to render a parse failure.
+[`optparse`](@ref) prints this diagnostic through `showerror` and returns
+`nothing`; it does not throw this exception.
 """
 struct ParseException{P <: AbstractParser, E} <: Exception
     parser::P

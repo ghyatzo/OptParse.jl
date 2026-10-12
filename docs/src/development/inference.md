@@ -1,116 +1,136 @@
-# Inference And Trimming
+# Inference and trimming
 
-OptParse is built with trimming in mind, so inference quality is not an optional
-polish step.
+OptParse supports a dynamic path for interactive Julia and a static path for
+compiled applications. Both paths use the same parser definitions and parsing semantics.
 
-## What To Test
+!!! warning "Date/time parsers are not trimmable"
+    `dateformat`, `isodate`, and `isodatetime` do not support trimming because
+    their underlying parsing mechanism contains type instabilities.
+    Setting `juliac=true` does not remove this limitation.
+    These parsers work in normal Julia applications.
 
-Current tests generally use:
+## Specialization modes
 
-- ordinary behavior tests
-- `@test_opt` for inference-sensitive paths
-- trimming integration tests under `test/trim/`
+The compile-time `juliac` preference selects the implementation:
 
-When adding a parser family, add:
+| Mode | Implementation | Purpose |
+|------|----------------|---------|
+| `juliac=false` (default) | Runtime loops and specialization barriers | Reduce compilation cost during interactive use. |
+| `juliac=true` | Fully specialized methods and generated loops | Keep parser operations inferable for trimming. |
 
-- direct primitive or family tests
-- at least one `@test_opt` on the constructor itself
-- at least one `@test_opt` through `optparse(...)`
+The parser determines its output type in both modes. The dynamic path intentionally
+uses runtime dispatch in complex constructors; it does not promise full inference
+through every parsing operation.
 
-## Common Inference Traps
+To enable static mode in an application environment:
 
-1. Loose `parse` / `complete` signatures
-2. Returning `Context` without preserving the state type parameter
-3. Hidden type changes inside helper functions
-4. Broadly typed higher-order helpers
-5. Accidental materialization into abstract containers
+```julia
+using OptParse, Preferences
+set_preferences!(OptParse, "juliac" => true)
+```
 
-## JET-Specific Lesson
+Restart Julia after changing this preference. It is read when OptParse loads,
+not for each parsing call. Use `false` to restore dynamic mode.
 
-A runtime path may be perfectly fine while JET still reports a dispatch problem if
-impossible parser-family instantiations are not ruled out by method signatures.
+The preference changes specialization, not parse-error handling.
+`optparse` prints parse errors and returns `nothing` in both modes.
 
-When that happens, check:
+### Source organization
 
-- whether the parser family method is too broadly typed
-- whether constructor invariants are being expressed in dispatch
-- whether a helper erased the state parameter from `Context{S}`
-- whether the error type `E` is properly constrained
+Each constructor has a shared API file and two implementation files.
+For example:
 
-Do not paper over this with assertions first. Tighten the family invariants first.
+- `src/parsers/constructors/record.jl`: shared methods and public wrappers
+- `src/parsers/constructors/static/record.jl`: generated implementations
+- `src/parsers/constructors/dynamic/record.jl`: runtime-loop implementations
 
-## Why Tight State Dispatch Matters
+`constructors.jl` selects these files with `@static if juliac`.
+Use compile-time selection for mode-specific implementations, not a runtime `if`.
 
-Even with a concrete parser tree, inference will consider many possible
-parser-family instantiations unless your method signatures rule impossible ones
-out early.
+### `@autospecialize`
 
-This is why a family-specific method like:
+`src/utils.jl` defines the internal `@autospecialize` macro.
+In static mode, it preserves a method's type parameters and annotations.
+In dynamic mode, it adds `@nospecialize` for selected arguments and recovers
+their type parameters inside the method.
+
+Keep the specialization barrier at these wrappers. Do not add barriers inside
+core methods that need full inference in static mode.
+Avoid sort closures that capture parser tuple types in dynamic implementations.
+Extract priorities into a plain vector before sorting.
+
+## Test placement
+
+Functional tests run in both modes. The test project sets `juliac=true`.
+`test/runtests.jl` also launches a subprocess for dynamic-mode tests.
+
+- Keep value-parser and primitive-constructor `@test_opt` checks with their unit tests
+  when those checks pass in both modes.
+- Put inference checks for complex `parse`, `complete`, and `optparse` operations
+  in `test/unit/typestability.jl`. That file runs only in static mode.
+- Do not require full inference from intentional dynamic-mode dispatch.
+- Use `test/trim/` integration tests to check compiled executables.
+
+For a new parser family, cover constructor behavior, successful parsing,
+parse failures, and completion failures. Add static-mode inference checks for
+its composition with other parsers.
+
+## State and child-parser invariants
+
+Inference depends on the relationship between the parser, its state, and its children.
+Keep child parser fields concrete and parametric. Preserve the state parameter
+through `Context` helpers.
+
+For example, an option parser constrains its state to the value type and
+value-parser error type:
 
 ```julia
 function parse(
     p::ArgOption{T, E, S},
     ctx::Context{S},
 ) where {T, E, IE <: E, S <: OptionState{T, IE}}
+    # Parser-family implementation.
+end
 ```
 
-is much better than:
+These signatures are implementation sketches, not definitions to copy into user code.
+A signature such as `parse(p::ArgOption, ctx::Context)` loses the state relationship
+and leaves inference free to consider invalid parser/state combinations.
 
-```julia
-function parse(p::ArgOption, ctx::Context)
-```
-
-The tight version:
-
-- documents the actual invariant of the family
-- trims impossible instantiations sooner
-- keeps JET focused on reachable execution paths
-- usually improves trimming behavior as well
-
-## Wrapper Child-State Invariants
-
-For wrapper parsers, also constrain the child parser type parameter.
-
-The common trap is writing a wrapper method that constrains the wrapper state but
-leaves the child parser type unconstrained:
-
-```julia
-function parse(p::ModHelp{T, E, S, P, _R}, ctx::Context{S}) where {T, E, S, P, _R}
-```
-
-Runtime construction may guarantee that `P` is a parser whose state is `S`, but
-the method signature does not say that. JET can then explore impossible
-instantiations of `P`, such as a child parser whose state does not match
-`Context{S}`.
-
-Prefer:
+For a transparent wrapper, bind the child parser to the same state:
 
 ```julia
 function parse(
-    p::ModHelp{T, E, S, P, _R},
+    p::ModHelp{T, E, S, P},
     ctx::Context{S},
-)::InnerResult{S, E} where {T, E, S, _R, P <: AbstractParser{<:Any, <:Any, S}}
+) where {T, E, S, P <: AbstractParser{T, E, S}}
+    # Delegate to the child parser.
+end
 ```
 
-For wrappers with nested child state, bind `P` to the inner state:
+For a wrapper with nested state, bind the child to the inner state:
 
 ```julia
 function complete(
-    p::ModWithDefault{T, E, WithDefaultState{S}, P, _R},
+    p::ModWithDefault{T, E, WithDefaultState{S}, P},
     state::WithDefaultState{S},
-)::Result{T, E} where {T, E, S, _R, P <: AbstractParser{<:Any, <:Any, S}}
+) where {T, E, S, P <: AbstractParser{<:Any, <:Any, S}}
+    # Complete the child state or return the default.
+end
 ```
 
-This invariant was exposed by the help information modifier wrapping `default`.
-The parser values were valid, but the unconstrained method left inference free
-to consider impossible child-state combinations.
+The wrapper uses `WithDefaultState{S}`. Its child uses `S`.
+Apply this relationship to methods that delegate to the child parser.
 
-## Current Design Notes
+## Investigate inference failures
 
-Two internal rules are worth keeping in mind while working on inference-sensitive code:
+If JET reports a dispatch problem, examine these points before adding local assertions:
 
-1. parser families should only operate on their own state shape
-2. `Context` should be updated through its helper API so the state parameter stays explicit
-3. wrapper methods should constrain child parser type parameters to the child state they delegate to
+1. Does each parser family operate only on its own state shape?
+2. Do wrapper constraints tie child parsers to the states they receive?
+3. Do context updates preserve `Context{S}` through its helper API?
+4. Does a helper erase type information or create an abstract container?
+5. Does the test run in the intended specialization mode?
 
-If inference starts to widen, look there first before adding local assertions.
+Constructor validation alone does not express these invariants to inference.
+Method signatures must also describe the relationships used by the implementation.
