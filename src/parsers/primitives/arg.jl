@@ -74,6 +74,19 @@ function parse(
         ))
     end
 
+    matched = @cases state(ctx) begin
+        NotMatched => false
+        Matched(_) => true
+        Invalid(_) => true
+    end
+
+    if matched
+        return InnerResult{ArgumentState{S, IE}, E}(innerErr(
+            ArgArgumentError(ARGUMENT_Duplicate, "", metavar(p.valparser));
+            consumed = 0
+        ))
+    end
+
     i = 0
 
     tok = peek(ctx)
@@ -99,20 +112,6 @@ function parse(
         return InnerResult{ArgumentState{S, IE}, E}(innerErr(
             ArgArgumentError(ARGUMENT_EndOfInput, "", metavar(p.valparser));
             consumed = i
-        ))
-    end
-
-    matched = @cases state(ctx) begin
-        NotMatched => false
-        Matched(_) => true
-        Invalid(_) => true
-    end
-
-    if matched
-        # The duplicate token counts as consumed, including any preceding terminator.
-        return InnerResult{ArgumentState{S, IE}, E}(innerErr(
-            ArgArgumentError(ARGUMENT_Duplicate, "", metavar(p.valparser));
-            consumed = 1 + i
         ))
     end
 

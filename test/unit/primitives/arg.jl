@@ -119,7 +119,7 @@ end
         @test is_error(result)
         err = unwrap_error(result)
         @test err.error.code == OptParse.ARGUMENT_Duplicate
-        @test res_num_consumed(err) == length(buffer)
+        @test res_num_consumed(err) == 0
     end
 end
 

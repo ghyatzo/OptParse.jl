@@ -114,10 +114,8 @@ end
         return InnerResult{S, E}(innerOk(outctx, mergedcons))
     end
 
-    if hasnone(ctx)
-        if _object_can_complete(p.parsers, state(ctx))
-            return InnerResult{S, E}(innerOk(ctx, consumed_empty(ctx)))
-        end
+    if hasnone(ctx) && _object_can_complete(p.parsers, state(ctx))
+        return InnerResult{S, E}(innerOk(ctx, consumed_empty(ctx)))
     end
 
     return InnerResult{S, E}'.innerErr(error)

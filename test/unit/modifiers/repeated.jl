@@ -300,7 +300,7 @@ end
     @test val2.ids == ["id1", "id2"]
 
     # Constraint violation: once `max` is reached, the extra positional is left
-    # to the parent parser and surfaces as no further progress at top level.
+    # to the parent parser and surfaces as an unexpected token.
     err = parse_fail(parser2, ["-t", "Title", "id1", "id2", "id3", "id4"])
     @test err isa OptParse.ConstrObjectError
     @test err.code == OptParse.OBJECT_UnexpectedToken

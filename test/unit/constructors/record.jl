@@ -139,11 +139,41 @@ end
 
     err = parse_fail(obj, ["TEST", "--host", "host", "--", "-v"])
     # the "-v" is correctly interpreted not as an option but as an argument.
-    # but we already matched the arg with the "TEST" token, so a duplicate error is raised.
-    @test err isa OptParse.ArgArgumentError
+    # The positional argument is already matched, so "-v" is unexpected.
+    @test err isa OptParse.ConstrObjectError
+    @test err.code == OptParse.OBJECT_UnexpectedToken
 
     @test parse_ok(obj, ["--host", "host", "ARG", "--"]) == (option = "host", flag = nothing, arg = "ARG")
 
+end
+
+@testset "should report unexpected tokens on extra positional arguments (#17)" begin
+    parser = record(
+        a = arg(str("A")),
+        b = arg(str("B")),
+    )
+
+    err = parse_fail(parser, ["x", "y", "z"])
+    @test err isa OptParse.ConstrObjectError
+    @test err.code == OptParse.OBJECT_UnexpectedToken
+    @test string(err) == "Unexpected option or argument: z"
+
+    # Child errors with consumed tokens take precedence over unexpected tokens.
+    parser_opt = record(
+        h = default(option("--host", str("HOST")), "localhost"),
+    )
+    err_unknown = parse_fail(parser_opt, ["--hots", "example.org"])
+    @test err_unknown isa OptParse.ConstrObjectError
+    @test err_unknown.code == OptParse.OBJECT_UnexpectedToken
+    @test string(err_unknown) == "Unexpected option or argument: --hots"
+
+    err_dup = parse_fail(parser_opt, ["--host", "a", "--host", "b"])
+    @test err_dup isa OptParse.ArgOptionError
+    @test err_dup.code == OptParse.OPTION_Duplicate
+
+    err_missing_val = parse_fail(parser_opt, ["--host"])
+    @test err_missing_val isa OptParse.ArgOptionError
+    @test err_missing_val.code == OptParse.OPTION_MissingValue
 end
 
 @testset "should handle empty input if all optional (#9)" begin
