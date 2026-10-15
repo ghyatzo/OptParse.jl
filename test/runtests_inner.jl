@@ -120,3 +120,7 @@ include("unit/core/sumresults.jl")
 @testset "Partial parser" failfast = true begin
     include("unit/partial.jl")
 end
+
+@testset "@parser" begin
+    include("unit/parser_macro.jl")
+end

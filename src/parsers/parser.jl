@@ -569,7 +569,7 @@ function _parser_macro_expand(expr)
             rhs = stmt.args[2]
             parser_name = gensym(Symbol(name, "_parser"))
             push!(parser_bindings, :(const $(parser_name) = $(rhs)))
-            push!(field_defs, :($(name)::valuetype($(parser_name))))
+            push!(field_defs, :($(name)::$(OptParse).valuetype($(parser_name))))
             push!(parser_fields, Expr(:kw, name, parser_name))
             i += 1
         elseif stmt isa AbstractString
@@ -581,9 +581,9 @@ function _parser_macro_expand(expr)
                 name = next.args[1]
                 rhs = next.args[2]
                 parser_name = gensym(Symbol(name, "_parser"))
-                parser_rhs = :($(rhs) |> help($(stmt)))
+                parser_rhs = :($(rhs) |> $(OptParse).help($(stmt)))
                 push!(parser_bindings, :(const $(parser_name) = $(parser_rhs)))
-                push!(field_defs, :($(name)::valuetype($(parser_name))))
+                push!(field_defs, :($(name)::$(OptParse).valuetype($(parser_name))))
                 push!(parser_fields, Expr(:kw, name, parser_name))
                 i += 2
             else
@@ -619,21 +619,18 @@ function _parser_macro_expand(expr)
         end
     end
 
-    parser_expr = :(construct_exact($(typeexpr), (; $(parser_fields...))))
+    parser_expr = :($(OptParse).construct_exact($(typeexpr), (; $(parser_fields...))))
     for item in post
         if item[1] === :description
-            parser_expr = :(help($(parser_expr); description = $(item[2])))
+            parser_expr = :($(OptParse).help($(parser_expr); description = $(item[2])))
         elseif item[1] === :footer
-            parser_expr = :(help($(parser_expr); footer = $(item[2])))
+            parser_expr = :($(OptParse).help($(parser_expr); footer = $(item[2])))
         else
             m = item[2]
             parser_expr = :($(m)($(parser_expr)))
         end
     end
 
-    # Build the struct expression with the AbstractLiftedParser supertype
-    # injected. The module is interpolated as a value so this works regardless
-    # of how the user imported OptParse (e.g. selective `using OptParse: @parser`).
     struct_expr = Expr(
         :struct,
         false,  # immutable
@@ -641,10 +638,6 @@ function _parser_macro_expand(expr)
         Expr(:block, field_defs...),
     )
 
-    # Define a per-type `lift` method. The module is interpolated as a value so
-    # this works regardless of how the user imported OptParse (e.g. selective
-    # `using OptParse: @parser`). The gensym'd parser bindings live in the
-    # user's module globals and are captured by the method body.
     lift_method = :($(OptParse).lift(::Type{$(typeexpr)}) = $(parser_expr))
 
     return quote
