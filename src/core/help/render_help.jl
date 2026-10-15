@@ -69,12 +69,19 @@ end
     return join(parts, "  ")
 end
 
+function _spaces(n::Int)::String
+    n <= 0 && return ""
+    buf = Base.StringVector(n)
+    fill!(buf, UInt8(' '))
+    return String(buf)
+end
+
 function render_help_entry(io::IO, entry::HelpEntry, usage_width::Int, leftpad::Int, desc_indent::Int)
     label = _help_entry_label(entry)
     annotation = _help_annotation(entry)
     brief = entry.info.brief
 
-    print(io, " "^leftpad)
+    print(io, _spaces(leftpad))
     print(io, label)
 
     if !isempty(annotation)
@@ -82,7 +89,7 @@ function render_help_entry(io::IO, entry::HelpEntry, usage_width::Int, leftpad::
         pad_to = leftpad + usage_width + gap
         current = leftpad + length(label)
         if current < pad_to
-            print(io, " "^(pad_to - current))
+            print(io, _spaces(pad_to - current))
         else
             print(io, "  ")
         end
@@ -92,9 +99,10 @@ function render_help_entry(io::IO, entry::HelpEntry, usage_width::Int, leftpad::
 
     if !isempty(brief)
         brief_lines = split(brief, '\n')
-        indent = " "^(leftpad + desc_indent)
+        indent = _spaces(leftpad + desc_indent)
         for line in brief_lines
-            println(io, indent, line)
+            print(io, indent)
+            println(io, line)
         end
     end
     println(io)
@@ -104,7 +112,8 @@ end
 function _render_help_group(io::IO, group::HelpEntryGroup, entries::Vector{HelpEntry}, leftpad::Int, desc_indent::Int)
     isempty(entries) && return nothing
 
-    println(io, _help_group_title(group), ":")
+    print(io, _help_group_title(group))
+    println(io, ":")
     usage_width = maximum(length(_help_entry_label(entry)) for entry in entries)
     for entry in entries
         render_help_entry(io, entry, usage_width, leftpad, desc_indent)

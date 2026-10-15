@@ -457,6 +457,12 @@ function @main(args::Vector{String})::Cint
     res = optparse(parser, args)
     isnothing(res) && return 1
 
+    print(Core.stdout, generate_help(parser, String[]; progname = "gitlike"))
+    print(Core.stdout, generate_help(parser, ["commit"]; progname = "gitlike"))
+    print(Core.stdout, generate_help(parser, ["clone"]; progname = "gitlike"))
+    print(Core.stdout, generate_help(parser, ["remote"]; progname = "gitlike"))
+    print(Core.stdout, generate_help(parser, ["remote", "add"]; progname = "gitlike"))
+
     println(Core.stdout, "OPTIONS")
     doaction(res.cmd)
 
@@ -470,12 +476,3 @@ end
 function doaction(obj)
     print(Core.stdout, "EVERYTHING ELSE")
 end
-
-
-# Help examples:
-#
-# print(generate_help(parser, String[]; progname = "gitlike"))
-# print(generate_help(parser, ["commit"]; progname = "gitlike"))
-# print(generate_help(parser, ["clone"]; progname = "gitlike"))
-# print(generate_help(parser, ["remote"]; progname = "gitlike"))
-# print(generate_help(parser, ["remote", "add"]; progname = "gitlike"))
