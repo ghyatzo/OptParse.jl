@@ -32,6 +32,19 @@ end
     res, out = capture_stderr(() -> runparse(p, ["-h"]; progname = "myprog", help_flags = ["-h"]))
     @test res === nothing
     @test occursin("myprog", out)
+
+    # progname is threaded to usage output on parse errors in optparse and runparse.
+    res, out = capture_stderr(() -> optparse(p, String[]; progname = "myprog"))
+    @test res === nothing
+    @test occursin("Usage: myprog", out)
+
+    res, out = capture_stderr(() -> runparse(p, ["--unknown"]; progname = "myprog"))
+    @test res === nothing
+    @test occursin("Usage: myprog", out)
+
+    res, out = capture_stderr(() -> runparse(p, ["--unknown"]; progname = "myprog", help_command = ""))
+    @test res === nothing
+    @test occursin("Usage: myprog", out)
 end
 
 @testset "runparse parsing" begin

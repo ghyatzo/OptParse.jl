@@ -366,6 +366,9 @@ end
 
     @test occursin("Unexpected option or argument: --unknown", msg)
     @test occursin("\n\nUsage: cmd subcmd [OPTIONS] <FILE>", msg)
+
+    msg_prog = sprint(showerror, OptParse.ParseException(parser, argv, err; progname = "prog"))
+    @test occursin("\n\nUsage: prog cmd subcmd [OPTIONS] <FILE>", msg_prog)
 end
 
 @testset "should keep local aggregate usage when focusing non-command alternatives" begin

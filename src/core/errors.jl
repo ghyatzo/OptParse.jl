@@ -59,21 +59,25 @@ Base.string(err::AbstractParseError) = string(ParseError(err))
 """
     ParseException
 
-Parser, arguments, and structured error used to render a parse failure.
-[`optparse`](@ref) prints this diagnostic through `showerror` and returns
-`nothing`; it does not throw this exception.
+Parser, arguments, structured error, and optional program name used to render a
+parse failure. [`optparse`](@ref) prints this diagnostic through `showerror` and
+returns `nothing`; it does not throw this exception.
 """
 struct ParseException{P <: AbstractParser, E} <: Exception
     parser::P
     argv::Vector{String}
     err::ParseError{E}
+    progname::String
 end
 
-ParseException(p::AbstractParser{<:Any, E}, argv::Vector{String}, err::AbstractParseError) where {E} =
-    ParseException{typeof(p), E}(p, argv, ParseError(err))
+ParseException{P, E}(p::P, argv::Vector{String}, err::ParseError{E}) where {P <: AbstractParser, E} =
+    ParseException{P, E}(p, argv, err, "")
 
-ParseException(p::AbstractParser{<:Any, E}, argv::Vector{String}, perr::ParseError{E2}) where {E, E2<:E} =
-    ParseException{typeof(p), E}(p, argv, perr)
+ParseException(p::AbstractParser{<:Any, E}, argv::Vector{String}, err::AbstractParseError; progname::AbstractString = "") where {E} =
+    ParseException{typeof(p), E}(p, argv, ParseError(err), String(progname))
+
+ParseException(p::AbstractParser{<:Any, E}, argv::Vector{String}, perr::ParseError{E2}; progname::AbstractString = "") where {E, E2<:E} =
+    ParseException{typeof(p), E}(p, argv, perr, String(progname))
 
 Base.showerror(io::IO, e::ParseException{P}) where {P <: AbstractParser} = let
     render_error(io, e.err)
@@ -81,5 +85,5 @@ Base.showerror(io::IO, e::ParseException{P}) where {P <: AbstractParser} = let
     println(io)
     println(io)
     print(io, "Usage: ")
-    render_usage(io, helpdoc)
+    render_usage(io, helpdoc; progname = e.progname)
 end
