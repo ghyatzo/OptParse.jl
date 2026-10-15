@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.3](https://github.com/ghyatzo/OptParse.jl/compare/v0.4.2...v0.4.3) (2026-10-15)
+
+
+### Bug Fixes
+
+* [#14](https://github.com/ghyatzo/OptParse.jl/issues/14), make [@parser](https://github.com/parser) hygenic ([93678c0](https://github.com/ghyatzo/OptParse.jl/commit/93678c060d5abbf3067d6286ef80a89976a45424))
+* [#15](https://github.com/ghyatzo/OptParse.jl/issues/15), fix trimming issues and add trim variant for help system ([f423677](https://github.com/ghyatzo/OptParse.jl/commit/f423677192a861ce434707d9061e02fedfe31be9))
+* [#16](https://github.com/ghyatzo/OptParse.jl/issues/16), show program name also on errors. ([4a6011f](https://github.com/ghyatzo/OptParse.jl/commit/4a6011f8983f1755f20a786eeaf63f9be4110d0d))
+* [#17](https://github.com/ghyatzo/OptParse.jl/issues/17), check if record object is full and improve error ([5d7e603](https://github.com/ghyatzo/OptParse.jl/commit/5d7e603630a0a8692889a023328bdae216bc77b5))
+
 ## [0.4.2](https://github.com/ghyatzo/OptParse.jl/compare/v0.4.1...v0.4.2) (2026-10-12)
 
 
