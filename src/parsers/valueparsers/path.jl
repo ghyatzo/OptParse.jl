@@ -24,7 +24,7 @@ end
 end
 
 
-(p::PathVal)(input::String) = let
+(p::PathVal)(input::AbstractString) = let
     # TODO, finish this up properly.
     !isfile(input) && return Result{String, PathValError}'.Err(PathValError(PATH_NotFound, input))
 
@@ -32,5 +32,5 @@ end
         return Result{String, PathValError}'.Err(PathValError(PATH_NotAbsolute, input))
     end
 
-    return Result{String, PathValError}'.Ok(input)
+    return Result{String, PathValError}'.Ok(String(input))
 end

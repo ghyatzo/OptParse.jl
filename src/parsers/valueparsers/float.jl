@@ -37,7 +37,7 @@ end
     allow_nan::Bool = false
 end
 
-(f::FloatVal{T})(input::String) where {T} = let
+(f::FloatVal{T})(input::AbstractString) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
         return Result{T, FloatValError}'.Err(FloatValError(FLOAT_Invalid, input, ""))

@@ -29,7 +29,7 @@ end
     max::Union{T, Nothing} = nothing
 end
 
-(iv::IntegerVal{T})(input::String) where {T} = let
+(iv::IntegerVal{T})(input::AbstractString) where {T} = let
     val = tryparse(T, input)
     if isnothing(val)
         return Result{T, IntegerValError}'.Err(IntegerValError(INTEGER_Invalid, input, ""))

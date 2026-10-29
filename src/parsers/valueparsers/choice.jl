@@ -37,7 +37,7 @@ struct ChoiceVal{T} <: AbstractValueParser{T, ChoiceValError}
     end
 end
 
-(c::ChoiceVal{T})(input::String) where {T} = let
+(c::ChoiceVal{T})(input::AbstractString) where {T} = let
     norminput = c.case_insensitive ? uppercase(input) : input
     index = findfirst(==(norminput), c.values)
 

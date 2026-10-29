@@ -25,7 +25,7 @@ end
     allow_empty::Bool = false
 end
 
-(s::StringVal)(input::String) = let
+(s::StringVal)(input::AbstractString) = let
     m = match(s.pattern, input)
     isnothing(m) && return Result{String, StringValError}'.Err(
         StringValError(STRING_InvalidPattern, input, string(s.pattern))
@@ -36,5 +36,5 @@ end
             StringValError(STRING_IsEmpty, "", "")
         )
     end
-    return Result{String, StringValError}'.Ok(input)
+    return Result{String, StringValError}'.Ok(String(input))
 end

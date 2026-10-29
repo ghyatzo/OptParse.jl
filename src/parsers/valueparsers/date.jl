@@ -41,7 +41,7 @@ end
 # The format is the grammar: `DateFormat` parsing rejects extra trailing
 # input, accepts unpadded field widths, and gives missing trailing fields
 # their earliest values.
-(dv::DateVal{T})(input::String) where {T} = let
+(dv::DateVal{T})(input::AbstractString) where {T} = let
     val = try
         Base.parse(T, input, dv.format)
     catch e

@@ -25,7 +25,7 @@ end
     allowed_versions::Vector{Int} = Int[]
 end
 
-(u::UUIDVal)(input::String)= let
+(u::UUIDVal)(input::AbstractString)= let
 
     maybeuuid = try
         UUID(input)
