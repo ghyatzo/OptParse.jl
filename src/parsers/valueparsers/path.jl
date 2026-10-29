@@ -14,7 +14,7 @@ function render_error(io::IO, err::PathValError)
     elseif err.code == PATH_NotAbsolute
         print(io, "Expected an absolute path, got '$(err.token)'")
     else
-        print(io, "unreachable")
+        @assert false "unreachable"
     end
 end
 

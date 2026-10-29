@@ -15,7 +15,7 @@ function render_error(io::IO, err::StringValError)
     elseif err.code == STRING_IsEmpty
         print(io, "Only non empty strings are allowed. Use str(allow_empty=true), if needed.")
     else
-        print(io, "unreachable")
+        @assert false "unreachable"
     end
 end
 

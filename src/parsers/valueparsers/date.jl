@@ -18,7 +18,7 @@ function render_error(io::IO, err::DateValError)
     elseif err.code == DATE_TooLate
         print(io, "Value $(err.token) is after the latest allowed date: $(err.detail)")
     else
-        print(io, "unreachable")
+        @assert false "unreachable"
     end
 end
 

@@ -15,7 +15,7 @@ function render_error(io::IO, err::UUIDValError)
     elseif err.code == UUID_WrongVersion
         print(io, "Expected a UUID of version [$(err.allowed_versions)], got version $(err.token)")
     else
-        print(io, "unreachable")
+        @assert false "unreachable"
     end
 end
 

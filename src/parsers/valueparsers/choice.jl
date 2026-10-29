@@ -12,7 +12,7 @@ function render_error(io::IO, err::ChoiceValError)
     return if err.code == CHOICE_Invalid
         print(io, "Expected one of [$(join(err.values, ','))], got $(err.got)")
     else
-        print(io, "unreachable")
+        @assert false "unreachable"
     end
 end
 

@@ -18,7 +18,7 @@ function render_error(io::IO, err::IntegerValError)
     elseif err.code == INTEGER_AboveMax
         print(io, "Value $(err.token) is above the maximum allowed: $(err.detail)")
     else
-        print(io, "unreachable")
+        @assert false "unreachable"
     end
 end
 

@@ -24,7 +24,7 @@ function render_error(io::IO, err::FloatValError)
     elseif err.code == FLOAT_NoNaN
         print(io, "NaNs are not allowed")
     else
-        print(io, "unreachable")
+        @assert false "unreachable"
     end
 end
 
