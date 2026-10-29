@@ -23,7 +23,7 @@ module SumResults
 using SumTypes
 
 export Result, Option, Ok, Err, some, none,
-    base, is_error, is_ok_and, unwrap, unwrap_error, @?
+    base, is_error, is_ok_and, or_else, unwrap, unwrap_error, @?
 
 # Payload slots use `Union{T, Nothing}` rather than `T`: `Tuple{T}` is illegal
 # for `T === Union{}` ("Tuple field type cannot be Union{}"), but
@@ -163,6 +163,16 @@ Return `true` if `x` is the success variant and `f(unwrap(x))` is `true`.
 function is_ok_and(f, x::Result)::Bool
     is_error(x) && return false
     return f(unwrap(x))::Bool
+end
+
+"""
+    or_else(f, x::Result)
+
+Return `unwrap(x)` if `x` is the success variant and `f(unwrap_error(x))` otherwise.
+"""
+function or_else(f, x::Result)
+    is_error(x) && return f(unwrap_error(x))
+    return unwrap(x)
 end
 
 """
