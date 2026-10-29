@@ -5,6 +5,34 @@ OptParse code. OptParse is still experimental, so this guide focuses on
 mechanical source changes rather than long compatibility notes. Each section is
 named after the version line that introduced the breaking changes.
 
+## 0.5.x
+
+### `path` no longer requires an existing file
+
+[`path`](@ref) now accepts any non-empty filesystem path without checking that
+it exists on disk. Use [`file`](@ref) when the input must be an existing file,
+or [`directory`](@ref) when it must be an existing directory.
+
+| Old API | Use | Notes |
+| --- | --- | --- |
+| `path("FILE")` (existing file required) | `file("FILE")` | Validates that the path exists and is a regular file. |
+| — | `directory("DIR")` | Validates that the path exists and is a directory. |
+| — | `path("OUTPUT")` | Accepts non-empty paths that may not exist yet. |
+
+Before:
+
+```julia
+input = option("-i", path("FILE"))
+```
+
+After:
+
+```julia
+input = option("-i", file("FILE"))
+output = option("-o", path("OUTPUT"))
+workdir = option("-C", directory("DIR"))
+```
+
 ## 0.4.x
 
 These changes alter the `@parser` macro syntax, the `str` value parser default,

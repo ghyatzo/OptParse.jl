@@ -141,7 +141,8 @@ Base.show(io::IO, p::UUIDVal) = let
     print(io, ")")
 end
 Base.show(io::IO, p::PathVal) = let
-    print(io, "path(")
+    name = p.kind == PATH_File ? "file" : p.kind == PATH_Directory ? "directory" : "path"
+    print(io, name, "(")
     if !isempty(p.metavar)
         print(io, p.metavar)
     end

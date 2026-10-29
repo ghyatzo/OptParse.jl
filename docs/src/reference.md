@@ -78,6 +78,8 @@ flt32
 flt64
 uuid
 path
+file
+directory
 dateformat
 isodate
 isodatetime

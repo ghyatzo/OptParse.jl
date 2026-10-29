@@ -343,32 +343,98 @@ UUID
 uuid(; kw...) = UUIDVal{UUID}(; kw...)
 uuid(metavar::AbstractString; kw...) = UUIDVal{UUID}(; metavar = String(metavar), kw...)
 
-# TODO: maybe add also file and directory
 """
     path(; kw...)
     path(metavar::AbstractString; kw...)
 
 Filesystem path value parser.
 
-Currently validates that the provided path exists as a file, and can additionally
-require the path to be absolute.
+Accepts a non-empty filesystem path without requiring that it already exists on disk,
+and can optionally require the path to be absolute. Use [`file`](@ref) or
+[`directory`](@ref) when the path must already exist as a file or directory.
 
 # Keywords
 - `absolute::Bool = false`: require an absolute path
-- `metavar::String`: placeholder used in usage/help output
+- `metavar::String = "PATH"`: placeholder used in usage/help output
 
 # Examples
 ```jldoctest
 julia> using OptParse
 
-julia> file = path("FILE");
+julia> out = path("OUTPUT");
 
-julia> file isa OptParse.AbstractValueParser{String}
-true
+julia> optparse(arg(out), ["build/out.txt"])
+"build/out.txt"
 ```
+
+# See Also
+- [`file`](@ref): existing file value parser
+- [`directory`](@ref): existing directory value parser
 """
 path(; kw...) = PathVal{String}(; kw...)
 path(metavar::AbstractString; kw...) = PathVal{String}(; metavar = String(metavar), kw...)
+
+"""
+    file(; kw...)
+    file(metavar::AbstractString; kw...)
+
+Existing file value parser.
+
+Validates that the provided path exists on disk and is a regular file, and can
+optionally require the path to be absolute.
+
+# Keywords
+- `absolute::Bool = false`: require an absolute path
+- `metavar::String = "FILE"`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> f = file("FILE");
+
+julia> f isa OptParse.AbstractValueParser{String}
+true
+```
+
+# See Also
+- [`path`](@ref): general path value parser (does not require existence)
+- [`directory`](@ref): existing directory value parser
+"""
+file(; kw...) = PathVal{String}(; metavar = "FILE", kind = PATH_File, kw...)
+file(metavar::AbstractString; kw...) =
+    PathVal{String}(; metavar = String(metavar), kind = PATH_File, kw...)
+
+"""
+    directory(; kw...)
+    directory(metavar::AbstractString; kw...)
+
+Existing directory value parser.
+
+Validates that the provided path exists on disk and is a directory, and can
+optionally require the path to be absolute.
+
+# Keywords
+- `absolute::Bool = false`: require an absolute path
+- `metavar::String = "DIR"`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> d = directory("DIR");
+
+julia> d isa OptParse.AbstractValueParser{String}
+true
+```
+
+# See Also
+- [`path`](@ref): general path value parser (does not require existence)
+- [`file`](@ref): existing file value parser
+"""
+directory(; kw...) = PathVal{String}(; metavar = "DIR", kind = PATH_Directory, kw...)
+directory(metavar::AbstractString; kw...) =
+    PathVal{String}(; metavar = String(metavar), kind = PATH_Directory, kw...)
 
 """
     dateformat(::Type{T}, format; kw...) where {T}
