@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.5.0](https://github.com/ghyatzo/OptParse.jl/compare/v0.4.3...v0.5.0) (2026-10-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* improve the `path` value parser, with specialized `file` and `directory` versions.
+
+### Features
+
+* [#19](https://github.com/ghyatzo/OptParse.jl/issues/19) Introduce a `list` value parser. ([8435f83](https://github.com/ghyatzo/OptParse.jl/commit/8435f83e8bfcf02d5458c0f891ad402fbe85dc9c))
+* improve the `path` value parser, with specialized `file` and `directory` versions. ([f1fb97c](https://github.com/ghyatzo/OptParse.jl/commit/f1fb97cd07d88889e059f73e1d1360ec6258b91b))
+* **SumResults:** adds a `or_else` helper. ([7a49488](https://github.com/ghyatzo/OptParse.jl/commit/7a49488420c63b19f947e6d5d1bd7c102d676192))
+
+
+### Bug Fixes
+
+* have value parsers accept AbstractStrings ([c9b7881](https://github.com/ghyatzo/OptParse.jl/commit/c9b78819b1737b8b5dacf343ecf2edbb807f5ca2))
+
+
+### Refactors
+
+* assert the unreachable not just print it. ([9dcc534](https://github.com/ghyatzo/OptParse.jl/commit/9dcc5342ff31d6ed7dd8146fbec9b8b945f96053))
+
 ## [0.4.3](https://github.com/ghyatzo/OptParse.jl/compare/v0.4.2...v0.4.3) (2026-10-15)
 
 
