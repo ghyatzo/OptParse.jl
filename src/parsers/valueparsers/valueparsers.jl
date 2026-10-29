@@ -53,6 +53,7 @@ include("float.jl")
 include("uuid.jl")
 include("path.jl")
 include("date.jl")
+include("list.jl")
 
 """
     str(; kw...)
@@ -491,6 +492,48 @@ isodatetime(; kw...) =
 isodatetime(metavar::AbstractString; kw...) =
     dateformat(metavar, DateTime, ISODateTimeFormat; kw...)
 
+
+"""
+    list(valparser::AbstractValueParser, num::Integer; kw...)
+    list(metavar::AbstractString, valparser::AbstractValueParser, num::Integer; kw...)
+    list(valparsers::AbstractValueParser...; kw...)
+    list(metavar::AbstractString, valparsers::AbstractValueParser...; kw...)
+
+Fixed-length delimited list value parser.
+
+Splits a single input token on `separator` and parses each element with the
+corresponding value parser, returning a `Tuple` of the parsed values. Either repeat
+a single `valparser` `num` times or supply an explicit sequence of `valparsers`.
+
+# Keywords
+- `separator::Char = ','`: character used to split the input token (cannot be `' '`)
+- `metavar::String = "LIST"`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> coords = list("COORDS", integer(), 2);
+
+julia> optparse(arg(coords), ["10,20"])
+(10, 20)
+
+julia> hostport = list("HOST:PORT", str(), integer(); separator = ':');
+
+julia> optparse(arg(hostport), ["localhost:8080"])
+("localhost", 8080)
+```
+
+# See Also
+- [`arg`](@ref): consume a positional value using this parser
+- [`option`](@ref): consume an option value using this parser
+"""
+list(valparser::AbstractValueParser, num::Integer; kw...) = ListVal(valparser, num; kw...)
+list(metavar::AbstractString, valparser::AbstractValueParser, num::Integer; kw...) =
+    ListVal(valparser, num; metavar = String(metavar), kw...)
+list(valparsers::AbstractValueParser...; kw...) = ListVal(valparsers...; kw...)
+list(metavar::AbstractString, valparsers::AbstractValueParser...; kw...) =
+    ListVal(valparsers...; metavar = String(metavar), kw...)
 
 #### Extention stubs
 

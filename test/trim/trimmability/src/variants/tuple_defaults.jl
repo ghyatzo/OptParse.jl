@@ -5,6 +5,8 @@ const parser = sequence(
     default(option("-n", "--num", integer()), 10),
     optional(switch("-v", "--verbose")),
     default(option("--mode", choice(["fast", "safe"])), "safe"),
+    optional(option("--coords", list(integer(), 2))),
+    optional(option("--bind", list(str(), integer(); separator = ':'))),
 )
 
 function @main(args::Vector{String})::Cint

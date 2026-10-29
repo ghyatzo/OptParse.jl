@@ -80,6 +80,7 @@ path
 dateformat
 isodate
 isodatetime
+list
 ```
 
 ## Modifiers

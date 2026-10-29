@@ -54,6 +54,7 @@ export
     integer,
     identifier,
     lift,
+    list,
     many,
     many1,
     record,
