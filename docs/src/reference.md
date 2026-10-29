@@ -40,6 +40,7 @@ OptParse.SumResults.none
 OptParse.SumResults.base
 OptParse.SumResults.is_error
 OptParse.SumResults.is_ok_and
+OptParse.SumResults.or_else
 OptParse.SumResults.unwrap
 OptParse.SumResults.unwrap_error
 OptParse.SumResults.@?
