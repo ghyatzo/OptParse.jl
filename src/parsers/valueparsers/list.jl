@@ -25,17 +25,22 @@ struct ListVal{T, E, P} <: AbstractValueParser{T, E}
 	separator::Char
 	subparsers::P
 
-	ListVal(valparser::AbstractValueParser, num::Int; metavar = "LIST", separator=',') = let
+	ListVal(valparser::AbstractValueParser, num::Int; metavar = nothing, separator=',') = let
 		separator == ' ' && throw(ArgumentError("Can't use space as a separator."))
 		subparsers = ntuple(_ -> valparser, num)
+		metavar = @something metavar "$num$separator$(OptParse.metavar(valparser))"
+
 		T = Tuple{map(val_t, subparsers)...}
 		E = Union{err_t(valparser), ListValError}
 		new{T, E, typeof(subparsers)}(metavar, num, separator, subparsers)
 	end
 
-	ListVal(valparsers...; metavar = "LIST", separator=',') = let
+	ListVal(valparsers...; metavar = nothing, separator=',') = let
 		separator == ' ' && throw(ArgumentError("Can't use space as a separator."))
 		types = map(val_t, valparsers)
+
+		metavar = @something metavar join(map(OptParse.metavar, valparsers), separator)
+
 		E = Union{map(err_t, valparsers)..., ListValError}
 		new{Tuple{types...}, E, typeof(valparsers)}(metavar, length(types), separator, valparsers)
 	end

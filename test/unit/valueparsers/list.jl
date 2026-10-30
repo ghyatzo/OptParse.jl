@@ -30,9 +30,13 @@ end
     @test metavar(lv) == "COORDS"
     @test (@? lv("10:20")) === (10, 20)
 
-    lv2 = list("HOST_PORT", str(), integer(); separator = ':')
-    @test metavar(lv2) == "HOST_PORT"
+    lv2 = list(str("HOST"), integer("PORT"); separator = ':')
+    @test metavar(lv2) == "HOST:PORT"
     @test (@? lv2("localhost:8080")) == ("localhost", 8080)
+
+    lv3 = list(str("KEK"), 3; separator = "_")
+    @test metavar(lv3) == "3_KEK"
+    @test (@? lv3("A_B_C")) == ("A", "B", "C")
 
     @test_throws ArgumentError list(integer(), 2; separator = ' ')
     @test_throws ArgumentError list(integer(), flt(); separator = ' ')
