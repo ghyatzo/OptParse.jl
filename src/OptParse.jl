@@ -63,6 +63,7 @@ export
     option,
     optional,
     or,
+    pair,
     path,
     print_help,
     repeated,
@@ -173,6 +174,7 @@ struct HelpRequest
 end
 
 include("utils.jl")
+include("trim_utils.jl")
 include("core/usage/usage.jl")
 include("core/help/help.jl")
 include("core/context.jl")

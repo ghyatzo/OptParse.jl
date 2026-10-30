@@ -292,6 +292,21 @@ end
 end
 
 
+@testset "pair and tuple default annotations" begin
+    for (value_parser, value) in (
+            (pair(str(), list(integer(), integer())), "x" => (1, 2)),
+            (list(integer(), integer()), (1, 2)),
+        )
+        parser = default(option("--value", value_parser), value)
+        text = string(value)
+        @test OptParse.usage(parser).annotations == ["default: " * text]
+        entries = OptParse.helpentries(parser, OptParse.root_overlay_context())
+        @test only(entries).usage.annotations == ["default: " * text]
+        @test occursin(text, generate_help(sequence(parser), String[]))
+        @test parse_ok(parser, String[]) == value
+    end
+end
+
 @testset "should be type stable" begin
     @test_opt default(option(("-p", "--port"), integer(; min = 1024, max = 0xffff)), 8080)
     @test_opt default(switch("-d", "--debug"), false)

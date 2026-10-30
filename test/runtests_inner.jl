@@ -12,6 +12,7 @@ include("helpers.jl")
     include("unit/valueparsers/path.jl")
     include("unit/valueparsers/date.jl")
     include("unit/valueparsers/list.jl")
+    include("unit/valueparsers/pair.jl")
 
 end
 
@@ -111,6 +112,8 @@ end
 @testset "Help annotation" failfast = true begin
     include("unit/core/help/choices.jl")
 end
+
+include("unit/core/trim_utils.jl")
 
 @testset "@autospecialize" begin
     include("unit/core/autospecialize.jl")

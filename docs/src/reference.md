@@ -84,6 +84,7 @@ dateformat
 isodate
 isodatetime
 list
+pair
 ```
 
 ## Modifiers

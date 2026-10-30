@@ -23,7 +23,7 @@ struct ModWithDefault{T, E, S, P, R} <: AbstractParser{T, E, S, P, R}
 end
 
 @autospecialize p usage(p::ModWithDefault) = p.show_default ?
-    UsageDefault(usage(p.parser), string(p.default)) :
+    UsageDefault(usage(p.parser), _trim_string(p.default)) :
     UsageOptional(usage(p.parser))
 
 @autospecialize p function helpentries(p::ModWithDefault, rt::OverlayContext)
@@ -38,7 +38,7 @@ end
 
         entry = helpentries(child, rt)[1]
         new_usage = p.show_default ?
-            UsageDefault(entry.usage, string(p.default)) :
+            UsageDefault(entry.usage, _trim_string(p.default)) :
             UsageOptional(entry.usage)
         HelpEntry[@set entry.usage = new_usage]
     else

@@ -1,6 +1,6 @@
 @testset "ListVal homogeneous" begin
     lv = list(integer(min = 0, max = 100), 3)
-    @test metavar(lv) == "LIST"
+    @test metavar(lv) == "3,INTEGER"
     @test (@? lv("10,20,30")) === (10, 20, 30)
 
     err_few = lv("10,20")
@@ -34,7 +34,7 @@ end
     @test metavar(lv2) == "HOST:PORT"
     @test (@? lv2("localhost:8080")) == ("localhost", 8080)
 
-    lv3 = list(str("KEK"), 3; separator = "_")
+    lv3 = list(str("KEK"), 3; separator = '_')
     @test metavar(lv3) == "3_KEK"
     @test (@? lv3("A_B_C")) == ("A", "B", "C")
 

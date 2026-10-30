@@ -54,6 +54,7 @@ include("uuid.jl")
 include("path.jl")
 include("date.jl")
 include("list.jl")
+include("pair.jl")
 
 """
     str(; kw...)
@@ -600,6 +601,45 @@ list(metavar::AbstractString, valparser::AbstractValueParser, num::Integer; kw..
 list(valparsers::AbstractValueParser...; kw...) = ListVal(valparsers...; kw...)
 list(metavar::AbstractString, valparsers::AbstractValueParser...; kw...) =
     ListVal(valparsers...; metavar = String(metavar), kw...)
+
+"""
+    pair(first::AbstractValueParser, second::AbstractValueParser; kw...)
+    pair(metavar::AbstractString, first::AbstractValueParser, second::AbstractValueParser; kw...)
+
+Delimited pair value parser.
+
+Splits one input token on `separator` and parses the two elements with `first` and `second`.
+Returns a `Pair` with the parsed values. The default `'='` separator lets a pair contain a list
+that uses the default comma separator.
+
+# Keywords
+- `separator::Char = '='`: character used to split the input token (cannot be `' '`)
+- `metavar::String`: placeholder used in usage/help output
+
+# Examples
+```jldoctest
+julia> using OptParse
+
+julia> hostport = pair("HOST:PORT", str(), integer(); separator = ':');
+
+julia> optparse(arg(hostport), ["localhost:8080"])
+"localhost" => 8080
+
+julia> coords = pair(str(), list(integer(), integer()));
+
+julia> optparse(arg(coords), ["origin=0,0"])
+"origin" => (0, 0)
+```
+
+# See Also
+- [`list`](@ref): parse a fixed-length tuple
+- [`arg`](@ref): consume a positional value using this parser
+- [`option`](@ref): consume an option value using this parser
+"""
+pair(first::AbstractValueParser, second::AbstractValueParser; kw...) =
+    PairVal(first, second; kw...)
+pair(metavar::AbstractString, first::AbstractValueParser, second::AbstractValueParser; kw...) =
+    PairVal(first, second; metavar = String(metavar), kw...)
 
 #### Extention stubs
 
