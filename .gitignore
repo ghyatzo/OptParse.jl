@@ -37,6 +37,6 @@ RELEASE_NOTES.md
 scripts/
 
 test/SuppositionDB/
-test/trimmability/build
+test/trim/trimmability/build
 
 examples/*/build
